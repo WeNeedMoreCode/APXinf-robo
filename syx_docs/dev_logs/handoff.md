@@ -6,7 +6,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径 C 阶段：executor 镜像（B）已完成且真权重冒烟跑通前 3 算子，当前卡点是大矩阵 matmul（aclnnMatmul ND 路径 MTE 越界、WeightNz 310P 不支持）。第一动作：按 roadmap「C 阶段核心卡点」节的三条假设排查——先试 mat2 转置 stride（shape [N,K] + stride [1,K] 同一块内存），再开日志跑 torch_npu 同 shape matmul 拿 kernel ground truth。读 syx_docs/plans/npu-port-roadmap.md 卡点节 + summary/2026-09-18_executor-mirror-and-nz-battle.md。
+继续 APXinf 昇腾 NPU Rust 路径 C 阶段序列污染排查：四波实验已归档（转置 b 已是生产路径、崩点=op25 down matmul、K 与 PFA 均无罪），剩余 4 个数据搬运类嫌疑。**第一动作：跑已写好的 `matmul_layout_probe` 的 variant 5（全序列复刻，本地已写好、未同步服务器）——tar 同步 apxinf-ascend 后 `cargo run --example matmul_layout_probe --release`，崩在哪个 seg 打印停在哪段，即锁定污染步。** 读 roadmap「C 阶段核心卡点」节 + summary/2026-09-18_executor-mirror-and-nz-battle.md。
 
 ## ③ Export 标题建议
 
