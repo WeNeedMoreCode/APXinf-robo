@@ -70,7 +70,8 @@
 - [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）——结构侦察已完成（2026-09-17）**：
   - **可零改动复用**：`pi05/bf16_runtime.rs`（690 行，`&dyn Backend` 全程，downcast=0）+ `bf16_weights.rs`（权重上传走 `backend.to_device`，BF16 输入经我们 to_device 自动转 F16）+ config.rs
   - **唯一 cuda 绑定层**：`vla_runtime.rs`（1013 行）——持有 `Arc<CudaBackend>` 具体类型、`context().tuning()` 调优缓存、cuda `DeviceBuffer::alloc_zeros`、load 入口 `downcast_arc` 硬门（741 行 "only registered for CUDA"）。Ascend 版需写 vla_runtime 的镜像（预处理逻辑设备无关可抄，cuda 类型/tuning 替换为 AscendBackend + 桩）
-  - **实际 trait 方法面缺口小**：vla 用 `create_normal_generator`（flow noise——Ascend 用 host RNG 实现即可）；rope/embedding/sdpa/kv_cache 在 pi05 路径中**未被调用**（后置）
+  - **实际 trait 方法面缺口小**：~~vla 用 `create_normal_generator`~~ **已完成（4ea8249）**：`AscendNormalGenerator`（core 的 `standard_normal_f32` Philox + f16 转换 + h2d，与 CPU backend 同契约）；rope/embedding/sdpa/kv_cache 在 pi05 路径中**未被调用**（后置）
+  - **bf16_runtime 的唯一 cuda 依赖**：`use apxinf_cuda::CudaArchFamily`（1 处，kernel 变体选择）——抽象掉后 bf16_runtime 即可在 ascend 门下编译复用
   - mod.rs 全文件 `#[cfg(feature="cuda")]` 门需加 ascend 分支
   - 完成后 random-weights bench → checkpoint bench → LIBERO 对标
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
