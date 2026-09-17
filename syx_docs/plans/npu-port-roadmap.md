@@ -67,7 +67,12 @@
 - [x] **PFA attention（a925b9a）**：`aclnnPromptFlashAttentionV3`（老版 2026-12 弃用，直接绑 V3）；全量无 mask BNSD，quant 槽位 null；对拍 CPU softmax-attention 1.4e-3
 - [x] **AscendBackend 实现 Backend trait（9d82b6c）**：matmul/add/mul/scale/silu/rms_norm（融合 add_rms_norm + 零 buffer 复用）/synchronize/**begin/end_capture（ACLGraph 走通 Box\<dyn Graph\>）**/to_device/to_cpu（f32↔f16，ModelZoo 语义）。Storage 复用 Gpu 槽位（Arc\<DeviceBuffer\> 塞 _prevent_leak，downcast_ref 借回）。rope/embedding/kv-cache/sampling 为显式 "queued" 错误臂。backend_smoke：matmul 0.0 / silu 7.9e-4 / rms_norm 9.3e-4 / capture-replay ✓
 - [x] **feature 挂接 + M2 构建半（06f2b60）**：`ascend` feature 贯通元包/apxinf-py（cuda 同构）；9.0.1 容器验证 `cargo check --features ascend`、`check -p apxinf-py --features ascend`、**`build --release -p apxinf-py --features ascend`（cdylib）** 全过
-- [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）**：pi05/backend.rs 的 Ascend 版（对照 cuda 版逐段：权重加载 + NZ 化（aclnnMatmulWeightNz）、rope（aclnnApplyRotaryPosEmbV2 语义试错）、embedding（gather 系）、flow 采样（host RNG 先行）、图捕获热路径。完成后 random-weights bench → checkpoint bench → LIBERO 对标
+- [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）——结构侦察已完成（2026-09-17）**：
+  - **可零改动复用**：`pi05/bf16_runtime.rs`（690 行，`&dyn Backend` 全程，downcast=0）+ `bf16_weights.rs`（权重上传走 `backend.to_device`，BF16 输入经我们 to_device 自动转 F16）+ config.rs
+  - **唯一 cuda 绑定层**：`vla_runtime.rs`（1013 行）——持有 `Arc<CudaBackend>` 具体类型、`context().tuning()` 调优缓存、cuda `DeviceBuffer::alloc_zeros`、load 入口 `downcast_arc` 硬门（741 行 "only registered for CUDA"）。Ascend 版需写 vla_runtime 的镜像（预处理逻辑设备无关可抄，cuda 类型/tuning 替换为 AscendBackend + 桩）
+  - **实际 trait 方法面缺口小**：vla 用 `create_normal_generator`（flow noise——Ascend 用 host RNG 实现即可）；rope/embedding/sdpa/kv_cache 在 pi05 路径中**未被调用**（后置）
+  - mod.rs 全文件 `#[cfg(feature="cuda")]` 门需加 ascend 分支
+  - 完成后 random-weights bench → checkpoint bench → LIBERO 对标
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
