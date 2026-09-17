@@ -19,6 +19,7 @@
 | GPU 和 NPU 推理结果有差异，不知是代码 bug 还是硬件 fp16 舍入 | 第 11 章 |
 | 平均延迟比 bench 高好几倍（如 1378ms vs 375ms），但单看分布又正常 | 第 12 章 |
 | 两次对拍结果永远差一点，不知多小算"等价" | 第 12 章 |
+| aclnn 算子报 161002"参数非法"但参数明明符合头文件文档 / 某算子后进程莫名 segfault | 第 13 章 |
 
 ---
 
@@ -917,6 +918,46 @@ CPU 没有原生 fp16 运算单元，PyTorch 在 CPU 上用 fp32 做中间计算
 
 任何 torchair/图编译模型的 bench 与精度对拍都适用；12.2 对 eager 模式同样成立
 （aclnn 调度非确定与图无关）。
+
+## 13. aclnn 算子"文档说支持，芯片上没有" + 容器类资源的隐藏所有权
+
+（310P3 / CANN 8.5.1 & 9.0.1 实测，2026-09，Rust 直调 aclnn）
+
+### 13.1 算子二进制按 SoC 裁剪，头文件 dtype 列表不可信
+
+**现象**：`aclnnGelu` 直接 core dump；`aclnnFastGelu` 返回 161002
+（`ACLNN_ERR_PARAM_INVALID`——名字误导）。头文件明写支持 fp16/fp32/bf16。
+
+**定位**：开设备日志跑最小 probe——
+`ASCEND_GLOBAL_LOG_LEVEL=1 ASCEND_SLOG_PRINT_TO_STDOUT=1`，grep ERROR 拿到铁证：
+
+```
+[CheckDtypeValid] Tensor self not implemented for DT_FLOAT16,
+should be in dtype support list []
+```
+
+**支持列表为空 = 该 op 在此 SoC 的算子包里没编译**（fp32 同样为空；8.5.1/9.0.1
+都一样）。头文件的 dtype 列表是全系列文档。
+
+**解法**：找 torch_npu 的真实分发路径（它在此芯片上工作）——`strings
+libtorch_npu.so | grep -i <op名>` 找变体（本案：`GeluV2`）→ `aclnnGeluV2(x,
+approximate, y)` 是唯一活口（tanh/erf 双模式真机验证）。
+
+### 13.2 TensorList 类容器的隐藏所有权（延迟爆炸）
+
+**现象**：`aclnnCat` 用 `aclCreateTensorList`（持有子 aclTensor* 数组）成功
+执行；**之后任何新算子的 plan 阶段 segfault**。二分定位（gelu 单跑/加法后/
+euler 后全绿，cat 后必崩）才锁定 cat。
+
+**根因**：`aclDestroyTensorList` 会**连带释放子描述符**；若子描述符另有
+RAII 包装（Drop 再 destroy 一次）→ double-destroy → 进程内 acl tensor
+注册表损坏 → 后续算子 plan 撞坏内存。崩点远离案发现场，极难直觉定位。
+
+**解法**：容器类（TensorList/ScalarList）的子对象所有权归容器——子描述符
+的 RAII 包装用 `std::mem::forget` 让渡，或干脆不包装。
+
+**通用性**：任何"op A 成功、之后无关的 op B 无故 segfault"先怀疑前序 op
+的资源 double-free；二分法（逐步追加前序 op）是定位利器。
 
 
 
