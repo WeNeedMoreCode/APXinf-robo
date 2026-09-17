@@ -6,7 +6,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径**性能优化阶段**（正确性主干已收：`ASCEND_CHECKPOINT_SMOKE_OK` 真 checkpoint 全深度 1600/1600 有限、稳态 1.93s）。第一动作按 roadmap「优化待办」①：消除 ada-norm 的 `host_f16_row` d2h+sync（把 (1+style) scale 行与 shift 行在 styles 预备阶段物化成设备 buffer 传入 `adaptive_rms`，删掉每步 540 次流打断），跑 `ascend_checkpoint_smoke` 对比稳态延迟。之后 ②ACLGraph 捕获（先完成 ① 才可能）③ launch 批处理。
+继续 APXinf 昇腾 NPU Rust 路径 ACLGraph 捕获收尾（正确性主干全收；arena/三段式已落地：捕获窗口已干净穿过 vision/embed/prefix/action 层到 denoise step 0 的 euler 区，见子模块 54ceb77）。第一动作：跑 `ascend_graph_capture_smoke`（ASCEND_RT_VISIBLE_DEVICES=5，2GB arena 已设）——当前唯一残留是窗口内 aclnn 内部 h2d（107030），出现在 action_out matmul mark 与 euler mark 之间；取证法：给 `euler_update_fp16` 的 4 个子算子（muls/add/muls/add）逐个加 mark 二分，并检查 aclnnMuls/aclScalar 在捕获模式下的生命周期语义（aclnn 内部 memcpy 是当前最大嫌疑）。捕获跑通后接 replay 对拍（smoke 已写好 max_diff<0.05 断言），再接 checkpoint smoke 稳态对比量化收益。
 
 ## ③ Export 标题建议
 
