@@ -641,6 +641,7 @@ out = compiled(x, ...)                 # 用法与 torch.compile 产物一致
 | `Op X does not has any binary` | 算子缺少预编译内核 | 选择性 JIT 或全局 `jit_compile=True` |
 | 编译后精度显著退化 | 2D tensor 使用低精度内核 | 添加假 batch 维度（unsqueeze） |
 | `torch.split` 动态 shape | `.tolist()` 创建数据依赖 shape | monkey-patch 用 reshape 替代 |
+| `Unsupported: Logger not supported` | 模块级 `logging.Logger`（transformers 的 `warning_once`）被 trace；常因 checkpoint 带训练期状态（`gradient_checkpointing=True`）或未 `.eval()` 使 warning 分支变热路径 | 加载后 `gradient_checkpointing_disable()` + `.eval()` 治本；分支躲不开时把模块 `logger` 换成 no-op 普通对象（`_SilentLogger`，Dynamo 可内联追踪普通对象）——详见 [references/compiler_constraints.md](references/compiler_constraints.md) 第 6 章 |
 
 ---
 

@@ -283,13 +283,14 @@ NotImplementedError: torch.ops.aten.atan2.default ge_converter is not implemente
 [ERROR] ... ERR03007 GRAPH feature not supported
 ```
 
-### 三类图障碍速查（先分类再动手）
+### 图障碍速查（先分类再动手）
 
 | 类别 | 报错形态 | eager 表现 | 处理 |
 |---|---|---|---|
 | 硬件缺算子 | `EZ1001 ... has no binary` | **eager 也炸** | jit_compile 局部开 / 换实现（如 bool mask→float mask 避开 MHA fast path） |
 | 图不支持动态 shape | `ERR03007` / `GuardOnDataDependentSymNode` | eager 正常 | 第 1~4 章的等价改写 |
 | **GE 无转换器** | `ge_converter is not implemented`（op 名在报错里） | **eager 正常** | 见下 |
+| **Logger 对象** | `Unsupported: Logger not supported` | eager 正常 | 第 6 章（disable+eval 治本 / _SilentLogger 替换） |
 
 第三类的含义：硬件有这个算子、eager 跑得好好的，但 torchair 的 GE 后端**没写这个
 ATen op 的图转换器**。已实测踩到的：`atan2`（torchair 7.2，CANN 8.3RC1）。
@@ -308,3 +309,53 @@ ATen op 的图转换器**。已实测踩到的：`atan2`（torchair 7.2，CANN 8
 三角函数/坐标变换类（atan2、极坐标）出现在位置编码、heading 处理、空间变换的模型
 （机器人 / 自动驾驶 / 轨迹预测）里概率很高。遇到报错先查 op 名，确认是第三类再按
 最小段外提处理，不要盲目整模块放弃图化。
+
+## 6. 第四类图障碍：`logging.Logger`（warning 分支被追踪）
+
+### 报错
+
+```
+torch._dynamo.exc.Unsupported: Logger not supported
+```
+
+torchair fullgraph 编译 HuggingFace transformers 系模型时出现。
+
+### 根因（两层叠加）
+
+1. Dynamo 不能 trace `logging.Logger` 对象——transformers 模块级的
+   `logger.warning_once(...)` 一旦落在被追踪路径上就炸
+2. 这些 warning 分支在纯推理下本不该触发，但两个常见原因让它变成热路径：
+   - **checkpoint 带着训练期状态**（如 `gradient_checkpointing=True`）——加载后没
+     显式 disable，对应 warning 的条件为真，分支进 trace
+   - 没有显式 `.eval()`——训练期逻辑分支留在路径上
+
+### 解法（双层，先治本）
+
+1. **治本——让分支条件不成立**：加载后立即
+   ```python
+   policy.model.gradient_checkpointing_disable()
+   policy.eval()
+   ```
+2. **治标（条件无法消除时）——把模块 logger 换成 no-op 普通对象**。Dynamo 能内联
+   追踪普通对象的方法调用，不能处理 `logging.Logger`：
+   ```python
+   class _SilentLogger:
+       def __getattr__(self, name):
+           return lambda *a, **k: None
+
+   import transformers.models.gemma.modeling_gemma as gemma_mod
+   gemma_mod.logger = _SilentLogger()   # siglip 等同理，按报错栈定位模块
+   ```
+   运行时猴子补丁，**不动第三方库文件**——容器/环境保持原样，可复现性不受影响。
+
+### 实测案例
+
+π0.5（LeRobot `PI05Policy` + torchair fullgraph，CANN 8.5.1，2026-09）：transformers
+修复分支两处 `warning_once` 触发此错——gradient_checkpointing 警告（checkpoint 带
+训练期状态所致）与 inputs_embeds padding 警告（每次 forward 必经）。disable+eval 消掉
+前者，`_SilentLogger` 消掉后者；fullgraph 编译正常，e2e 稳态 374ms。
+
+### 通用性
+
+任何 transformers 模型（尤其从训练 checkpoint 直接加载做推理）+ fullgraph 编译都可能
+踩。先 disable+eval，仍报 Logger 再按报错栈找模块打 _SilentLogger。

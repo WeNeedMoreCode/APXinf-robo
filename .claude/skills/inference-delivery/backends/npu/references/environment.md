@@ -74,6 +74,24 @@ conda create -n <env名> python=<版本> -y
 
 **注意**：`pip config list` 看镜像用的 pip 源——通常是 `https://repo.huaweicloud.com/repository/pypi/simple`，torch_npu wheel 从这个源装。
 
+### CANN 容器通用踩坑（共享服务器 / 大陆网络，2026-09 实测）
+
+1. **PYTHONPATH 只能追加不能覆盖**：CANN 镜像自带 PYTHONPATH 含 GE 图编译要用的
+   `tbe` 等路径。`export PYTHONPATH=新值` 覆盖后 GE 初始化报
+   `No module named 'tbe'` → `AclSetCompileopt error 500001`。必须
+   `export PYTHONPATH=你的路径:$PYTHONPATH`。
+2. **pip 源选择**：清华源对部分包（setuptools/modelscope）返回 403，用阿里云
+   `https://mirrors.aliyun.com/pypi/simple/`。GitHub 直连常失败：git clone 加
+   `https://gh-proxy.com/` 前缀；HuggingFace 用 `HF_ENDPOINT=https://hf-mirror.com`。
+3. **共享服务器挑空闲芯**：跑前 `npu-smi info` 看显存占用，用
+   `export ASCEND_RT_VISIBLE_DEVICES=N` 绑空闲芯——别人容器泄漏/占用的显存不会
+   释放，换芯比清显存快。
+4. **可编辑安装的包会劫持后续所有 pip 安装**：`pip install -e` 的包若元数据带钉版
+   （如 `torch<2.8`），之后**任何** pip install 都会全环境重解依赖，把镜像里配好
+   的 torch/torch_npu 版本对连锁降级打坏。解法：改该包 `pyproject.toml` 放宽钉版，
+   `pip install --no-deps -e .` 刷新元数据，再装其余依赖；装完 `pip show torch
+   torch_npu` 复核版本没被动过。
+
 ## 宿主机 ↔ 容器协作
 
 `/home` 两边共享，所以：
