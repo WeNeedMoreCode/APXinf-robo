@@ -107,6 +107,19 @@ transformers 修复分支（4.53.3 fix/lerobot_openpi）相对 ModelZoo 测试�
 
 大陆服务器直连 github 常失败。用代理前缀：`git clone https://gh-proxy.com/https://github.com/owner/repo.git`，或配全局 `insteadOf`。详见 remote-ssh-windows skill 的 operations.md「远程服务器拉 github 仓」节。
 
+### 本地（Windows）代理
+
+用户 VPN 监听 `127.0.0.1:6518`（HTTP），终端不读系统代理设置，显式 `curl -x http://127.0.0.1:6518 ...` 或 `export https_proxy=http://127.0.0.1:6518`。git 走代理：`git -c http.proxy=http://127.0.0.1:6518 ...`。
+
+### Rust 工具链（阶段 2，2026-09-17 定稿）
+
+- **服务器 Rust 1.85.0**（`/data/apxinf/rust/bin/`）：本地经代理 6518 下载 standalone（489MB/75s）→ ssh 管道传容器 → `./install.sh --prefix=/data/apxinf/rust --components=cargo,rustc,rust-std-aarch64-unknown-linux-gnu`（**注意**：standalone 的 install.sh 不认 `--disable-components`，要用 `--components=` 点名）。用前 `export PATH=/data/apxinf/rust/bin:$PATH`
+- **apt 的 cargo 1.75 不可用**：上游 `Cargo.lock` v4 需 ≥1.78，且 lock 锁的依赖（rayon-core 1.13 等）MSRV ≥1.80——降级 lock 是无底洞，直接上 1.85
+- **国内 Rust dist 镜像全灭**（aarch64 tarball）：USTC/清华 404 或假 200（HTML），rsproxy HEAD 200 但 GET 504；官方源到服务器 ~9KB/s。**唯一可行路径 = 本地代理下载 + 传输**
+- **crates.io 依赖走 rsproxy sparse**（`/root/.cargo/config.toml` 已配 `[source.crates-io] replace-with = rsproxy-sparse, registry = sparse+https://rsproxy.cn/index/`）——否则 cargo 默认 git index 卡死
+- 引擎仓服务器副本：`/data/apxinf/apxinf_engine`（tar 传输，无 .git；**改完本地代码必须重传**，同 robo_src 纪律）；编译 `cargo check -p apxinf-core -p apxinf-ascend -p apxinf-model -p apxinf-py`（勿 `--workspace`：apxinf-cuda 的 build.rs 要 nvcc）
+- `apxinf-ascend` 冒烟：`cd crates/apxinf-ascend && ASCEND_RT_VISIBLE_DEVICES=N LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/lib64:$LD_LIBRARY_PATH cargo run --example smoke --release`
+
 ## 本地仓库
 
 | 项 | 值 |
