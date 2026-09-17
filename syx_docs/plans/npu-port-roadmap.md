@@ -105,7 +105,7 @@
         - `pi05-ascend` 注册（builtin.rs → `pi05::register_builtin_ascend` → `ascend_vla::load_registered`：Arc\<dyn Backend\> 经 as_any downcast 还原 Arc\<AscendBackend\>（镜像 cuda seam），synthetic/safetensors 共用设备无关 host 权重管线）。`ASCEND_REGISTRY_SMOKE_OK`——AutoModel → LoadedModel::Vla → trait 对象推理，**全深度（27/18/18）随机权重**通过
         - **`ASCEND_CHECKPOINT_SMOKE_OK`——真 checkpoint**（LeRobot 7GB safetensors，`/data/apxinf/weights/pi05_libero_finetuned`）：加载 125s（bf16 解析+f16 上传）、首调 63.2s（惰性转置缓存）、**稳态 1.93s**、1600/1600 有限。placeholder token ids（真 tokenizer 随 LIBERO 集成落地）
         - **阶段 2 主干全部贯通 = M2 完整（构建半+运行半），M3 起跑线就位**
-      - **优化待办（性能阶段，目标对标 378ms torch_npu 基线，当前 1.93s = 5.1×）**。**瓶颈实测定位（2026-09-18 收官）**：ada-norm style 缓存（已做，`cache.style_rows`）收益≈0 → d2h/sync 只占 ~27ms/1.4%；**大头是 per-op 两段式 launch + workspace malloc**（全深度 ~4600 op × ~400µs ≈ 1.8s，与稳态吻合）。优先级：① **workspace 复用**（two_stage 按 ws_size 缓存，消除每 op 的 malloc/延迟释放往返——预计最大单项收益）② **ACLGraph 捕获**（launch 一次化；ada-norm host 读已缓存化、kv_bias 仍需预切到加载期）③ rope 组合换单算子（V2 变体）④ 常量提升（euler 的 muls/add 链可融合）
+      - **优化待办（性能阶段，目标对标 378ms torch_npu 基线，当前 1.90s）**。**瓶颈实测排除法（2026-09-18 收官）**：ada-norm style 缓存（已做）收益≈0（d2h/sync 仅 ~27ms/1.4%）；workspace 复用（已做，`two_stage` 走 scratch 池，顺带消除 workspace UAF）1.93→1.90s（~2%）→ **剩余大头 = plan 阶段 host 开销（每 op GetWorkspaceSize/tiling ~400µs × ~4600 op）**。优先级：① **ACLGraph 捕获**（一次捕获多次回放，跳过全部 plan——唯一能吃掉大头的路径；前置：kv_bias 预切到加载期、rope pos 索引按 tokens 缓存、style 行缓存已就位）② rope 组合换单算子（V2 变体）③ euler 链融合
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
