@@ -74,7 +74,7 @@
 | 1 | GEMM | cuBLAS/CUTLASS（bf16/fp8/w8a8） | aclnnMatmul + FRACTAL_NZ 权重布局 | NZ 转换时机（load 时 vs 首算） |
 | 2 | Attention | FMHA/FA | aclnnFusionAttention | 310P3 支持的头数/head_dim 组合待验证 |
 | 3 | 融合 kernel | ada_gate_residual_rms_norm / qkv_rope / euler_update 等 | 拆基础算子 → AscendC 自研 | 性能差距主要来源 |
-| 4 | 图捕获 | CUDA Graph | 无直接等价 | host 录制回放的语义正确性 |
+| 4 | 图捕获 | CUDA Graph | **ACLGraph（`aclmdlRI*`）** | **已真芯验证**（2026-09-17：CANN 9.0.1 容器 + 现有宿主驱动，三模式 capture→replay 全绿；8.5.1 runtime 未激活返回 207000——闸门是 CANN 版本非驱动，双容器策略无需停机） |
 | 5 | 精度 | BF16/FP8/INT8 | FP16/INT8 | FP16 溢出风险（norm 前 probe） |
 | 6 | RoPE | 自研 kernel | aclnnRotaryMul（= npu_rotary_mul） | qkv_rope 融合形态 |
 | 7 | 采样/flow steps | device 侧 | 基础算子序列 | 延迟占比小，后置 |
