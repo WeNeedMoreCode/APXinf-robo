@@ -64,7 +64,10 @@
 - [x] **graph.rs：ACLGraph capture/replay（53ec764）**：aclmdlRI* FFI + `AscendStream`/`AscendGraph` RAII + abort；graph_smoke 三模式（GLOBAL/THREAD_LOCAL/RELAXED）真芯验证 replay 回写 pattern
 - [x] **tensor.rs + 第一个计算算子 aclnnMatmul（5804a92）**：`AclTensor` ND 描述符 RAII（fp16/fp32）；matmul_fp16 两段式 + workspace；对拍 CPU fp32 参考误差 4.8e-4。链接面：aclnn 在 **libopapi.so**（非 libascendcl）+ 传递依赖 libnnopbase.so
 - [x] **元素/融合算子组（450f801）**：add（aclScalar alpha RAII）、silu、add_rms_norm（融合三输出，rstd 隐藏分配）+ `two_stage` 共享 runner；误差 2e-4~1e-3。踩坑：rstdOut 必须 2-D [rows,1]，1-D 报误导性 561103（NULLPTR 名不副实）
-- [ ] **下一批**：PFA attention（310P 限制清单见 torchair skill：fp16-only、scale_value、S 16 对齐、atten_mask True=屏蔽）+ rope（aclnnApplyRotaryPosEmbV2 或 ModelZoo 私有 npu_rotary_mul 路线）+ embedding → Backend trait 实现 + feature 挂接 → M2（random-weights bench）
+- [x] **PFA attention（a925b9a）**：`aclnnPromptFlashAttentionV3`（老版 2026-12 弃用，直接绑 V3）；全量无 mask BNSD，quant 槽位 null；对拍 CPU softmax-attention 1.4e-3
+- [x] **AscendBackend 实现 Backend trait（9d82b6c）**：matmul/add/mul/scale/silu/rms_norm（融合 add_rms_norm + 零 buffer 复用）/synchronize/**begin/end_capture（ACLGraph 走通 Box\<dyn Graph\>）**/to_device/to_cpu（f32↔f16，ModelZoo 语义）。Storage 复用 Gpu 槽位（Arc\<DeviceBuffer\> 塞 _prevent_leak，downcast_ref 借回）。rope/embedding/kv-cache/sampling 为显式 "queued" 错误臂。backend_smoke：matmul 0.0 / silu 7.9e-4 / rms_norm 9.3e-4 / capture-replay ✓
+- [x] **feature 挂接 + M2 构建半（06f2b60）**：`ascend` feature 贯通元包/apxinf-py（cuda 同构）；9.0.1 容器验证 `cargo check --features ascend`、`check -p apxinf-py --features ascend`、**`build --release -p apxinf-py --features ascend`（cdylib）** 全过
+- [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）**：pi05/backend.rs 的 Ascend 版（对照 cuda 版逐段：权重加载 + NZ 化（aclnnMatmulWeightNz）、rope（aclnnApplyRotaryPosEmbV2 语义试错）、embedding（gather 系）、flow 采样（host RNG 先行）、图捕获热路径。完成后 random-weights bench → checkpoint bench → LIBERO 对标
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
