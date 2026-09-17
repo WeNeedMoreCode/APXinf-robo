@@ -1,12 +1,12 @@
-# Handoff（2026-09-18 深夜更新，compact 用）
+# Handoff（2026-09-18 收官更新，compact 用）
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：E 阶段任务（注册链：accelerator Device::Ascend 分派 → load → Pi05AscendVlaRuntime + py 暴露）；服务器操作三件套（ssh、ASCEND_RT_VISIBLE_DEVICES=5、tar 同步后必 touch）；apxinf_rust 9.0.1 容器与 rust_env.sh；子模块双仓两步提交；异步生命期纪律（aclrtFree 不按 stream 排序——scratch 池 + 延迟释放两机制，ACLGraph 接入时注意 capture 窗口内 flush）。丢弃：matmul 战役细节（roadmap + skill 13.4 + summary 已归档）。
+聚焦保留：**阶段 2 主干已全部贯通**（C executor+runtime / D vla / E 注册 / F bench = M2 完整；真 checkpoint 1.93s 稳态 vs 378ms 基线）；优化待办清单（roadmap 末节 ①-⑤：ada-norm host 读消除 → ACLGraph → launch 批处理）；服务器操作三件套（ssh、ASCEND_RT_VISIBLE_DEVICES=5、tar 同步后必 touch）；异步生命期纪律（scratch 池 + 延迟释放，ACLGraph capture 窗口注意）；子模块双仓两步提交。丢弃：C-F 各 bug 排查过程（summary/2026-09-18_c-to-f-stages.md + roadmap 已归档）。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径 **E 阶段：注册链**（D+F 已完成——`Pi05AscendVlaRuntime` 走 VlaRuntime trait，`ASCEND_RANDOM_BENCH p50=197.5ms` depth 2/2/2 = M2 运行半达成）。第一动作：读 `apxinf-model/src/auto.rs` 与 `accelerator.rs` 的 CUDA 注册链（`load_registered` + `LoadedModel::Vla`），给 `Device::Ascend` 镜像同构注册（synthetic + safetensors 两条加载路径 → StaticBf16Pi05Weights::from_host(ascend) → Pi05AscendRuntime → Pi05AscendVlaRuntime），然后 apxinf-py 暴露。完成后跑全深度 random bench + 真 checkpoint（/data/apxinf/weights/pi05_libero_finetuned）。
+继续 APXinf 昇腾 NPU Rust 路径**性能优化阶段**（正确性主干已收：`ASCEND_CHECKPOINT_SMOKE_OK` 真 checkpoint 全深度 1600/1600 有限、稳态 1.93s）。第一动作按 roadmap「优化待办」①：消除 ada-norm 的 `host_f16_row` d2h+sync（把 (1+style) scale 行与 shift 行在 styles 预备阶段物化成设备 buffer 传入 `adaptive_rms`，删掉每步 540 次流打断），跑 `ascend_checkpoint_smoke` 对比稳态延迟。之后 ②ACLGraph 捕获（先完成 ① 才可能）③ launch 批处理。
 
 ## ③ Export 标题建议
 
