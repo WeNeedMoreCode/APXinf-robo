@@ -95,6 +95,12 @@
         5. **zeros 按字节分配**：两处 vision layer-norm 传了元素数（buffer 减半）
         6. bias_add None 分支恒等拷贝参数非法；M 对齐规则泛化（宽 N × 非 16 倍 M 崩：812/820/828×N≥16384 全崩、832 全过 → 无条件 pad 到 16 倍数）
       - **C 剩余**（matmul 已通）：~~ascend_runtime.rs 镜像~~ ✓（eager 全通）→ D vla 镜像 → E 注册 → F bench = M2 运行半
+      - **✅ D+F 完成（2026-09-18 深夜）：`ASCEND_RANDOM_BENCH p50=197.5ms`（n=20，depth 2/2/2 真实宽度）= M2 运行半达成**。新增 `ascend_vla.rs`（`Pi05AscendVlaRuntime`：VlaRuntime trait 的 eager 实现——patches 输入、core RNG 噪声、时间嵌入一次性构建；rgb-u8 patchify/tuning/capture 桩化）+ `ascend_random_bench` example（走 prepare/run 真实接口）。**连跑无 sync 的 bench 揭出两个异步生命期地雷并修复**：
+        1. **scratch 复用池**（`AscendContext::scratch_buf`，按大小缓存永不释放）：rope pos/cos/sin、ada-norm style 行、M-pad 暂存、kv-bias 切片等短命 buffer 曾在喂给异步 op 后立即 drop——aclrtFree **不按 stream 排序**；单 stream 顺序执行保证同尺寸复用安全
+        2. **op 输出延迟释放**：`DeviceBuffer::drop` 改为 park 到全局 pending 列表，`AscendStream::synchronize` 排空队列后统一 free——中间量（q/k/attn/proj/…）曾边排队边被 free 再被下一 malloc 复用（sdma copy error 0x217）。⚠ ACLGraph 接入时需处理 capture 窗口内的 flush 语义
+        3. **ada-norm 语义对齐 cuda kernel**（normalization.cuh 铁证）：`y = rms(x)·(1+style[0:w]) + style[w:2w]`——style 投影是 [w, 3w] 且带 **shift 加法段**（此前镜像漏掉）
+        4. q/k/v/mlp bias 可选化（synthetic 权重无 bias）
+      - **E 剩余**：mod.rs/auto 注册链（accelerator 分派 Device::Ascend → load → Pi05AscendVlaRuntime）+ py 绑定暴露；之后 = 全深度 random bench + 真 checkpoint 加载（M3 前置）
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
