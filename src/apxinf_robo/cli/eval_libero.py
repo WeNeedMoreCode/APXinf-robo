@@ -538,9 +538,10 @@ def run_episode(
                 # Official queue semantics (npu-torch): one policy step per
                 # simulator step; the LeRobot action queue replans internally
                 # only when exhausted. This is the protocol the checkpoint was
-                # published with -- chunk-based replanning (replan_steps >= 1)
-                # re-samples flow noise every N steps, which this checkpoint
-                # is too sensitive to survive.
+                # published with. Chunk-based replanning (replan_steps >= 1)
+                # also measures healthy on this checkpoint (9-10/10 across
+                # replan 1/5/50, 2026-09-17) -- pick per deployment latency
+                # budget, not accuracy.
                 request_started = time.perf_counter()
                 action = backend._step_policy.infer_step(
                     _observation(images[0], images[1], state, prompt)

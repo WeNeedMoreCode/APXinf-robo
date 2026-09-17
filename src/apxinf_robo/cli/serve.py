@@ -353,6 +353,13 @@ def run(args: argparse.Namespace) -> None:
                 tokenizer_dir=args.tokenizer,
                 metadata=metadata,
             )
+            # Compile the TorchAir graphs before accepting connections: the
+            # first real call otherwise blocks the event loop for ~100s of
+            # compilation, during which websocket pings go unanswered and
+            # clients time out. After warmup the worst per-request block is
+            # one steady-state inference (~0.4s), well under any ping timeout.
+            logging.info("warming up npu-torch policy (TorchAir compile) before serving")
+            policy.warmup()
             server = websocket_server(policy, args.host, args.port)
             try:
                 server.serve_forever()

@@ -47,10 +47,11 @@
 
 **官方协议复测**（10 任务 × init[0]，replan=0，chip5，`/data/apxinf/mask_fix_eval.log` + `summary_mask_fix.json`）：**4/10**（task 0=143 步/1=123/5=175/8=276 成功），修复前 0/10——mask 根因坐实。**残余差距 4/10 vs 官方 9/10 待查**，下一步候选：核对官方 9/10 当次的确切条件（init/seed/成功判定——官方为视频帧数判定 vs 我们 env.check_success 接触判定；判定口径本身可能贡献差距）、flow steps/超参、以及失败集（2/3/4/6/7/9，全部 520 步打满）的行为 trace。
 
-**其他待办**：
-- 修复后的 replan 1/5/50 重测（此前结果全被归一化 bug 污染作废）
-- bench 数字复测（预计不变）
-- websocket 首请求编译期 ping 超时（客户端 ping_interval=None 已绕过，生产化处理）
+**其他待办 → 已收尾（2026-09-17 晚，阶段 1 全部完成）**：
+
+- **replan 1/5/50 重测**（10 任务 × init[0]，chips 5/6/7 并行）：replan=0 → **9/10**（挂 task 7）；replan=1 → **8/10**（挂 task 4、9；每步重采样噪声暴露最大）；replan=5 → **9/10**（挂 task 6）；replan=50 → **10/10**。四种配置失败任务各不相同且 ≤2——与"残余失败为采样随机性"结论一致；旧注释"该 checkpoint 对 noise 重采样敏感"系污染数据误报，已从代码删除
+- **bench 复测**：model_ms P50 376.0 / P90 378.3（修复前 376.4/378+）——不变，确认两处修复不动热路径；warmup 104.9s 单列未污染样本（`bench_npu_refix.json`）
+- **websocket ping 生产化**：`serve --engine npu-torch` 加载后、监听前调 `warmup()`（编译前置）；实测日志顺序 `warming up` → 98s → `server listening`，客户端首请求 infer_ms **381**（稳态，非 100s+ 编译），loop 最长阻塞 ~0.4s << ping 超时，客户端无需再设 `ping_interval=None`
 
 ## 阶段 2：Rust 原生 apxinf-ascend（逐个过相异点）
 
