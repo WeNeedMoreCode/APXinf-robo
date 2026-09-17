@@ -8,10 +8,15 @@
 
 ## 关键路径
 
-- 本地仓：`D:\compass\APXinf`（git@github.com:WeNeedMoreCode/APXinf-robo.git，`apxinf/` 子模块 infinigence/ApxInf）
+- 本地仓：`D:\compass\APXinf`（git@github.com:WeNeedMoreCode/APXinf-robo.git）
+- `apxinf/` 子模块：git@github.com:WeNeedMoreCode/ApxInf.git 的 `ascend-port` 分支（fork 自 infinigence/ApxInf；Rust 引擎本体，阶段 2 的改动都在这里提交）
 - 远程服务器：`root@192.168.13.119`（连接方法见 `syx_docs/setup.md`）
 - ModelZoo π0.5 参考实现：`d:\compass\modelzoo\ModelZoo-PyTorch\ACL_PyTorch\built-in\embodied_ai\vla\pi05_openpi\`
 - 文档导航：`syx_docs/README.md`
+
+## 子模块纪律（勿踩）
+
+引擎改动两步走，缺一不可：① `apxinf/` 内 commit 并 `git push`（fork/ascend-port）；② 回外层仓 `git add apxinf` bump gitlink 并 commit。只做 ①，队友 clone 下来构建的仍是旧引擎。
 
 ## Compact Instructions
 
