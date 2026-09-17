@@ -959,6 +959,23 @@ RAII 包装（Drop 再 destroy 一次）→ double-destroy → 进程内 acl ten
 **通用性**：任何"op A 成功、之后无关的 op B 无故 segfault"先怀疑前序 op
 的资源 double-free；二分法（逐步追加前序 op）是定位利器。
 
+### 13.3 融合 RoPE 的 head_dim 白名单（比 gelu 更隐蔽的 SoC 裁剪）
+
+同一战役第三坑：`aclnnApplyRotaryPosEmb`（layout=1 BSND）tiling 阶段硬约束
+**head_dim ∈ {64,128}**；`aclnnRotaryPositionEmbedding`（mode=0 half）约束
+**∈ {32,64,96,128}**——都由设备日志 `[tiling.cpp] current soc only support
+d = ...` 拿到铁证。而 π0.5 用 256（language/action）和 72（vision），两个
+融合入口全灭。
+
+**解法（组合实现为主路径而非退路）**：RoPE = `gather(x, rot_idx)`（通道维
+索引重排，dim=1 + 1 维 index，实测 bit-exact）+ `mul ×2 + add`，rotate-half
+的符号**在 host 侧折进 sin 表**——因为 **aclnnMul 拒绝零步长广播描述符而
+aclnnAdd 接受**（同族算子广播能力不一致，又一个"文档不写的差异"）。
+
+**教训**：SoC 算子白名单不止 dtype 一个维度，**shape 参数（head_dim 等）
+也有硬白名单**，且每个变体算子的白名单不同。设计时先跑最小 probe 用真实
+模型的 shape，不要用玩具 shape 验证后外推。
+
 
 
 
