@@ -131,7 +131,16 @@ def add_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         "processor state uses LeRobot-compatible identity transforms.",
     )
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--precision", choices=("auto", "fp8", "bf16", "int8"), default="bf16")
+    parser.add_argument(
+        "--engine",
+        choices=("apxinf", "npu-torch"),
+        default="apxinf",
+        help="which implementation serves the policy: 'apxinf' (default) is the "
+        "Rust/CUDA engine; 'npu-torch' runs LeRobot PI0.5 on Ascend NPU via "
+        "torch_npu (310P3, fp16, needs --tokenizer pointing at the paligemma "
+        "tokenizer directory)",
+    )
+    parser.add_argument("--precision", choices=("auto", "fp8", "bf16", "int8", "fp16"), default="bf16")
     parser.add_argument(
         "--calibration",
         type=pathlib.Path,
@@ -223,6 +232,8 @@ def run(args: argparse.Namespace) -> None:
         raise ValueError("pass --model-dir, or --random-weights for a checkpoint-free engine")
     if args.random_weights and args.model_dir is not None:
         raise ValueError("--random-weights is checkpoint-free; do not also pass --model-dir")
+    if args.engine == "npu-torch" and args.random_weights:
+        raise ValueError("--random-weights is an apxinf-engine feature; npu-torch needs a checkpoint")
 
     preset = get_robot_preset(args.robot)
     image_keys = args.image_keys if args.image_keys is not None else preset.image_keys
@@ -316,6 +327,41 @@ def run(args: argparse.Namespace) -> None:
             metadata={**metadata, "robot": preset.name, "robot_steps": False},
         )
     else:
+        if args.engine == "npu-torch":
+            # The Rust engine's preflight asserts its own checkpoint conventions
+            # (openpi tokenizer discovery, norm_stats layout) that a LeRobot
+            # directory does not follow; the torch_npu policy validates what it
+            # consumes (feature names, view count, state) at load time instead.
+            if args.precision not in ("fp16", "auto"):
+                raise ValueError(
+                    f"npu-torch on 310P3 serves fp16 only; got --precision {args.precision}"
+                )
+            logging.info(
+                "loading npu-torch policy in-process from %s as robot=%s",
+                args.model_dir,
+                preset.describe(),
+            )
+            policy = build_robot_policy(
+                preset.name,
+                args.model_dir,
+                engine="npu-torch",
+                image_keys=image_keys,
+                state_key=state_key,
+                discrete_state=discrete_state,
+                action_dim=args.action_dim,
+                precision="fp16",
+                tokenizer_dir=args.tokenizer,
+                metadata=metadata,
+            )
+            server = websocket_server(policy, args.host, args.port)
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                logging.info("shutting down")
+            finally:
+                policy.close()
+            return
+
         # Validate checkpoint and embodiment metadata before loading weights.
         findings = check_checkpoint(
             args.model_dir,

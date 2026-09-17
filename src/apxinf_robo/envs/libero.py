@@ -26,6 +26,7 @@ __all__ = [
     "quat_to_axis_angle",
     "libero_images",
     "libero_state",
+    "libero_state_lerobot",
     "make_env",
     "to_apxinf_observation",
 ]
@@ -57,6 +58,29 @@ def libero_state(observation) -> np.ndarray:
             observation["robot0_eef_pos"],
             quat_to_axis_angle(observation["robot0_eef_quat"]),
             gripper[:1],
+        )
+    ).astype(np.float32, copy=False)
+
+
+def libero_state_lerobot(observation) -> np.ndarray:
+    """8-value state in LeRobot's LIBERO convention: pos(3) + axis-angle(3) + both
+    finger positions(2).
+
+    Mirrors ``lerobot.processor.env_processor.LiberoProcessorStep`` exactly --
+    that is what checkpoints fine-tuned on ``HuggingFaceVLA/libero`` (the
+    LeRobot-format LIBERO datasets, e.g. ``pi05_libero_finetuned``) consumed at
+    training time. The npu-torch engine loads those checkpoints and expects
+    this layout; the 7-value :func:`libero_state` variant belongs to the
+    openpi-format checkpoints the Rust engine serves.
+    """
+    gripper = np.asarray(observation["robot0_gripper_qpos"]).reshape(-1)
+    if gripper.size != 2:
+        raise ValueError(f"robot0_gripper_qpos must have 2 values, got {gripper.size}")
+    return np.concatenate(
+        (
+            observation["robot0_eef_pos"],
+            quat_to_axis_angle(observation["robot0_eef_quat"]),
+            gripper,
         )
     ).astype(np.float32, copy=False)
 

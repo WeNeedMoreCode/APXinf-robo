@@ -50,7 +50,7 @@ from typing import Optional, Protocol, Tuple
 
 import numpy as np
 
-from ..envs.libero import libero_images, libero_state, make_env
+from ..envs.libero import libero_images, libero_state, libero_state_lerobot, make_env
 
 # --- rollout protocol constants (OpenPI's public PI0.5 LIBERO configuration) ---
 LIBERO_ACTION_DIM = 7
@@ -389,9 +389,18 @@ class InProcessBackend:
             "discrete_state": args.discrete_state,
             "seed": args.model_seed if args.model_seed is not None else args.seed,
         }
+        if args.engine == "npu-torch":
+            # Rust-engine-only knobs are dropped; the torch_npu policy owns its
+            # flow-step count, norm handling, and tokenizer discovery.
+            options = {
+                name: value
+                for name, value in options.items()
+                if name in ("tokenizer_path", "discrete_state")
+            }
         convention = libero_convention()
         self._policy = load_policy(
             args.model_dir,
+            engine=args.engine,
             model_type=args.model_type,
             device=args.device,
             precision=args.precision,
@@ -407,6 +416,17 @@ class InProcessBackend:
             **{name: value for name, value in options.items() if value is not None},
         )
         self.metadata = dict(getattr(self._policy, "metadata", {}))
+        # Step-wise official semantics for npu-torch (see run_episode): expose
+        # the queue-based single-action path on the backend.
+        self._step_policy = self._policy
+        if args.engine == "npu-torch":
+            # Compile the TorchAir graphs before the first rollout: without this
+            # the first replan pays ~100s of compilation and per-call averages
+            # over the episode fold it into every call (observed mean 1384ms
+            # vs the true steady-state ~381ms).
+            warmup = getattr(self._policy, "warmup", None)
+            if callable(warmup):
+                warmup()
 
     def infer(
         self, base, wrist, state, prompt, noise=None
@@ -430,8 +450,13 @@ class InProcessBackend:
 
 def build_backend(args: argparse.Namespace) -> Backend:
     if args.backend == "websocket":
-        return WebsocketBackend(args.host, args.port, args.precision)
-    return InProcessBackend(args)
+        backend = WebsocketBackend(args.host, args.port, args.precision)
+    else:
+        backend = InProcessBackend(args)
+    # The rollout loop reads this to pick the state convention: npu-torch serves
+    # LeRobot-format checkpoints (8-value state), the Rust engine openpi ones (7).
+    backend.engine = args.engine
+    return backend
 
 
 # --- rollout ------------------------------------------------------------------
@@ -454,6 +479,16 @@ def run_episode(
 ) -> dict:
     episode_started = time.perf_counter()
     env.reset()
+    # Episode boundary: stateful policies (the npu-torch LeRobot wrapper) keep
+    # an internal action queue across episodes -- without a reset the first
+    # steps of this episode replay stale actions from the previous episode's
+    # tail. State-less backends simply have no reset and are skipped.
+    step_policy = getattr(backend, "_step_policy", None)
+    if step_policy is not None and hasattr(step_policy, "reset"):
+        step_policy.reset()
+    if os.environ.get("APXINF_DUMP_FRAME"):
+        print(f"[init-debug] initial_state type={type(initial_state)} "
+              f"head={np.asarray(initial_state).reshape(-1)[:6]}", flush=True)
     observation = env.set_init_state(initial_state)
     dummy_action = [0.0] * 6 + [settle_gripper]
     for _ in range(WAIT_STEPS):
@@ -489,71 +524,96 @@ def run_episode(
                 observation["agentview_image"],
                 observation["robot0_eye_in_hand_image"],
             )
-            state = libero_state(observation)
+            # The npu-torch engine serves LeRobot-format checkpoints trained on
+            # HuggingFaceVLA/libero, whose state is pos+axis-angle+BOTH fingers
+            # (8); the Rust engine's openpi checkpoints use one finger (7).
+            state = (
+                libero_state_lerobot(observation)
+                if getattr(backend, "engine", None) == "npu-torch"
+                else libero_state(observation)
+            )
             preprocess_seconds += time.perf_counter() - preprocess_started
 
-            noise = None
-            if warm_start and previous_normalized_chunk is not None:
-                shift = np.empty_like(previous_normalized_chunk)
-                replan = min(replan_steps, shift.shape[0])
-                if replan < shift.shape[0]:
-                    shift[: shift.shape[0] - replan] = previous_normalized_chunk[replan:]
-                shift[shift.shape[0] - replan :] = previous_normalized_chunk[-1]
-                epsilon = rng.standard_normal(previous_normalized_chunk.shape).astype(np.float32)
-                noise = np.ascontiguousarray(
-                    warm_start_alpha * shift + (1.0 - warm_start_alpha) * epsilon,
-                    dtype=np.float32,
+            if replan_steps == 0:
+                # Official queue semantics (npu-torch): one policy step per
+                # simulator step; the LeRobot action queue replans internally
+                # only when exhausted. This is the protocol the checkpoint was
+                # published with -- chunk-based replanning (replan_steps >= 1)
+                # re-samples flow noise every N steps, which this checkpoint
+                # is too sensitive to survive.
+                request_started = time.perf_counter()
+                action = backend._step_policy.infer_step(
+                    _observation(images[0], images[1], state, prompt)
                 )
-                warm_start_replans += 1
-                if warm_noise_checksum is None:
-                    warm_noise_checksum = float(np.abs(noise).sum())
-
-            request_started = time.perf_counter()
-            actions, normalized_actions, timing = backend.infer(
-                images[0], images[1], state, prompt, noise=noise
-            )
-            round_trip_seconds = time.perf_counter() - request_started
-            inference_seconds += round_trip_seconds
-            # The action horizon is a checkpoint property (metadata ``action_horizon``),
-            # not a fixed 10: the public OpenPI pi0.5 LIBERO config emits H=10, but the
-            # native ``pi05_libero_base`` checkpoints emit H=50. The rollout only
-            # consumes ``REPLAN_STEPS`` actions per chunk, so any horizon >=
-            # REPLAN_STEPS is valid; we only require the correct action width.
-            if (
-                actions.ndim != 2
-                or actions.shape[1] != LIBERO_ACTION_DIM
-                or actions.shape[0] < replan_steps
-            ):
-                raise ValueError(
-                    f"expected actions (>= {replan_steps}, {LIBERO_ACTION_DIM}), "
-                    f"got {actions.shape}"
-                )
-            if not np.isfinite(actions).all():
-                raise FloatingPointError("backend returned non-finite actions")
-            if warm_start:
-                if normalized_actions is None:
-                    raise RuntimeError("warm-start requires backend normalized_actions")
-                if normalized_actions.ndim != 2:
-                    raise ValueError(
-                        f"expected normalized actions [H, D], got {normalized_actions.shape}"
+                round_trip_seconds = time.perf_counter() - request_started
+                inference_seconds += round_trip_seconds
+                if first_action_checksum is None:
+                    first_action_checksum = float(np.abs(action).sum())
+                action_plan.append(action)
+                replans += 1
+            else:
+                noise = None
+                if warm_start and previous_normalized_chunk is not None:
+                    shift = np.empty_like(previous_normalized_chunk)
+                    replan = min(replan_steps, shift.shape[0])
+                    if replan < shift.shape[0]:
+                        shift[: shift.shape[0] - replan] = previous_normalized_chunk[replan:]
+                    shift[shift.shape[0] - replan :] = previous_normalized_chunk[-1]
+                    epsilon = rng.standard_normal(previous_normalized_chunk.shape).astype(np.float32)
+                    noise = np.ascontiguousarray(
+                        warm_start_alpha * shift + (1.0 - warm_start_alpha) * epsilon,
+                        dtype=np.float32,
                     )
-                if not np.isfinite(normalized_actions).all():
-                    raise FloatingPointError("backend returned non-finite normalized actions")
-                previous_normalized_chunk = np.ascontiguousarray(
-                    normalized_actions, dtype=np.float32
-                )
+                    warm_start_replans += 1
+                    if warm_noise_checksum is None:
+                        warm_noise_checksum = float(np.abs(noise).sum())
 
-            segment_model = float(timing.get("model_seconds", 0.0))
-            segment_processor = float(timing.get("server_processor_seconds", 0.0))
-            model_seconds += segment_model
-            server_processor_seconds += segment_processor
-            transport_seconds += max(
-                0.0, round_trip_seconds - segment_model - segment_processor
-            )
-            if first_action_checksum is None:
-                first_action_checksum = float(np.abs(actions).sum())
-            action_plan.extend(actions[:replan_steps])
-            replans += 1
+                request_started = time.perf_counter()
+                actions, normalized_actions, timing = backend.infer(
+                    images[0], images[1], state, prompt, noise=noise
+                )
+                round_trip_seconds = time.perf_counter() - request_started
+                inference_seconds += round_trip_seconds
+                # The action horizon is a checkpoint property (metadata ``action_horizon``),
+                # not a fixed 10: the public OpenPI pi0.5 LIBERO config emits H=10, but the
+                # native ``pi05_libero_base`` checkpoints emit H=50. The rollout only
+                # consumes ``REPLAN_STEPS`` actions per chunk, so any horizon >=
+                # REPLAN_STEPS is valid; we only require the correct action width.
+                if (
+                    actions.ndim != 2
+                    or actions.shape[1] != LIBERO_ACTION_DIM
+                    or actions.shape[0] < replan_steps
+                ):
+                    raise ValueError(
+                        f"expected actions (>= {replan_steps}, {LIBERO_ACTION_DIM}), "
+                        f"got {actions.shape}"
+                    )
+                if not np.isfinite(actions).all():
+                    raise FloatingPointError("backend returned non-finite actions")
+                if warm_start:
+                    if normalized_actions is None:
+                        raise RuntimeError("warm-start requires backend normalized_actions")
+                    if normalized_actions.ndim != 2:
+                        raise ValueError(
+                            f"expected normalized actions [H, D], got {normalized_actions.shape}"
+                        )
+                    if not np.isfinite(normalized_actions).all():
+                        raise FloatingPointError("backend returned non-finite normalized actions")
+                    previous_normalized_chunk = np.ascontiguousarray(
+                        normalized_actions, dtype=np.float32
+                    )
+
+                segment_model = float(timing.get("model_seconds", 0.0))
+                segment_processor = float(timing.get("server_processor_seconds", 0.0))
+                model_seconds += segment_model
+                server_processor_seconds += segment_processor
+                transport_seconds += max(
+                    0.0, round_trip_seconds - segment_model - segment_processor
+                )
+                if first_action_checksum is None:
+                    first_action_checksum = float(np.abs(actions).sum())
+                action_plan.extend(actions[:replan_steps])
+                replans += 1
 
         action = action_plan.popleft()
         observation, _, done, _ = env.step(action.tolist())
@@ -601,7 +661,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--backend", choices=("websocket", "in-process"), required=True,
         help="reach the model through a running server, or build it in-process",
     )
-    parser.add_argument("--precision", choices=("fp8", "bf16", "int8"), required=True)
+    parser.add_argument("--precision", choices=("fp8", "bf16", "int8", "fp16"), required=True)
     parser.add_argument("--suite", default="libero_10", choices=(*ALL_SUITES, "all"))
     parser.add_argument(
         "--tasks", default="all",
@@ -636,6 +696,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     in_process = parser.add_argument_group("in-process backend")
     in_process.add_argument("--model-dir", type=pathlib.Path)
+    in_process.add_argument(
+        "--engine",
+        choices=("apxinf", "npu-torch"),
+        default="apxinf",
+        help="policy implementation behind the in-process backend: 'apxinf' "
+        "(default, Rust/CUDA) or 'npu-torch' (LeRobot PI0.5 on Ascend NPU via "
+        "torch_npu; pairs with --precision fp16 and --tokenizer)",
+    )
     in_process.add_argument("--model-type", default=None, help="override config.json model type")
     in_process.add_argument("--checkpoint", type=pathlib.Path)
     in_process.add_argument("--device", default="cuda:0")
@@ -746,8 +814,12 @@ def parse_args(argv=None) -> argparse.Namespace:
                 f"--action-horizon must be >= {args.replan_steps} (the rollout consumes "
                 f"{args.replan_steps} actions per chunk)"
             )
-    if args.replan_steps <= 0:
-        parser.error("--replan-steps must be positive")
+    if args.replan_steps < 0:
+        parser.error("--replan-steps must be >= 0 (0 = official queue semantics)")
+    if args.replan_steps == 0 and args.engine != "npu-torch":
+        parser.error(
+            "--replan-steps 0 (official queue semantics) is an npu-torch engine mode"
+        )
     if args.trials_per_task <= 0 or args.trials_per_task > 50:
         parser.error("--trials-per-task must be in 1..=50")
     return args

@@ -108,7 +108,23 @@ def load_policy(model_dir, **kwargs):
     ``kwargs`` reach the policy's ``from_pretrained`` unchanged — ``image_keys``
     / ``state_key`` / ``prompt_key`` / ``discrete_state`` / ``action_dim`` /
     ``device`` / ``precision`` / ``model_type`` / ``metadata`` / ...
+
+    ``engine=`` selects which implementation serves the request:
+
+    ``"apxinf"`` (default)
+        The Rust/CUDA engine via ``apxinf.AutoPolicy.from_pretrained``.
+    ``"npu-torch"``
+        Ascend NPU via LeRobot PI0.5 on torch_npu (phase-1 of the NPU port;
+        LeRobot-format checkpoints). Routed before ``apxinf`` is touched so a
+        CUDA-less install can still serve NPU.
     """
+    engine = kwargs.pop("engine", "apxinf")
+    if engine == "npu-torch":
+        from .npu_torch import NpuTorchPi05Policy
+
+        return NpuTorchPi05Policy(model_dir, **kwargs)
+    if engine != "apxinf":
+        raise ValueError(f"unknown engine {engine!r}; known: 'apxinf', 'npu-torch'")
     apxinf = require_apxinf()
     return apxinf.AutoPolicy.from_pretrained(model_dir, **kwargs)
 
