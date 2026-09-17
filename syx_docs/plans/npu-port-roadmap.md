@@ -58,8 +58,13 @@
 - [x] **工具链 + FFI 地基验证（2026-09-17 晚，M2 第一腿）**：容器 `apt install cargo`（1.75.0，够用）；手写 ACL FFI 冒烟 crate `/data/apxinf/ascend_smoke/`（本地镜像 `syx_docs/dev_logs/ascend_smoke/`，**无 bindgen/clang 依赖**——签名直接抄 acl_rt.h）通过：`cargo build` 链接 `libascendcl.so`（build.rs 里 link-search=/usr/local/Ascend/ascend-toolkit/latest/lib64）+ aclInit→SetDevice→Malloc→H2D/D2H 往返（4096 字节 0 错）→Free→Finalize 全 ret=0。运行需 `LD_LIBRARY_PATH` 带 CANN lib64 + `ASCEND_RT_VISIBLE_DEVICES` 挑芯。分派缝形态已摸清（`apxinf-model/src/accelerator.rs`：`Device::Cuda(id)` + `#[cfg(feature)] mod`，ascend 同构接入）
 - [x] **ACL FFI 骨架（2026-09-17，commit 1c76783 @ fork/ascend-port）**：`apxinf-ascend` crate 正式化——手写 aclrt FFI（acl_base/acl_rt，无 bindgen）+ `AscendContext` RAII（OnceLock 幂等 aclInit + SetDevice/CreateContext/Drop 清理）+ `DeviceBuffer` RAII + h2d/d2h/synchronize。rlib 不最终链接 libascendcl（非 Ascend 机器可编译），example 真芯冒烟通过
 - [x] **`Device::Ascend(usize)` 枚举 + 分派缝（同 commit）**：core 枚举/is_gpu/Display，model 分派缝 + auto + llama 全部穷举点带 "not wired yet" 臂，py 的 parse_device("ascend[:N]")。cargo feature `ascend` 的元包链待第一个 Backend 算子时挂
-- [ ] 子模块分支策略已定：fork `WeNeedMoreCode/ApxInf` 的 `ascend-port` 分支（外层 .gitmodules 已指向 fork），引擎改动两步走（子模块 push + 外层 bump gitlink，CLAUDE.md 有纪律）
-- [ ] 工具链（服务器）：Rust 1.85.0 @ /data/apxinf/rust（本地代理下载+传输；apt 1.75 是死路：lock v4 + MSRV）；crates.io 走 rsproxy sparse。详见 setup.md「Rust 工具链」
+- [x] 子模块分支策略已定：fork `WeNeedMoreCode/ApxInf` 的 `ascend-port` 分支（外层 .gitmodules 已指向 fork），引擎改动两步走（子模块 push + 外层 bump gitlink，CLAUDE.md 有纪律）
+- [x] 工具链（服务器）：Rust 1.85.0 @ /data/apxinf/rust（本地代理下载+传输；apt 1.75 是死路：lock v4 + MSRV）；crates.io 走 rsproxy sparse。详见 setup.md「Rust 工具链」
+- [x] **CANN 9.0.1 工作容器 `apxinf_rust`（2026-09-17）**：ACLGraph 激活环境（8.5.1 拒 207000），privileged + driver 挂载 + /data 共享（Rust/引擎副本零迁移）；共享 CARGO_HOME=/data/apxinf/cargo + `source /data/apxinf/rust_env.sh`
+- [x] **graph.rs：ACLGraph capture/replay（53ec764）**：aclmdlRI* FFI + `AscendStream`/`AscendGraph` RAII + abort；graph_smoke 三模式（GLOBAL/THREAD_LOCAL/RELAXED）真芯验证 replay 回写 pattern
+- [x] **tensor.rs + 第一个计算算子 aclnnMatmul（5804a92）**：`AclTensor` ND 描述符 RAII（fp16/fp32）；matmul_fp16 两段式 + workspace；对拍 CPU fp32 参考误差 4.8e-4。链接面：aclnn 在 **libopapi.so**（非 libascendcl）+ 传递依赖 libnnopbase.so
+- [x] **元素/融合算子组（450f801）**：add（aclScalar alpha RAII）、silu、add_rms_norm（融合三输出，rstd 隐藏分配）+ `two_stage` 共享 runner；误差 2e-4~1e-3。踩坑：rstdOut 必须 2-D [rows,1]，1-D 报误导性 561103（NULLPTR 名不副实）
+- [ ] **下一批**：PFA attention（310P 限制清单见 torchair skill：fp16-only、scale_value、S 16 对齐、atten_mask True=屏蔽）+ rope（aclnnApplyRotaryPosEmbV2 或 ModelZoo 私有 npu_rotary_mul 路线）+ embedding → Backend trait 实现 + feature 挂接 → M2（random-weights bench）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
