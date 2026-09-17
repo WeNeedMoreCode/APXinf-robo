@@ -80,7 +80,8 @@
       - **已废一条路**：`aclnnNpuFormatCast`（ND→NZ 设备转换）desc 要求无法从公开 `aclCreateTensor` 满足（ori_shape 语义，参数看似全对仍 161002）；已改 **host 侧 NZ 重排**（`host_nz_reorder`：CPU 16×16 分块 W-major + 上传，语义自控，代码已在库）
       - **2026-09-18 深夜第二波实验（新证据，改写排查图景）**：`matmul_layout_probe`（独立进程、生产 shape [8,2048]×[2048,2560]）：① plain b row-major **隔离跑不崩且数值对**（4.9e-4）——推翻"大 shape 必崩"；② 前置一个 AddRmsNorm 后：plain b **数值错 0.79**（不崩但读错数据）→ **AddRmsNorm 污染后续 ND-matmul 状态**（cat TensorList 同款类）；③ **转置 b（[N,K] 物理 + [1,K] 转置 stride 视图，torch w.t() 布局）在前置 rms 后仍数值正确**——aq::matmul 已切此路径（NzCache 改 host 转置缓存 + `matmul_b_t_fp16`）；④ **ascend_layer_smoke 全序列仍 507015 崩**，kernel 变为 `MatMulV2_NZ_ND_FP16_false_true`（转置变体）——**存在第二层差异**
       - **第三波（深夜收口）**：smoke 崩点精确定位在**第 25 个 op（down proj matmul，K=8192）**——前 24 个 op（含 2 次 K=2048 matmul、AddRmsNorm、GeluV2、Mul）全过，转置路径已生效；**K 阶梯 probe（4096/8192/16384 转置）隔离全 OK**——K 非独立因素，**纯序列污染**（probe 复刻 smoke 序列才能逼出污染步）
-      - **下一轮主战场**：把 smoke 的层序列逐段搬进 probe（候选污染步：from_host 上传 / zeros 缓存 / rope pos-gather×2 + rope 组合 / PFA（BSH 大 S）/ kv_bias d2h-h2d 往返 / gate_up 的 take_rows 大切片），每加一段跑 down-matmul 探针；并行 torch_npu 日志 desc 对照
+      - **第四波（2026-09-18 收口）**：PFA(BSH, smoke 真实头几何) → down-matmul **OK**——PFA 无罪。**剩余嫌疑 4 个（全是数据搬运类）**：① take_rows 大切片（32MB D2D）② kv_bias 的 d2h→h2d 往返 ③ NzCache.get 的大权重 d2h→transpose→h2d ④ rope 的 pos-gather 组合
+      - **下一轮主战场**：逐段复刻上述 4 候选进 probe（每加一段跑 down-matmul 探针，机械收敛）+ torch_npu 日志 desc 对照
       - 冒烟脚本已就位：`apxinf-model/examples/ascend_layer_smoke.rs`（随机权重走真实 from_host 路径 → language 层前向，当前 panic 在第一个大 matmul；bias 切片 bug 已修）
       - **C 剩余**（matmul 通后）：ascend_runtime.rs 镜像（权重/前缀 KV/denoise 循环/ACLGraph 捕获）→ D vla 镜像 → E 注册 → F bench = M2 运行半
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
