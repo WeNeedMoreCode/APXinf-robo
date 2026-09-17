@@ -6,13 +6,18 @@
 2. **真权重路径首次真机串联**（`ascend_layer_smoke.rs`）：随机 host 权重 → `Bf16LinearWeights::from_host`（走 Backend::to_device，bf16→f16 免费）→ 输入上设备 → 层内前向。**前 3 个算子（AddRmsNorm 等）真机跑通**；顺带抓出 qkv bias 未按 q/k/v 切片的真 bug（已修）
 3. **NZ 战役证据链**（详见 roadmap 卡点节）：大 ND matmul MTE 越界 / WeightNz 310P 不支持 / FormatCast desc 玄学 → host 重排实现已入库
 
-## 下一轮排查现场（按嫌疑排序）
+## 下一轮排查现场（第二波实验后更新）
 
-**第一优先：mat2 转置 stride 假设**——torch linear 权重 [out,in]，torch_npu 喂 aclnnMatmul 的 mat2 很可能是 **[N,K] shape + 转置 stride（[1,K]）**；我们传 [K,N] row-major。试法：同一块权重内存，desc 用 shape [2560, 2048]、stride [1, 2048]，喂现有 aclnnMatmul。一处改动即可验证。
+**第一波三假设已全部执行完**（转置 stride 假设最有价值），新证据链：
 
-**第二**：8.5.1 容器开日志跑 `torch.randn(8,2048,fp16,npu) @ torch.randn(2048,2560,...)`，日志抓 kernel 名 + 参数 dump = ground truth（上次被中断）。
+| 实验 | 结果 |
+|---|---|
+| probe 独立跑 plain b（生产 shape） | ✅ 4.9e-4——推翻"大 shape 必崩" |
+| probe 前置 AddRmsNorm + plain b | ❌ 数值错 0.79（不崩但读错数据）——**AddRmsNorm 状态污染** |
+| probe 前置 AddRmsNorm + 转置 b | ✅ 4.9e-4——转置路径免疫且正确（**aq::matmul 已切此路径**） |
+| ascend_layer_smoke 全序列 + 转置 b | ❌ 仍 507015，kernel `MatMulV2_NZ_ND_false_true`——**第二层差异存在** |
 
-**第三**：cubeMathType 0/2 变体。
+**下一轮**（详见 roadmap）：smoke 瘦身二分第二层差异（候选：from_host 上传 / zeros 缓存 / rope pos-gather / PFA / kv_bias d2h-h2d）；torch_npu 日志对照 desc；AddRmsNorm 输出 desc 污染源排查。
 
 ## 本段坑档（部分已入 skill）
 
