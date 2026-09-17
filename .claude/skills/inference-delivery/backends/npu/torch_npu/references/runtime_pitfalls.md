@@ -959,6 +959,24 @@ RAII 包装（Drop 再 destroy 一次）→ double-destroy → 进程内 acl ten
 **通用性**：任何"op A 成功、之后无关的 op B 无故 segfault"先怀疑前序 op
 的资源 double-free；二分法（逐步追加前序 op）是定位利器。
 
+### 13.4 aclnnMatmul 的 310P 布局深坑（未结，现场归档）
+
+- **aclnnMatmul ND 路径**：小矩阵（64×128×96 级）正常；**大矩阵**
+  （[8,2048]×[2048,2560] 级）触发 `MatMulV2_NZ_ND_FP16` kernel 的
+  aicore 异常 `MTE DDR address out of range`（异步，sync 时报 507015；
+  ASCEND_LAUNCH_BLOCKING 不改报错点）
+- **aclnnMatmulWeightNz**：日志原文 `Weight NZ is unsupported by the
+  current SOC version [Ascend310P]`——**A2/910 系专属**，头文件不写
+- **aclnnNpuFormatCast**：参数看似全对（dtype/format/stride/块序两
+  种都试）仍 161002——dst desc 要求 ori_shape 语义，公开
+  aclCreateTensor 表达不了；替代 = **host 侧 NZ 重排**（加载期一次
+  CPU 16×16 分块，语义自控）
+- **待验证主假设**：torch linear 权重是 [out,in]，torch_npu 喂
+  aclnnMatmul 的 mat2 或为 **[N,K] shape + 转置 stride [1,K]**（同一
+  内存的转置视图）；Rust 侧传 [K,N] row-major 或是触发 NZ kernel 错
+  排版的根因。验证法：同内存 desc shape [N,K]/stride [1,K] 直试；
+  或开日志跑 torch_npu 同 shape matmul 抓 kernel 参数 dump
+
 ### 13.3 融合 RoPE 的 head_dim 白名单（比 gelu 更隐蔽的 SoC 裁剪）
 
 同一战役第三坑：`aclnnApplyRotaryPosEmb`（layout=1 BSND）tiling 阶段硬约束

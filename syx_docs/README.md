@@ -25,4 +25,5 @@
 - 本地仓：`D:\compass\APXinf`，main @ 44db03b，子模块已 init
 - ModelZoo π0.5 参考：`vla/pi05_openpi`（torch_npu + TorchAir，FP16，378ms/300I Duo 单芯）
 - 310P3 无 BF16 / FP8 → 精度策略 FP16（INT8 后置）
-- **成功率结案**（2026-09-17）：0/10 →(empty_camera mask 修复)→ 4/10 →(跨集 queue reset 修复)→ **9/10 = 官方 lerobot_eval 同日实测 9/10**（失败集不同，残余 1/10 为采样随机性）。详见 summary/2026-09-17_empty-camera-mask-root-cause.md（含追记）。零 NPU 单帧对拍 `translate_parity_zero_npu.py`（40s/次）是翻译层标准工具。前科：图像须 /255（已修）
+- **成功率结案**（2026-09-17）：0/10 →(empty_camera mask 修复)→ 4/10 →(跨集 queue reset 修复)→ **9/10 = 官方 lerobot_eval 同日实测 9/10**。零 NPU 单帧对拍 `translate_parity_zero_npu.py`（40s/次）是翻译层标准工具
+- **阶段 2 进行中**（2026-09-18）：ops 层 12 算子全真机验证（含 gelu→GeluV2、RoPE 组合版、BSH PFA）；executor 四层函数镜像完成（B）；**当前卡点：大矩阵 matmul 在 310P3 的可行路径**（ND 路径 MTE 越界、WeightNz 不支持 310P）——排查假设见 roadmap「C 阶段核心卡点」节（mat2 转置 stride 优先）
