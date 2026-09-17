@@ -959,23 +959,46 @@ RAII 包装（Drop 再 destroy 一次）→ double-destroy → 进程内 acl ten
 **通用性**：任何"op A 成功、之后无关的 op B 无故 segfault"先怀疑前序 op
 的资源 double-free；二分法（逐步追加前序 op）是定位利器。
 
-### 13.4 aclnnMatmul 的 310P 布局深坑（未结，现场归档）
+### 13.4 aclnnMatmul 的 310P 布局深坑（已结案，2026-09-18；三个根因两个在 probe 自身）
 
-- **aclnnMatmul ND 路径**：小矩阵（64×128×96 级）正常；**大矩阵**
-  （[8,2048]×[2048,2560] 级）触发 `MatMulV2_NZ_ND_FP16` kernel 的
-  aicore 异常 `MTE DDR address out of range`（异步，sync 时报 507015；
-  ASCEND_LAUNCH_BLOCKING 不改报错点）
+**最终真相**（五波实验 + 读回顺序修正后）：
+
+1. **读回竞态（最隐蔽，曾伪装成"静默读错数据"）**：同步 `aclrtMemcpy`
+   **不等待自定义 stream 上排队的异步 kernel**。probe 里
+   `copy_d2h().and_then(synchronize())`（先读后同步）= 竞态，读到
+   kernel 写完前的旧数据。曾据此误判"t-b 在 N≥4096 静默错 46~52"。
+   **纪律：d2h 读异步算出（而非同步 h2d 写入）的数据前，必须先
+   `stream.synchronize()`**。生产代码同理（apxinf 的 `host_f16_row`
+   读 style 张量就中过招）。
+2. **真硬件缺陷：超小 M × 超宽 N 的 aicore tiling fault**：m=8 ×
+   N≥12288 两种布局都真崩（sync 报 507015）；m≥16 × N=16384 全对。
+   **修复 = M 填充**：`MATMUL_MIN_M=16`，m<16 时 stream-ordered memset
+   零 + 单次 D2D 拷贝（行追加 = 数据是前缀连续块）→ matmul →
+   take_rows 切回真实行。实现收进 matmul 入口内部，调用方无感。
+3. **plain-ND-b 的前序状态敏感（独立现象，规避即可）**：AddRmsNorm
+   之后跑 plain [k,n] 连续 b 的 matmul（即使 M 已填充）仍读错 0.79；
+   转置视图（[k,n] shape + stride [1,k]）免疫且正确。机制推断：ND
+   连续 b 的 MTE 路径对前序内存状态敏感；转置 stride 选到不同 kernel
+   变体（`MatMulV2_NZ_ND_FP16_false_true` 的 transB 旗标）。**生产
+   永远走转置路径**（权重 host 转置缓存 + `matmul_b_t`），plain 路径
+   仅 probe 用。
+
+**佐证链**：torch_npu 同容器同 shape（`mm_bmm_format_nd=True` 默认 ND）
+两种布局 4.9e-4 全对 → API 无问题，坑在直连 aclnnMatmul 的描述符路径
+选择；8.5.1 容器跑同一 probe 二进制同崩 → 非 CANN 版本回归；K 阶梯
+（N=2048, K 到 16384）全对 → K 无关。 aclnnMm/aclnnGemm（已绑 FFI 备
+用）与 aclnnMatmul 同崩同对 → 入口选择无关。
+
+**方法论教训**：异步执行模型下，**读回顺序错误制造的"数值错误"与真
+bug 不可区分**。对拍脚本的第一条纪律是先固化同步边界（sync 后读），
+再谈数值；否则每一轮"新证据"都在追自己尾巴。
+
+- ~~aclnnMatmul ND 路径~~：见上，三层拆解后结案
 - **aclnnMatmulWeightNz**：日志原文 `Weight NZ is unsupported by the
   current SOC version [Ascend310P]`——**A2/910 系专属**，头文件不写
 - **aclnnNpuFormatCast**：参数看似全对（dtype/format/stride/块序两
   种都试）仍 161002——dst desc 要求 ori_shape 语义，公开
-  aclCreateTensor 表达不了；替代 = **host 侧 NZ 重排**（加载期一次
-  CPU 16×16 分块，语义自控）
-- **待验证主假设**：torch linear 权重是 [out,in]，torch_npu 喂
-  aclnnMatmul 的 mat2 或为 **[N,K] shape + 转置 stride [1,K]**（同一
-  内存的转置视图）；Rust 侧传 [K,N] row-major 或是触发 NZ kernel 错
-  排版的根因。验证法：同内存 desc shape [N,K]/stride [1,K] 直试；
-  或开日志跑 torch_npu 同 shape matmul 抓 kernel 参数 dump
+  aclCreateTensor 表达不了；host 转置 + 转置视图路径已覆盖需求
 
 ### 13.3 融合 RoPE 的 head_dim 白名单（比 gelu 更隐蔽的 SoC 裁剪）
 

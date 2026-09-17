@@ -81,9 +81,13 @@
       - **2026-09-18 深夜第二波实验（新证据，改写排查图景）**：`matmul_layout_probe`（独立进程、生产 shape [8,2048]×[2048,2560]）：① plain b row-major **隔离跑不崩且数值对**（4.9e-4）——推翻"大 shape 必崩"；② 前置一个 AddRmsNorm 后：plain b **数值错 0.79**（不崩但读错数据）→ **AddRmsNorm 污染后续 ND-matmul 状态**（cat TensorList 同款类）；③ **转置 b（[N,K] 物理 + [1,K] 转置 stride 视图，torch w.t() 布局）在前置 rms 后仍数值正确**——aq::matmul 已切此路径（NzCache 改 host 转置缓存 + `matmul_b_t_fp16`）；④ **ascend_layer_smoke 全序列仍 507015 崩**，kernel 变为 `MatMulV2_NZ_ND_FP16_false_true`（转置变体）——**存在第二层差异**
       - **第三波（深夜收口）**：smoke 崩点精确定位在**第 25 个 op（down proj matmul，K=8192）**——前 24 个 op（含 2 次 K=2048 matmul、AddRmsNorm、GeluV2、Mul）全过，转置路径已生效；**K 阶梯 probe（4096/8192/16384 转置）隔离全 OK**——K 非独立因素，**纯序列污染**（probe 复刻 smoke 序列才能逼出污染步）
       - **第四波（2026-09-18 收口）**：PFA(BSH, smoke 真实头几何) → down-matmul **OK**——PFA 无罪。**剩余嫌疑 4 个（全是数据搬运类）**：① take_rows 大切片（32MB D2D）② kv_bias 的 d2h→h2d 往返 ③ NzCache.get 的大权重 d2h→transpose→h2d ④ rope 的 pos-gather 组合
-      - **下一轮主战场**：逐段复刻上述 4 候选进 probe（每加一段跑 down-matmul 探针，机械收敛）+ torch_npu 日志 desc 对照
-      - 冒烟脚本已就位：`apxinf-model/examples/ascend_layer_smoke.rs`（随机权重走真实 from_host 路径 → language 层前向，当前 panic 在第一个大 matmul；bias 切片 bug 已修）
-      - **C 剩余**（matmul 通后）：ascend_runtime.rs 镜像（权重/前缀 KV/denoise 循环/ACLGraph 捕获）→ D vla 镜像 → E 注册 → F bench = M2 运行半
+      - **✅ 第五波结案（2026-09-18 深夜，卡点清除）——三个根因，两个是 probe 自身的坑**：
+        1. **读回竞态（最大坑，推翻多个"静默读错数据"结论）**：probe 的 `copy_d2h().and_then(synchronize())` 顺序是竞态——同步 `aclrtMemcpy` **不等待自定义 stream 上的异步 kernel**，先读后同步 = 读到 kernel 写完前的旧数据。修正为先 sync 再 d2h 后：N=8192 全部 M（8~256）plain/t-b **全部正确**；此前"t-b 在 N≥4096 静默错"是竞态伪影。**生产代码同步修复**：`host_f16_row`（读 style 张量，matmul 异步产物）补 stream sync；NzCache/kv_bias 读权重（同步 h2d 写入）安全无碍
+        2. **唯一真实硬件缺陷 = 超小 M × 超宽 N 的 aicore tiling fault**：m=8 × N≥12288 两种布局都真崩（sync 507015，真 aicore fault 非 race）；m≥16 × N=16384 全对。smoke 的 tokens=8 恰好踩中 gate_up（m=8, N=16384）——此前"op#25 down matmul"系计数误标，真正崩的一直是 gate_up。**修复：M 填充**——`MATMUL_MIN_M=16`，m<16 时 memset 零 + 单次 D2D 拷贝（行追加=前缀连续）→ matmul → take_rows 切回，实现在 `matmul_fp16`/`matmul_b_t_fp16` 内部，所有调用方免费获得。m 阶梯复测 m=8×N=16384 两布局全对
+        3. **plain-ND-b 描述符的前序状态敏感（独立真实现象，未修不阻塞）**：AddRmsNorm 之后再跑 plain [k,n] 连续 b 的 matmul（N=2560, m=8，**有 M 填充**）仍读错 0.79；转置视图（stride [1,k]）免疫且正确。机制推断：ND 连续 b 走的 MTE 搬运路径对前序内存/缓存状态敏感，转置 stride 强制选到正确 kernel 变体（`MatMulV2_NZ_ND_FP16_false_true` 的 transB 旗标）。**生产全走转置路径（NzCache/aq::matmul），plain 路径降级为仅 probe 用**
+        - 佐证：torch_npu 同容器同 shape（mm internal format=ND）两种布局 4.9e-4 全对 → API 层面无问题，坑在我们直连 aclnnMatmul 的描述符路径；8.5.1 容器跑同一 probe 二进制同崩 → 非 9.0.1 回归
+      - **验收：`ASCEND_LAYER_SMOKE_OK`（2026-09-18）**——真权重路径全 language 层前向通过（[8,2048] 输出全有限，首调 2.05s 含 warmup）；layout_probe variant 5 全序列复刻 seg0~seg10 端到端通过。新增 aclnnMm/aclnnGemm FFI 与 ops 入口（bake-off 用，未进生产路径）
+      - **C 剩余**（matmul 已通）：ascend_runtime.rs 镜像（权重/前缀 KV/denoise 循环/ACLGraph 捕获）→ D vla 镜像 → E 注册 → F bench = M2 运行半
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
