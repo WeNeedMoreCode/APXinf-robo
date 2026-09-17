@@ -72,7 +72,7 @@
   - **结论：executor = 镜像移植**（对照写 ascend 版：kernel 调用层用我们的 ops 替换 gemm/elementwise 调用 + runtime 层把 CudaBuffer/ctx 换 AscendBackend/DeviceBuffer，约 1000+ 行新代码）。**全部为新增文件，不动 cuda 活代码 → 无 CUDA 回归需求**（用户有 CUDA 机器兜底，动 cuda 代码时写最小验证脚本由用户手动跑）
   - **真正可复用（已核实）**：`bf16_weights.rs`（权重上传走 `backend.to_device` trait，BF16→F16 免费转换）+ `config.rs` + `static_weights.rs` 系（host 侧权重解析）+ `fp8.rs` 的量化数学（host）
   - `create_normal_generator` **已完成（4ea8249）**：flow noise 用 core Philox + h2d；rope/embedding/sdpa/kv_cache 不在 pi05 路径（后置）
-  - 移植顺序建议：①ascend kernel 门面层（对照 pi05/backend.rs 的接口形状，实现映射到 aclnn ops）②bf16_runtime 的 ascend 镜像 ③vla_runtime 的 ascend 镜像（tuning 桩化）④mod.rs 加 ascend 门 + load 注册 ⑤random-weights bench → M2 运行半
+  - 移植顺序建议：①ascend kernel 门面层 **→ 已完成（577feff）**：pi05 实际 kernel 集清点仅 7 种；`ops` 补齐 cat（aclnnCat+TensorList）/ bias（零步长广播描述符，**storageDims 必须给真实形状**否则 561103）/ euler（muls+add 组合），真机对拍全绿；**patchify 决策 CPU 化**（固定几何，每帧几 ms 可接受，性能不够再上 conv2d）②bf16_runtime 的 ascend 镜像 ③vla_runtime 的 ascend 镜像（tuning 桩化）④mod.rs 加 ascend 门 + load 注册 ⑤random-weights bench → M2 运行半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
