@@ -10,3 +10,7 @@ venv/
 .ruff_cache/
 .mypy_cache/
 .DS_Store
+
+# local Claude state (skills themselves are tracked; local settings and trash are not)
+.claude/settings.local.json
+.claude/skills/_trash/
