@@ -67,13 +67,13 @@
 - [x] **PFA attention（a925b9a）**：`aclnnPromptFlashAttentionV3`（老版 2026-12 弃用，直接绑 V3）；全量无 mask BNSD，quant 槽位 null；对拍 CPU softmax-attention 1.4e-3
 - [x] **AscendBackend 实现 Backend trait（9d82b6c）**：matmul/add/mul/scale/silu/rms_norm（融合 add_rms_norm + 零 buffer 复用）/synchronize/**begin/end_capture（ACLGraph 走通 Box\<dyn Graph\>）**/to_device/to_cpu（f32↔f16，ModelZoo 语义）。Storage 复用 Gpu 槽位（Arc\<DeviceBuffer\> 塞 _prevent_leak，downcast_ref 借回）。rope/embedding/kv-cache/sampling 为显式 "queued" 错误臂。backend_smoke：matmul 0.0 / silu 7.9e-4 / rms_norm 9.3e-4 / capture-replay ✓
 - [x] **feature 挂接 + M2 构建半（06f2b60）**：`ascend` feature 贯通元包/apxinf-py（cuda 同构）；9.0.1 容器验证 `cargo check --features ascend`、`check -p apxinf-py --features ascend`、**`build --release -p apxinf-py --features ascend`（cdylib）** 全过
-- [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）——结构侦察已完成（2026-09-17）**：
-  - **可零改动复用**：`pi05/bf16_runtime.rs`（690 行，`&dyn Backend` 全程，downcast=0）+ `bf16_weights.rs`（权重上传走 `backend.to_device`，BF16 输入经我们 to_device 自动转 F16）+ config.rs
-  - **唯一 cuda 绑定层**：`vla_runtime.rs`（1013 行）——持有 `Arc<CudaBackend>` 具体类型、`context().tuning()` 调优缓存、cuda `DeviceBuffer::alloc_zeros`、load 入口 `downcast_arc` 硬门（741 行 "only registered for CUDA"）。Ascend 版需写 vla_runtime 的镜像（预处理逻辑设备无关可抄，cuda 类型/tuning 替换为 AscendBackend + 桩）
-  - **实际 trait 方法面缺口小**：~~vla 用 `create_normal_generator`~~ **已完成（4ea8249）**：`AscendNormalGenerator`（core 的 `standard_normal_f32` Philox + f16 转换 + h2d，与 CPU backend 同契约）；rope/embedding/sdpa/kv_cache 在 pi05 路径中**未被调用**（后置）
-  - **bf16_runtime 的唯一 cuda 依赖**：`use apxinf_cuda::CudaArchFamily`（1 处，kernel 变体选择）——抽象掉后 bf16_runtime 即可在 ascend 门下编译复用
-  - mod.rs 全文件 `#[cfg(feature="cuda")]` 门需加 ascend 分支
-  - 完成后 random-weights bench → checkpoint bench → LIBERO 对标
+- [ ] **下一章：PI0.5 executor（M2 运行半 + M3 的主体）——结构侦察完成（含一次认知修正，2026-09-17）**：
+  - **⚠ 认知修正**：初判"bf16_runtime 设备无关可零改动复用"**错误**——它深绑 cuda（`use super::backend::{kernels, transfers, CudaBuffer, RuntimeBackend}`，计算直调 `gemm::bf16(ctx,..)` / `elementwise::*` 等 cuda kernel 门面，中间量全是 CudaBuffer）。正确结构：vla_runtime → bf16_runtime → pi05/backend.rs(kernels 门面) → apxinf-cuda
+  - **结论：executor = 镜像移植**（对照写 ascend 版：kernel 调用层用我们的 ops 替换 gemm/elementwise 调用 + runtime 层把 CudaBuffer/ctx 换 AscendBackend/DeviceBuffer，约 1000+ 行新代码）。**全部为新增文件，不动 cuda 活代码 → 无 CUDA 回归需求**（用户有 CUDA 机器兜底，动 cuda 代码时写最小验证脚本由用户手动跑）
+  - **真正可复用（已核实）**：`bf16_weights.rs`（权重上传走 `backend.to_device` trait，BF16→F16 免费转换）+ `config.rs` + `static_weights.rs` 系（host 侧权重解析）+ `fp8.rs` 的量化数学（host）
+  - `create_normal_generator` **已完成（4ea8249）**：flow noise 用 core Philox + h2d；rope/embedding/sdpa/kv_cache 不在 pi05 路径（后置）
+  - 移植顺序建议：①ascend kernel 门面层（对照 pi05/backend.rs 的接口形状，实现映射到 aclnn ops）②bf16_runtime 的 ascend 镜像 ③vla_runtime 的 ascend 镜像（tuning 桩化）④mod.rs 加 ascend 门 + load 注册 ⑤random-weights bench → M2 运行半
+  - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
