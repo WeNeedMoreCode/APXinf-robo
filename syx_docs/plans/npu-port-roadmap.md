@@ -56,8 +56,10 @@
 ## 阶段 2：Rust 原生 apxinf-ascend（逐个过相异点）
 
 - [x] **工具链 + FFI 地基验证（2026-09-17 晚，M2 第一腿）**：容器 `apt install cargo`（1.75.0，够用）；手写 ACL FFI 冒烟 crate `/data/apxinf/ascend_smoke/`（本地镜像 `syx_docs/dev_logs/ascend_smoke/`，**无 bindgen/clang 依赖**——签名直接抄 acl_rt.h）通过：`cargo build` 链接 `libascendcl.so`（build.rs 里 link-search=/usr/local/Ascend/ascend-toolkit/latest/lib64）+ aclInit→SetDevice→Malloc→H2D/D2H 往返（4096 字节 0 错）→Free→Finalize 全 ret=0。运行需 `LD_LIBRARY_PATH` 带 CANN lib64 + `ASCEND_RT_VISIBLE_DEVICES` 挑芯。分派缝形态已摸清（`apxinf-model/src/accelerator.rs`：`Device::Cuda(id)` + `#[cfg(feature)] mod`，ascend 同构接入）
-- [ ] ACL FFI 骨架：context / stream / device memory（aclrt*）——冒烟已证核心 API，骨架做成 `apxinf-ascend` crate 正式化
-- [ ] `Device::Ascend(usize)` 枚举 + `accelerator.rs` 分派缝扩展 + cargo feature `ascend`（**注意：动的是 apxinf/ 子模块=上游仓 infinigence/ApxInf，需定分支策略**）
+- [x] **ACL FFI 骨架（2026-09-17，commit 1c76783 @ fork/ascend-port）**：`apxinf-ascend` crate 正式化——手写 aclrt FFI（acl_base/acl_rt，无 bindgen）+ `AscendContext` RAII（OnceLock 幂等 aclInit + SetDevice/CreateContext/Drop 清理）+ `DeviceBuffer` RAII + h2d/d2h/synchronize。rlib 不最终链接 libascendcl（非 Ascend 机器可编译），example 真芯冒烟通过
+- [x] **`Device::Ascend(usize)` 枚举 + 分派缝（同 commit）**：core 枚举/is_gpu/Display，model 分派缝 + auto + llama 全部穷举点带 "not wired yet" 臂，py 的 parse_device("ascend[:N]")。cargo feature `ascend` 的元包链待第一个 Backend 算子时挂
+- [ ] 子模块分支策略已定：fork `WeNeedCode/ApxInf` 的 `ascend-port` 分支（外层 .gitmodules 已指向 fork），引擎改动两步走（子模块 push + 外层 bump gitlink，CLAUDE.md 有纪律）
+- [ ] 工具链（服务器）：Rust 1.85.0 @ /data/apxinf/rust（本地代理下载+传输；apt 1.75 是死路：lock v4 + MSRV）；crates.io 走 rsproxy sparse。详见 setup.md「Rust 工具链」
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
