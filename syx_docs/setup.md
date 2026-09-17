@@ -63,6 +63,7 @@ pip install -U modelscope                      # 权重下载
 ```bash
 apt-get update
 apt-get install -y libegl1 libegl-mesa0 libopengl0 libosmesa6 libgl1   # LIBERO 离屏渲染（MUJOCO_GL=egl，osmesa 兜底）
+apt-get install -y cargo                                              # 阶段 2 Rust（1.75.0，FFI 冒烟够用；ACL 头文件在 /usr/local/Ascend/ascend-toolkit/latest/include/acl/，libascendcl.so 在 .../lib64/）
 ```
 
 **libero 一次性配置**（`~/.libero/config.yaml`，交互 prompt 用 echo 绕过）：

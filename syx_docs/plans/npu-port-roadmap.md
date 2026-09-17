@@ -55,8 +55,9 @@
 
 ## 阶段 2：Rust 原生 apxinf-ascend（逐个过相异点）
 
-- [ ] ACL FFI 骨架：context / stream / device memory（aclrt*）
-- [ ] `Device::Ascend(usize)` 枚举 + `accelerator.rs` 分派缝扩展 + cargo feature `ascend`
+- [x] **工具链 + FFI 地基验证（2026-09-17 晚，M2 第一腿）**：容器 `apt install cargo`（1.75.0，够用）；手写 ACL FFI 冒烟 crate `/data/apxinf/ascend_smoke/`（本地镜像 `syx_docs/dev_logs/ascend_smoke/`，**无 bindgen/clang 依赖**——签名直接抄 acl_rt.h）通过：`cargo build` 链接 `libascendcl.so`（build.rs 里 link-search=/usr/local/Ascend/ascend-toolkit/latest/lib64）+ aclInit→SetDevice→Malloc→H2D/D2H 往返（4096 字节 0 错）→Free→Finalize 全 ret=0。运行需 `LD_LIBRARY_PATH` 带 CANN lib64 + `ASCEND_RT_VISIBLE_DEVICES` 挑芯。分派缝形态已摸清（`apxinf-model/src/accelerator.rs`：`Device::Cuda(id)` + `#[cfg(feature)] mod`，ascend 同构接入）
+- [ ] ACL FFI 骨架：context / stream / device memory（aclrt*）——冒烟已证核心 API，骨架做成 `apxinf-ascend` crate 正式化
+- [ ] `Device::Ascend(usize)` 枚举 + `accelerator.rs` 分派缝扩展 + cargo feature `ascend`（**注意：动的是 apxinf/ 子模块=上游仓 infinigence/ApxInf，需定分支策略**）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合
