@@ -87,7 +87,14 @@
         3. **plain-ND-b 描述符的前序状态敏感（独立真实现象，未修不阻塞）**：AddRmsNorm 之后再跑 plain [k,n] 连续 b 的 matmul（N=2560, m=8，**有 M 填充**）仍读错 0.79；转置视图（stride [1,k]）免疫且正确。机制推断：ND 连续 b 走的 MTE 搬运路径对前序内存/缓存状态敏感，转置 stride 强制选到正确 kernel 变体（`MatMulV2_NZ_ND_FP16_false_true` 的 transB 旗标）。**生产全走转置路径（NzCache/aq::matmul），plain 路径降级为仅 probe 用**
         - 佐证：torch_npu 同容器同 shape（mm internal format=ND）两种布局 4.9e-4 全对 → API 层面无问题，坑在我们直连 aclnnMatmul 的描述符路径；8.5.1 容器跑同一 probe 二进制同崩 → 非 9.0.1 回归
       - **验收：`ASCEND_LAYER_SMOKE_OK`（2026-09-18）**——真权重路径全 language 层前向通过（[8,2048] 输出全有限，首调 2.05s 含 warmup）；layout_probe variant 5 全序列复刻 seg0~seg10 端到端通过。新增 aclnnMm/aclnnGemm FFI 与 ops 入口（bake-off 用，未进生产路径）
-      - **C 剩余**（matmul 已通）：ascend_runtime.rs 镜像（权重/前缀 KV/denoise 循环/ACLGraph 捕获）→ D vla 镜像 → E 注册 → F bench = M2 运行半
+      - **✅ C 阶段完整收官（2026-09-18 深夜）：`ASCEND_FULL_SMOKE_OK`——全模型随机权重前向跑通**（vision tower 2 层 + prefix language 2 层 + 10 步 flow denoise，3 视图 768 patch + 60 token，输出 [50,32] 全有限，首调 4.94s 含全部 warmup/转置缓存）。新增 `ascend_runtime.rs`（`Pi05AscendRuntime` 镜像 bf16_runtime 的 eager 路径：encode_vision/embed_prefix/prefix_forward/styles/denoise/infer；ACLGraph 捕获后置——ada-norm 的 host 读需先预解析）。**过程中取证定位并修复 6 个真 bug**（trace 标记 + NzCache 形状打印是决定性证据）：
+        1. **action 层 inter 双倍**（根因）：inter 从融合 gate_up 宽度 [width, 2*inter] 算出后再乘 2 → b 描述符 2×越界；NzCache 转置形状 [512,16384] vs 正确 [1024,8192] 一眼定罪。越界读是否踩未映射页取决于分配邻接 → 伪装成"上下文依赖/累积污染"（tokens=828 过 layer0 崩 layer1、一切隔离复刻全过）
+        2. **vision 语义对齐**：position 表按 view 循环 gather（原 cat 两次硬编码 2 视图，π0.5 是 3 视图）；SigLIP attention 按 view 分段 batched BSH PFA（原 768 全量）
+        3. **gate/up 顺序**：from_host_parts 拼接是 [gate; up]，gelu 应加前半（原反了，输出有限所以没炸）
+        4. **cross-length 前缀 attention**：action PFA 的 q/kv 序列长度不同（q=块、kv=前缀+块），原入口共用一个 tokens → q 描述符越界读；新增 cross 变体
+        5. **zeros 按字节分配**：两处 vision layer-norm 传了元素数（buffer 减半）
+        6. bias_add None 分支恒等拷贝参数非法；M 对齐规则泛化（宽 N × 非 16 倍 M 崩：812/820/828×N≥16384 全崩、832 全过 → 无条件 pad 到 16 倍数）
+      - **C 剩余**（matmul 已通）：~~ascend_runtime.rs 镜像~~ ✓（eager 全通）→ D vla 镜像 → E 注册 → F bench = M2 运行半
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
