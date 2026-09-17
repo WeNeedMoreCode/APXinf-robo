@@ -72,7 +72,10 @@
   - **结论：executor = 镜像移植**（对照写 ascend 版：kernel 调用层用我们的 ops 替换 gemm/elementwise 调用 + runtime 层把 CudaBuffer/ctx 换 AscendBackend/DeviceBuffer，约 1000+ 行新代码）。**全部为新增文件，不动 cuda 活代码 → 无 CUDA 回归需求**（用户有 CUDA 机器兜底，动 cuda 代码时写最小验证脚本由用户手动跑）
   - **真正可复用（已核实）**：`bf16_weights.rs`（权重上传走 `backend.to_device` trait，BF16→F16 免费转换）+ `config.rs` + `static_weights.rs` 系（host 侧权重解析）+ `fp8.rs` 的量化数学（host）
   - `create_normal_generator` **已完成（4ea8249）**：flow noise 用 core Philox + h2d；rope/embedding/sdpa/kv_cache 不在 pi05 路径（后置）
-  - 移植顺序建议：①ascend kernel 门面层 **→ 已完成（577feff）**：pi05 实际 kernel 集清点仅 7 种；`ops` 补齐 cat（aclnnCat+TensorList）/ bias（零步长广播描述符，**storageDims 必须给真实形状**否则 561103）/ euler（muls+add 组合），真机对拍全绿；**patchify 决策 CPU 化**（固定几何，每帧几 ms 可接受，性能不够再上 conv2d）②bf16_runtime 的 ascend 镜像 ③vla_runtime 的 ascend 镜像（tuning 桩化）④mod.rs 加 ascend 门 + load 注册 ⑤random-weights bench → M2 运行半
+  - **镜像施工图（2026-09-17 终版，零探索成本可开工）**——依赖链 `vla_runtime(1013) → bf16_runtime(690) → bf16_executor(228) → kernels`，全部新增文件不动 cuda：
+    - **待补 op（映射表）**：`attention::mha/mqa` → `prompt_flash_attention_fp16`（mqa 是 decode 步，需 KV buffer 管理：prefix reserve + append 语义，用大预分配 DeviceBuffer + offset 视图实现）；`rope::split_qkv_apply/apply_q_write_kv` → `aclnnApplyRotaryPosEmbV2`（**唯一需真机试错的 op**：layout/rotaryMode 取值头文件无文档）或退路 CPU 端 cos/sin + mul/add 组合；`embedding::lookup` → aclnnGather；`activation::bias_gelu` → aclnnGelu+bias；`norm::layer` → aclnnLayerNorm（有 aclnn_layer_norm.h）或 rms+add 组合；`fused::*` 四种 → add_rms_norm/bias_add/add 组合（先组合后融合）；`split_qkv` → 单 matmul 出 [*,3d] + **AclTensor offset 视图**（descriptor 带 offset，免拷贝切分）
+    - **施工顺序**：A. 补 ops（gather/gelu/layernorm + offset 视图，全部有 aclnn 直配）→ B. `pi05/ascend_executor.rs`（228 行层函数镜像）→ C. `pi05/ascend_runtime.rs`（690 行：KV cache 用预分配+offset、CapturedGraph 用 aclmdlRI、GraphWorkspace 桩 0）→ D. `pi05/ascend_vla_runtime.rs`（1013 行：tuning 桩化、图像 patchify CPU 侧）→ E. mod.rs ascend 门 + load 注册 → F. random-weights bench = **M2 运行半**
+    - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
