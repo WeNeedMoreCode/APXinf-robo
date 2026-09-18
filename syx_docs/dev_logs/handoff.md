@@ -1,13 +1,13 @@
-# Handoff（2026-09-18 捕获收官更新，compact 用）
+# Handoff（2026-09-19 性能阶段第一波后，compact 用）
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**性能验收线**（拆图捕获 + rope/ada-norm 融合后全深度 bench：≤378ms 进 M3 / 差 30%+ 决策会谈）；ACLGraph 三段式全绿的关键事实（RELAXED 模式必须——GLOBAL/THREAD_LOCAL 拒绝 aclnn 内部同步 memcpy 107030；捕获窗口内任何 stream sync 扰动捕获态 107027——mark 全 print-only；arena 模式：enter/exit/clear + owned=false 跳过 free，调用方持底座 Arc；子图上限 ~2000/建议 1800）；服务器三件套（ssh、ASCEND_RT_VISIBLE_DEVICES=5、tar 同步后必 touch）；异步生命期纪律（scratch 池 + 延迟释放）；子模块双仓两步提交。丢弃：捕获调试逐轮过程（roadmap + commit 28857f0 信息已归档）。
+聚焦保留：**性能验收线**（全深度 bench：≤378ms 进 M3 / 差 30%+ 决策会谈）；**性能阶段战果与数据**（全深度单图捕获 906.9 → 680.8ms：scratch 池共享语义修复 + rope 平铺重写；msprof 双边分解：torch_npu 397ms 构成与我们 680.8ms 构成、kernel 间隙 ~289ms 是最大单项；**310P3 算子可用性判决**：Addcmul 可用但无收益、GeGlu 挂死不可用、npu_apply_rotary_pos_emb 只支持 64/128）；ACLGraph 关键事实（RELAXED 必须、窗口内 sync 禁忌、arena 机制、**拆图前提已证伪**——2000 上限是图实例数预算非单图节点上限，全深度单图直接成功）；msprof 双边 profiling 方法（torch_npu.profiler + ai_core_op_summary.db 的 ge_summary⋈task_time，duration 单位 ns；Rust 侧 msprof --application 挂 wrapper）；服务器三件套（ssh、ASCEND_RT_VISIBLE_DEVICES=5、tar 同步后必 touch）；异步生命期纪律；子模块双仓两步提交（**push 用 fork remote 非 origin**）。丢弃：本波逐轮试错过程（roadmap + summary 已归档）。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径**性能阶段第一步：全深度拆图捕获**（ACLGraph 三段式已在 depth 2/2/2 跑通：replay p50=88.1ms vs eager 305.1ms = 3.46×、对拍 0.0068；子模块 28857f0）。第一动作：设计拆图方案——读 roadmap「优化待办」与 vllm-ascend ACL Graph 设计文档的多图接力模式，决定按 transformer 层还是按 flow step 分段（全深度 ~4600 op vs 子图上限 1800），在 ascend_runtime.rs 加分段捕获 API（每段独立 arena + graph，段间输出张量传递），用 ascend_graph_capture_smoke 改全深度验证。完成后接热点融合（rope/ada-norm），最终按「性能验收线」判定（≤378ms 进 M3 / 差 30%+ 找用户决策）。
+继续 APXinf 昇腾 NPU Rust 路径**性能阶段：AscendC fused ada-norm**（当前全深度单图捕获 replay 681.6ms vs torch_npu 378ms；验收线 491ms=378×1.3。子模块 494cb1b）。第一动作：调 AscendC-ops-dev skill，写 fused kernel `y = rms(x)·(1+s0)+s1`（读 x 一次 + style 行按行索引免广播 + 写 y 一次），替代当前 add_rms_norm(x,zeros)+mul+add 三 kernel 组合（~400 次调用/推理，msprof：Add 78ms + Mul 14ms + 各自 150µs kernel 间隙）。完成后跑 ascend_graph_capture_smoke（APXINF_FULL_DEPTH=1）对比 681.6ms 基线与对拍（当前 0.025）。若 fused ada-norm 落地后仍 >491ms：按「性能验收线」与用户决策会谈（选项见 roadmap）。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-18_c-to-f-stages.md（续用，追加捕获战役段）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_perf-wave.md（新文件：拆图证伪 + rope 平铺 + 双边 msprof + 算子判决）

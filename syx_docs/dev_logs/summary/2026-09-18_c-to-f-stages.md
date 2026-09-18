@@ -59,4 +59,4 @@
 3. **双边 msprof profiling（方法论落地：同一把尺子量两边）**：torch_npu 397ms = MatMul 124 + **TransData/Transpose 100（NZ 权重的设备侧搬运代价——我们 host 预转置 + stride 视图架构性避开）** + 拆开的 attention 36（我们 PFA 29 反超）。我们 = MatMul 213（prefix 大项 19-21.6 TFLOPS 已近峰值）+ Add 78 + **kernel 间隙 ~289ms**（~1900 kernel × 150µs）
 4. **rope 平铺重写（-228ms）**：分桶定罪 rotate-half 的 axis=1 列 gather（language 单次 6.5ms = 带宽下限 49×）。`[rows,d]→[rows*2,d/2]` 视图上邻行交换 = axis=0 连续行 gather（µs 级）；cos 半维重复 + sin 符号折叠让表同视图复用。gathered 表/swap 索引按 (tokens,heads,offset) 常量缓存。GatherV2 族 126→3.9ms
 5. **取证副产品**：vllm-ascend 310P 源码铁证——`npu_apply_rotary_pos_emb` 只支持 rotary_dim 64/128（注释原文），head_dim=256 无单算子 rope（AscendC 自研是终局方案，组合优化先行）
-6. **下一波**：aclnnAddcmul（ada-norm mul+add 合一）+ aclnnGeGlu（geglu 单算子）→ 预计 ~500ms；之后 AscendC fused ada-norm 冲验收线（491ms = 378×1.3）
+6. **下一波**：~~aclnnAddcmul + aclnnGeGlu~~ **双双证伪（同日）**——Addcmul torch_npu 可用（对拍 0.005）但实测无收益（684.4 vs 680.8ms）+ fp16 累加顺序漂移对拍 0.048 贴断言线 → 撤回；GeGlu 两段式调用**挂死**（10 分钟不返回，kill 取证；torch_npu 无分发、GE 从未融合——三重证据）→ 撤回。**转向 AscendC fused ada-norm**（5→1 kernel，唯一剩余大杠杆：kernel 间隙 ~289ms = ~1900×150µs 只能靠融合降）
