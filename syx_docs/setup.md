@@ -137,16 +137,18 @@ ModelZoo 参考仓：`d:\compass\modelzoo\ModelZoo-PyTorch\ACL_PyTorch\built-in\
 
 | 容器 | CANN | 用途 | 限制 |
 |---|---|---|---|
-| `apxinf_npu` | 8.5.1 | torch_npu 基线（阶段 1）；**GE 图构建/编译只能在此**（TeFusion 算子编译器走 python/tbe 栈） | 无 Rust 工具链 |
-| `apxinf_rust` | 9.0.1（privileged） | Rust 引擎开发/编译（ACLGraph 需 9.0.1：8.5.1 返 207000） | GE 构图不可用（py_decouple 起不来，PYTHONPATH 救不了） |
+| `apxinf_npu` | 8.5.1 | torch_npu 基线（阶段 1） | 无 Rust 工具链 |
+| `apxinf_rust` | 9.0.1（privileged） | Rust 引擎开发/编译（ACLGraph 需 9.0.1：8.5.1 返 207000）；**GE 构图/编译也在此**（2026-09-19 POC 起） | — |
 
-**GE 图编译运行环境**（apxinf_npu 内，2026-09-19 实测）：
+**GE 图编译运行环境**（apxinf_rust 内，2026-09-19 实测）：
 
 ```bash
-export LD_LIBRARY_PATH=/data/apxinf/ascendc/<项目>/build:/usr/local/Ascend/ascend-toolkit/latest/aarch64-linux/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/data/apxinf/ascendc/<项目>/build:/usr/local/Ascend/ascend-toolkit/latest/lib64:$LD_LIBRARY_PATH
 export PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/python/site-packages   # 追加勿覆盖
 ASCEND_RT_VISIBLE_DEVICES=5 ./ge_poc_main ...
 ```
+
+⚠ **GE init 失败（TeFusion py_decouple）先查 `python3-config`**：py_decouple 探测 python 前缀靠 `sh -c "python3-config --prefix"`，缺该命令退出 127 → "Launch dynamic-handle failed" → aclgrphBuildInitialize -1。rust 容器修复：`ln -sf /usr/local/python3.12.13/bin/python3.12-config /usr/local/python3.12.13/bin/python3-config`（strace 取证，2026-09-19）。
 
 **C++ 链接 CANN graph 库的坑**：libgraph_base 是 **pre-cxx11 std::string ABI**——CMake 必须 `add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)`，否则 Operator 构造符号 undefined。
 
