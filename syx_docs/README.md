@@ -26,4 +26,4 @@
 - ModelZoo π0.5 参考：`vla/pi05_openpi`（torch_npu + TorchAir，FP16，378ms/300I Duo 单芯）
 - 310P3 无 BF16 / FP8 → 精度策略 FP16（INT8 后置）
 - **成功率结案**（2026-09-17）：0/10 →(empty_camera mask 修复)→ 4/10 →(跨集 queue reset 修复)→ **9/10 = 官方 lerobot_eval 同日实测 9/10**。零 NPU 单帧对拍 `translate_parity_zero_npu.py`（40s/次）是翻译层标准工具
-- **阶段 2 状态**（2026-09-19）：M2 完成（真 checkpoint 全链路）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `ge-offline-om`）→ **C 路线全量施工中**（三段式计划见 roadmap C 路线节，目标 ≤378ms）
+- **阶段 2 状态**（2026-09-19）：M2 完成（真 checkpoint 全链路）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `ge-offline-om`）→ **C1 完成**（ge_builder FFI + 转置零代价 + PFA 契约 + 单层 GE 化对拍 0.00000、1.76× vs eager，陷阱 #8-11 回填 skill）→ **C2 三段 OM 全量施工中**（计划见 roadmap C 路线节，目标 ≤378ms）
