@@ -127,9 +127,42 @@ transformers 修复分支（4.53.3 fix/lerobot_openpi）相对 ModelZoo 测试�
 | 路径 | `D:\compass\APXinf` |
 | remote | git@github.com:WeNeedMoreCode/APXinf-robo.git（SSH 直连可用） |
 | 分支 | main @ 44db03b |
-| 子模块 | `apxinf/` = infinigence/ApxInf @ ba968f6（已 init） |
+| 子模块 | `apxinf/` = infinigence/ApxInf @ ba968f6（已 init）；引擎改动 push 到 **fork** remote（WeNeedMoreCode/ApxInf，ascend-port 分支）——origin 是上游只读，`git push origin` 会 403 |
 
-ModelZoo 参考仓：`d:\compass\modelzoo\ModelZoo-PyTorch\ACL_PyTorch\built-in\embodied_ai\`（π0.5 适配在 `vla/pi05_openpi`、`vla/pi05_lerobot`、`vla/pi0`）。
+ModelZoo 参考仓：`d:\compass\modelzoo\ModelZoo-PyTorch\ACL_PyTorch\built-in\embodied_ai\`（π0.5 适配在 `vla/pi05_openpi`、`vla/pi05_lerobot`、`vla/pi0`）；GE 图引擎源码仓（部分开源，查 API 用）：`D:\compass\ge`（examples/offline_compile_run 是离线构图官方范例）。
+
+## 双容器分工与同步纪律（2026-09-19 增补）
+
+**两容器共享 /data**（编译产物跨容器可用）：
+
+| 容器 | CANN | 用途 | 限制 |
+|---|---|---|---|
+| `apxinf_npu` | 8.5.1 | torch_npu 基线（阶段 1）；**GE 图构建/编译只能在此**（TeFusion 算子编译器走 python/tbe 栈） | 无 Rust 工具链 |
+| `apxinf_rust` | 9.0.1（privileged） | Rust 引擎开发/编译（ACLGraph 需 9.0.1：8.5.1 返 207000） | GE 构图不可用（py_decouple 起不来，PYTHONPATH 救不了） |
+
+**GE 图编译运行环境**（apxinf_npu 内，2026-09-19 实测）：
+
+```bash
+export LD_LIBRARY_PATH=/data/apxinf/ascendc/<项目>/build:/usr/local/Ascend/ascend-toolkit/latest/aarch64-linux/lib64:$LD_LIBRARY_PATH
+export PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/python/site-packages   # 追加勿覆盖
+ASCEND_RT_VISIBLE_DEVICES=5 ./ge_poc_main ...
+```
+
+**C++ 链接 CANN graph 库的坑**：libgraph_base 是 **pre-cxx11 std::string ABI**——CMake 必须 `add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)`，否则 Operator 构造符号 undefined。
+
+**本地 → 服务器代码同步三件套**（tar 管道 + touch 骗增量）：
+
+```bash
+tar --exclude='.git' --exclude='target' -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model \
+  | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \
+    'docker exec -i apxinf_rust bash -c "tar -C /data/apxinf/apxinf_engine/crates -xf - \
+      && find /data/apxinf/apxinf_engine/crates -name \"*.rs\" | xargs touch \
+      && source /data/apxinf/rust_env.sh && cd /data/apxinf/apxinf_engine && ASCEND_RT_VISIBLE_DEVICES=5 cargo ..."'
+```
+
+⚠ **tar 保留 mtime**：同步后不 touch 会让 cargo/make 增量判定跳过重编（跑的还是旧二进制——2026-09-19 GE POC 调试时踩过，"改了代码输出不变"先查这个）。ascendc 项目的 .cpp 同理（`find . -name "*.cpp" | xargs touch`）。
+
+**子模块双仓两步提交**：① `apxinf/` 内 commit + `git push fork ascend-port`；② 外层 `git add apxinf` bump gitlink + commit。缺②队友 clone 到旧引擎。
 
 ## APXinf-robo 构建要点（CUDA 原版，作参照）
 
