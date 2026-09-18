@@ -6,7 +6,9 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径**性能阶段终局取证：~290ms kernel 间空隙的来源**（全深度单图 replay 679.8ms vs torch_npu 378ms，验收线 491ms=378×1.3；子模块 98aabfc）。背景：三次实验（广播缓存/addcmul/AscendC fused ada-norm）证明图内 kernel 数不是成本——空隙（680 墙钟 - 392 kernel 执行）不随 op 数下降。第一动作：用 msprof 的 step_trace.db / hwts 时间线分析 kernel 间空隙形态（固定 per-task 开销还是集中在特定 op 类型），服务器上已有 /data/apxinf/rust_prof 的 PROF 数据（Rust 全深度捕获进程）。判定：**空隙可归因可消除 → 定向优化后跑全深度 checkpoint bench；不可消除 → 680ms 是此架构上限，按「性能验收线」与用户决策会谈**（选项见 roadmap ⭐节：接受略慢换部署形态 / 310P3 定位验证芯片性能目标移下一代）。注意：ada_rms kernel .so 在 /data/apxinf/ascendc/ada_rms_norm/out/lib（运行需 LD_LIBRARY_PATH 包含它）；APXINF_ADA_RMS_LIB 可覆盖路径。
+APXinf 昇腾 NPU 性能阶段已到**用户决策点**（验收线判定触发，子模块 a7cdde5）：全深度单图 replay 679.8ms（对拍 0.019）vs torch_npu 378ms，验收线 491ms 不可达——空隙取证闭环：**81% 链内空隙是 MatMulV2 task 启动税（334µs × 970 次/链）**，换 matmul 入口三档同分判死，aclnn+ACLGraph 架构内封顶 ~590ms（qkv 融合后）。**等待用户从 roadmap ⭐⭐ 节三选项决策**：A 接受 ~590ms 进 M3（部署形态优先）/ B 310P3 定位验证芯片、性能目标移下一代硬件 / C 追 GE 原生 OM 图路线（torch_npu 零启动税的本质，工程量数周）。决策前不要自行开工新优化。
+
+## ②附：AscendC kernel 工程速查（98aabfc 建成）
 
 ## ②附：AscendC kernel 工程速查（98aabfc 建成）
 
