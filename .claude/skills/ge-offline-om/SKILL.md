@@ -39,7 +39,7 @@ GE OM 的代价：shape 必须编译期固定（动态 shape 走 input_shape_ran
 
 **关键约束：AddNodeByOp 与 SetInputs 互斥。** AddNodeByOp 会先初始化一张空内图，锁死 SetInputs（报 "Inner graph has been inited"），且它创建的节点不携带 operator 级连接（报 "xxx input 0 not linked"）。需要 GNode 级操作（重命名、补边）时，在 SetInputs 之后用 `GetAllNodes()` / `FindNodeByName()` 拿节点再做。
 
-**返回值陷阱**：这版 API 里 UpdateInputDesc / UpdateOutputDesc / SetAttr / SetInput 全部返回链式 `Operator&` 而非 graphStatus——**无法通过返回值判错**。desc 是否真的落上，用物化后 dump 验证（见取证工具箱）。
+**返回值可查性（CANN 9.0.1 operator.h 实测）**：`UpdateInputDesc` / `UpdateOutputDesc` 返回 **graphStatus（可查错）**；`SetAttr` / `Operator::SetInput` / `Graph::SetInputs` / `Graph::SetOutputs` 返回链式引用（**不可查错**）。SetInput/SetAttr 的字符串重载吃 `std::string`/`const char*`（AscendString 反而不匹配）。desc 落没落、边挂没挂，物化后 dump 仍是 ground truth（见取证工具箱）。
 
 ## 编译选项（必传）
 
@@ -81,7 +81,11 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 4 | 执行成功但输出全零；OM strings 里有 `te_cast` kernel | Data 幽灵 input desc 未设 → dtype 错 → Cast 插入 | `UpdateInputDesc(0U, 正确dtype的desc)` |
 | 5 | `MatMulV2InferShape: "first input dims is not 2 or 4"`（拓扑、desc、origin shape 全部正确仍报） | MatMulV2 的 infershape rank 门槛；其读取源不是所设 desc（机制未查明；推测经过中间格式变换）——**当前条件下未走通，非证实不可行** | 用经典 `MatMul`（属性 transpose_a/transpose_b，同 kernel 族）替代 |
 | 6 | Operator 构造/操作 undefined reference | libgraph_base 是 pre-cxx11 std::string ABI | CMake：`add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)` |
-| 7 | 想查 Update/SetAttr 是否生效 | 它们返回 Operator& 非 graphStatus，不可查 | 物化后 dump（取证工具箱 #2） |
+| 7 | 想查 Update/SetAttr 是否生效 | Update*Desc 返回 graphStatus 可查；SetAttr/SetInput/SetInputs 返回链式引用不可查 | Update*Desc 检查返回值；其余用物化后 dump（取证工具箱 #2） |
+| 8 | 从**多输出算子**（AddRmsNorm 的 y/rstd/x_out、ARPE 的 q/k、Split）连线：边不落图（dump `in0<-<none>`），编译死在断边消费点、plog 无 error 行（停在前一 pass） | `SetInput(dst_port, src)` 对多输出 src 的默认输出解析**静默失败** | 三参形式 `SetInput(dst_port, src, src_out_port)` 显式源端口 |
+| 9 | AscendC transformer 族算子（PromptFlashAttention 等）desc 2-D 时编译被静默拒 | desc rank 必须匹配 layout：BSH = rank-3 `[1,m,*]` | 按 layout 维度设 desc；PFA 实测 [1,m,qd]/[1,m,kvd] 通过 |
+| 10 | rank-3 输出接 MatMulV2 被拒（V2 有 rank∈{2,4} 门槛） | — | `Squeeze` 桥接（axis 是 int-list **attr**，无张量输入）：[1,m,qd]→[m,qd] |
+| 11 | 裸 `RmsNorm` 直出图输出能编译，作**中间节点**喂静态 matmul 永远拒 | RmsNorm 只有 dynamic-shape 变体 | 用 `AddRmsNorm`（eager aclnnAddRmsNorm 同名，端口 x1/x2/gamma→y，x2 传 zeros Data） |
 
 ## 环境与自检
 
