@@ -34,3 +34,18 @@
 ## 下一轮（E 阶段）
 
 注册链：accelerator `Device::Ascend` 分派 → load（synthetic + safetensors）→ `Pi05AscendVlaRuntime` → apxinf-py 暴露 → 全深度 random bench + 真 checkpoint
+
+---
+
+## 追记：ACLGraph 捕获战役（同日深夜收官，28857f0）
+
+**`ASCEND_GRAPH_CAPTURE_SMOKE_OK`：warmup → styles 预计算 → arena（1.76GB）→ RELAXED 捕获 → replay p50=88.1ms vs eager 305.1ms = 3.46×（depth 2/2/2），对拍 0.0068（fp16 噪声级）**
+
+排查链（每步真机取证）：
+1. 捕获窗口内 h2d（107030）逐个清除：ada-norm ones 行 / token 索引 / patch position 索引三处加缓存；styles 改窗外预计算（arena 下指针缓存必 miss——styles 必须复用窗外分配的张量）
+2. aclnnMuls 的 host 标量在捕获下触发内部 h2d → euler 换张量常量乘（euler_consts 缓存，σ 步常数）
+3. 窗口内残留 stream sync（denoise 的 mark closure + trace marks）→ 107027 且**取证工具的 sync 会扰动捕获态**（开 trace 反而跑得更远——教训：捕获调试的 mark 必须 print-only）
+4. 终局根因（官方文档确认）：GLOBAL/THREAD_LOCAL 捕获模式**拒绝 aclnn 执行器内部的同步 memcpy**（标量/小参上传）→ RELAXED 模式解除，`begin_capture` 固定 RELAXED
+5. arena：bump 分配 + owned=false 跳过延迟释放 + 调用方持底座 Arc（graph 烘焙地址随其存活）；depth 2/2/2 需 1.76GB（大 matmul workspace 单个 30-67MB）
+
+**已知约束**：子图捕获上限 ~2000（建议 1800）→ 全深度 ~4600 op 需拆图接力。**性能验收线**见 roadmap——拆图 + 热点融合后 ≤378ms 进 M3，差 30%+ 与用户谈取舍。
