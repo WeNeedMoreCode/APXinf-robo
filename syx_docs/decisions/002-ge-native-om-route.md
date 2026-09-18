@@ -22,3 +22,5 @@
 ## 施工计划
 
 三段式：C1 垫脚石（ge_builder FFI / transpose_x2 权重布局实验 / 单层 GE 化双路径对拍）→ C2 三段 OM 全量 + 缓存 → C3 验收线判定 + M3。详见 `plans/npu-port-roadmap.md` C 路线节。
+
+**执行进展**：C1 四项已完成（2026-09-19，1691df9/7de49c7）——单层 GE 化对拍 eager **0.00000**、**1.76×**（10.28 vs 18.06 ms/layer @ m=832），外推全模型 ~380ms ≈ 验收线，决策证据链得到全层强化。构图陷阱（多输出算子 link 静默失败 / PFA rank-3 / RmsNorm 动态变体）沉淀于 ge-offline-om skill 陷阱表 #8-11。

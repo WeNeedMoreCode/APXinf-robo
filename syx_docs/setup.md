@@ -145,8 +145,18 @@ ModelZoo 参考仓：`d:\compass\modelzoo\ModelZoo-PyTorch\ACL_PyTorch\built-in\
 ```bash
 export LD_LIBRARY_PATH=/data/apxinf/ascendc/<项目>/build:/usr/local/Ascend/ascend-toolkit/latest/lib64:$LD_LIBRARY_PATH
 export PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/python/site-packages   # 追加勿覆盖
-ASCEND_RT_VISIBLE_DEVICES=5 ./ge_poc_main ...
+ASCEND_RT_VISIBLE_DEVICES=5 <二进制/例程>
 ```
+
+**GE/OM 工具三件**（2026-09-19 C1 后主力，`ascendc/ge_builder/`，CMake 用 `cmake -DASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/ascend-toolkit/latest`）：
+
+| 工具 | 用途 |
+|---|---|
+| `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 链 verify/bench + trans 模式） |
+| `cargo run --example ge_builder_probe -p apxinf-ascend` | Rust 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .so） |
+| `cargo run --example ge_layer_probe --features ascend -p apxinf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_ARPE=1 / GEB_BENCH=1） |
+
+ge_poc（POC 期 shim）保留作历史参照，不再扩展。Rust 例程里 `ge_builder::init` 必须在 `aclInit`/`SetDevice` 之前（进程内 GE 反向初始化会 GRAPH_FAILED）。
 
 ⚠ **GE init 失败（TeFusion py_decouple）先查 `python3-config`**：py_decouple 探测 python 前缀靠 `sh -c "python3-config --prefix"`，缺该命令退出 127 → "Launch dynamic-handle failed" → aclgrphBuildInitialize -1。rust 容器修复：`ln -sf /usr/local/python3.12.13/bin/python3.12-config /usr/local/python3.12.13/bin/python3-config`（strace 取证，2026-09-19）。
 

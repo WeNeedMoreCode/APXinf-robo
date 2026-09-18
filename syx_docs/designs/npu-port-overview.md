@@ -104,7 +104,7 @@ Ascend 310P3（Atlas 300I Duo，服务器 8 芯，每芯 ~44GB）：
 
 路线 A 实施中的两处关键演进（细节数据见 plans/npu-port-roadmap.md，决策记录见 decisions/002）：
 
-1. **graph capture 行 → 已落地并超越**：ACLGraph（aclmdlRI 捕获回放）先落地（depth 2/2/2 提速 3.46×）；后经 msprof 双边取证发现其 matmul task 有 ~475µs 架构级调度税（全深度 679.8ms 的 81% 空隙来源）→ 转 **GE 原生 OM**（graph API 构图 + aclgrphBuildModel 内存编译），POC 实测零调度税 + 大 m tiling 再快 18%。
+1. **graph capture 行 → 已落地并超越**：ACLGraph（aclmdlRI 捕获回放）先落地（depth 2/2/2 提速 3.46×）；后经 msprof 双边取证发现其 matmul task 有 ~475µs 架构级调度税（全深度 679.8ms 的 81% 空隙来源）→ 转 **GE 原生 OM**（graph API 构图 + aclgrphBuildModel 内存编译），POC 实测零调度税 + 大 m tiling 再快 18%；C1 全量垫脚石落地（ge_builder 通用构图 FFI + 单层全序 GE 化对拍 0.00000、**1.76× vs eager**），C2 三段 OM 全量施工中。
 2. **matmul 行 → 转置路径定案**：ND 直连大矩阵有 MTE 越界/前序状态污染坑（见 roadmap「C 阶段核心卡点」五波排查），生产路径定为 host 转置 + transB stride 视图（NzCache）；GE OM 路线沿用该布局（transpose_x2）。
 
 上文路线 A 算子映射表为阶段起点草案，落地实况（PFA 用 V3、RoPE 组合版、GeluV2、12 算子真机对拍等）以 roadmap 阶段 2 记录为准，不再回填本表。
