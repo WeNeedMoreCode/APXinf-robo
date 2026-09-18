@@ -86,6 +86,13 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 9 | AscendC transformer 族算子（PromptFlashAttention 等）desc 2-D 时编译被静默拒 | desc rank 必须匹配 layout：BSH = rank-3 `[1,m,*]` | 按 layout 维度设 desc；PFA 实测 [1,m,qd]/[1,m,kvd] 通过 |
 | 10 | rank-3 输出接 MatMulV2 被拒（V2 有 rank∈{2,4} 门槛） | — | `Squeeze` 桥接（axis 是 int-list **attr**，无张量输入）：[1,m,qd]→[m,qd] |
 | 11 | 裸 `RmsNorm` 直出图输出能编译，作**中间节点**喂静态 matmul 永远拒 | RmsNorm 只有 dynamic-shape 变体 | 用 `AddRmsNorm`（eager aclnnAddRmsNorm 同名，端口 x1/x2/gamma→y，x2 传 zeros Data） |
+| 12 | `BroadcastToD` 编译崩（TBE task_distribute 空错误） | 310P 上该算子 kernel 编译失败 | 换 `TileD`（REQUIRED_ATTR multiples, ListInt）：`[1,cols]` + multiples `[rows,1]` → `[rows,cols]`，数值逐位验证通过 |
+| 13 | `ConcatD` 的 desc/link 拒端口（x1/x2/x/x0 全试一遍）；或 desc 过了但编译崩 | **DYNAMIC_INPUT 端口不随 CreateOperatorByName 预建**（`GetDynamicInputNum("x")==0`；TF parser 是手动 `AddDynamicInputDesc` 的）；且 toolkit 不带 op_desc.h/op_desc_utils.h | 符号直链注册：声明 `OpDescUtils::GetOpDescFromOperator` + `OpDesc::AddDynamicInputDesc`（libgraph_base 有符号、pre-CXX11-ABI 匹配），add_op 后立即注册 n 个端口；端口名 = base+序号**从 0 起**（x0/x1，非 TF 惯例 x1/x2） |
+| 14 | 模型输出 size 巨大（~1e16）/ dims 全 -1；运行侧 malloc 该 size 报 207001 | **Reshape（shape 张量输入版）的输出绑成图输出时 desc 是动态的** | 图输出只绑静态 desc 节点（mm/Add/Slice 等）；Reshape 只作中间桥（实测 Reshape→PFA、Reshape 作图尾均可编译运行，Reshape→SliceD 组合崩——陷阱 #16） |
+| 15 | `AddLayerNorm` 输出比期望大 ~100×（eager aclnn 与 GE 图**一致地**放大；输入行方差正常） | 310P 上该 kernel 在大 shape（[768,1152] 实测）的行为错误 | 换 `LayerNormV4`（INPUT x + normalized_shape 张量[int32/int64] + OPTIONAL gamma/beta → y/mean/rstd，ATTR epsilon）；数值 0.00098 验证通过 |
+| 16 | `Reshape` 输出接 `SliceD` 编译崩；Reshape 输出接 mm(rank-3 desc) 也崩 | 组合门槛（各自单算都过）；MatMulV2 rank-3 输出 desc 只能直出图输出，喂 SliceD 同样崩 | 全链 rank-2：mm(rank-2) → SliceD(rank-2) 切分 → Reshape 升 rank-3 → PFA（该链数值逐位一致） |
+| 17 | `LayerNormV4` 的 y 数值爆（65504）——绑满 3 输出的单算图正常 | **mean/rstd 死端（未被消费/未绑图输出）会让 y 也错**——与 AddRmsNorm 死端无害的行为相反 | 每个 LayerNormV4 的 mean/rstd 都绑成图输出（aux 输出，parity 对拍跳过 aux） |
+| 18 | GE OM vs eager aclnn 全层多层对拍逐层漂移（~2%/层，稳定不发散；层 0 逐位一致） | GE 静态 tiling 与 aclnn 运行时 tiling 选了不同 kernel 变体（这正是 C 路线性能来源），残差链上累积 | 对拍口径升级：**多层图对 fp32 host oracle**（GE 与 eager 互拍只对单算子/单层有意义）；正确性最终以 LIBERO 端到端为准 |
 
 ## 环境与自检
 
