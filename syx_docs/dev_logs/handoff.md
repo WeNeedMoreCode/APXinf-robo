@@ -6,7 +6,14 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU Rust 路径**性能阶段：AscendC fused ada-norm**（当前全深度单图捕获 replay 681.6ms vs torch_npu 378ms；验收线 491ms=378×1.3。子模块 494cb1b）。第一动作：调 AscendC-ops-dev skill，写 fused kernel `y = rms(x)·(1+s0)+s1`（读 x 一次 + style 行按行索引免广播 + 写 y 一次），替代当前 add_rms_norm(x,zeros)+mul+add 三 kernel 组合（~400 次调用/推理，msprof：Add 78ms + Mul 14ms + 各自 150µs kernel 间隙）。完成后跑 ascend_graph_capture_smoke（APXINF_FULL_DEPTH=1）对比 681.6ms 基线与对拍（当前 0.025）。若 fused ada-norm 落地后仍 >491ms：按「性能验收线」与用户决策会谈（选项见 roadmap）。
+继续 APXinf 昇腾 NPU Rust 路径**性能阶段终局取证：~290ms kernel 间空隙的来源**（全深度单图 replay 679.8ms vs torch_npu 378ms，验收线 491ms=378×1.3；子模块 98aabfc）。背景：三次实验（广播缓存/addcmul/AscendC fused ada-norm）证明图内 kernel 数不是成本——空隙（680 墙钟 - 392 kernel 执行）不随 op 数下降。第一动作：用 msprof 的 step_trace.db / hwts 时间线分析 kernel 间空隙形态（固定 per-task 开销还是集中在特定 op 类型），服务器上已有 /data/apxinf/rust_prof 的 PROF 数据（Rust 全深度捕获进程）。判定：**空隙可归因可消除 → 定向优化后跑全深度 checkpoint bench；不可消除 → 680ms 是此架构上限，按「性能验收线」与用户决策会谈**（选项见 roadmap ⭐节：接受略慢换部署形态 / 310P3 定位验证芯片性能目标移下一代）。注意：ada_rms kernel .so 在 /data/apxinf/ascendc/ada_rms_norm/out/lib（运行需 LD_LIBRARY_PATH 包含它）；APXINF_ADA_RMS_LIB 可覆盖路径。
+
+## ②附：AscendC kernel 工程速查（98aabfc 建成）
+
+- 源码 `apxinf/crates/apxinf-ascend/ascendc/ada_rms_norm/`（kernel + host wrapper + cmake）；服务器编译目录 `/data/apxinf/ascendc/ada_rms_norm`（`bash run.sh -r npu`，产物 out/lib 需补拷 build/lib/libascendc_kernels_npu.so）
+- Rust 接入 `apxinf-ascend/src/ada_rms.rs`（dlopen，libloading）+ `adaptive_rms` fused 分支（available() 自动切换，无 .so 时回落 aclnn 组合）
+- probe：`examples/ada_rms_probe.rs`（ADA_RMS_DIAG=1 跑 tiling diag 模式 1-6）
+- 310P3 判决：硬件 ReduceSum/RmsNorm arch 门控不可用（树归约是唯一路径）、GeGlu 挂死、Addcmul 无收益、aclrtlaunch 可进 RELAXED 捕获窗口、跨行流水线需 GetValue 双 pin
 
 ## ③ Export 标题建议
 
