@@ -99,3 +99,12 @@ Ascend 310P3（Atlas 300I Duo，服务器 8 芯，每芯 ~44GB）：
 1. **技术路线**：混合路线（C），但**预留原生接口**——Python 层引擎抽象一步到位，torch_npu 是首个实现，Rust `apxinf-ascend` 后续接入同一缝；技术相异点一个一个过
 2. **目标硬件**：锁定 310P3（BF16→FP16，无 FP8，INT8 后置）
 3. **验收口径**：延迟对标 ModelZoo 378ms 基线；精度 LIBERO 对齐（PI0.5 reference 92.4%）
+
+## 六、路线演进（阶段二，2026-09-19 增补）
+
+路线 A 实施中的两处关键演进（细节数据见 plans/npu-port-roadmap.md，决策记录见 decisions/002）：
+
+1. **graph capture 行 → 已落地并超越**：ACLGraph（aclmdlRI 捕获回放）先落地（depth 2/2/2 提速 3.46×）；后经 msprof 双边取证发现其 matmul task 有 ~475µs 架构级调度税（全深度 679.8ms 的 81% 空隙来源）→ 转 **GE 原生 OM**（graph API 构图 + aclgrphBuildModel 内存编译），POC 实测零调度税 + 大 m tiling 再快 18%。
+2. **matmul 行 → 转置路径定案**：ND 直连大矩阵有 MTE 越界/前序状态污染坑（见 roadmap「C 阶段核心卡点」五波排查），生产路径定为 host 转置 + transB stride 视图（NzCache）；GE OM 路线沿用该布局（transpose_x2）。
+
+上文路线 A 算子映射表为阶段起点草案，落地实况（PFA 用 V3、RoPE 组合版、GeluV2、12 算子真机对拍等）以 roadmap 阶段 2 记录为准，不再回填本表。
