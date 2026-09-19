@@ -148,13 +148,16 @@ export PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/python/site-packages  
 ASCEND_RT_VISIBLE_DEVICES=5 <二进制/例程>
 ```
 
-**GE/OM 工具三件**（2026-09-19 C1 后主力，`ascendc/ge_builder/`，CMake 用 `cmake -DASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/ascend-toolkit/latest`）：
+**GE/OM 工具四件**（2026-09-19 C2 后主力，`ascendc/ge_builder/`，CMake 用 `cmake -DASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/ascend-toolkit/latest`）：
 
 | 工具 | 用途 |
 |---|---|
 | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 链 verify/bench + trans 模式） |
 | `cargo run --example ge_builder_probe -p apxinf-ascend` | Rust 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .so） |
 | `cargo run --example ge_layer_probe --features ascend -p apxinf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_ARPE=1 / GEB_BENCH=1） |
+| `cargo run --example ge_model_probe --features ascend -p apxinf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_LOAD=路径——OM 缓存在 /data/apxinf/om_cache/ / GEB_OPTEST=btd\|rsh\|sld\|gat\|cat\|aln\|gln\|tld\|p1-p7\|v1-v5\|r1\|q1\|lnv4* 等单算/组合/数值验证矩阵 / GEB_TRACE 中间量打印） |
+
+⚠ ge_builder .so 改过 C++ 后要 `touch *.cpp && make && cp -f libge_builder.so /data/apxinf/ascendc/ge_builder/build/`（默认 dlopen 路径，或 APXINF_GE_BUILDER_LIB 指向 engine 下新构建）。bench 一律同芯对照（实测 chip4/chip6 行为有差异）。
 
 ge_poc（POC 期 shim）保留作历史参照，不再扩展。Rust 例程里 `ge_builder::init` 必须在 `aclInit`/`SetDevice` 之前（进程内 GE 反向初始化会 GRAPH_FAILED）。
 
