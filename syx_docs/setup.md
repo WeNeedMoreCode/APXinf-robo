@@ -155,7 +155,10 @@ ASCEND_RT_VISIBLE_DEVICES=5 <二进制/例程>
 | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 链 verify/bench + trans 模式） |
 | `cargo run --example ge_builder_probe -p apxinf-ascend` | Rust 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .so） |
 | `cargo run --example ge_layer_probe --features ascend -p apxinf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_ARPE=1 / GEB_BENCH=1） |
-| `cargo run --example ge_model_probe --features ascend -p apxinf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_LOAD=路径——OM 缓存在 /data/apxinf/om_cache/ / GEB_OPTEST=btd\|rsh\|sld\|gat\|cat\|aln\|gln\|tld\|p1-p7\|v1-v5\|r1\|q1\|lnv4* 等单算/组合/数值验证矩阵 / GEB_TRACE 中间量打印） |
+| `cargo run --example ge_model_probe --features ascend -p apxinf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_LOAD=路径——OM 缓存在 /data/apxinf/om_cache/ / GEB_OPTEST=btd\|rsh\|sld\|gat\|cat\|aln\|gln\|tld\|p1-p7\|v1-v5\|r1\|q1\|lnv4*\|asc*\|ma*\|bc4 单算/组合/数值验证矩阵 / GEB_TRACE 中间量打印（含 head）/ GEB_ATTN=manual 手工 attention / GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数**） |
+| `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_builder 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+
+⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB_PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
 
 ⚠ ge_builder .so 改过 C++ 后要 `touch *.cpp && make && cp -f libge_builder.so /data/apxinf/ascendc/ge_builder/build/`（默认 dlopen 路径，或 APXINF_GE_BUILDER_LIB 指向 engine 下新构建）。bench 一律同芯对照（实测 chip4/chip6 行为有差异）。
 

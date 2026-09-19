@@ -1,17 +1,17 @@
-# Handoff（2026-09-19 C2 三段 OM 全量落地 / 性能优化前夜，compact 用）
+# Handoff（2026-09-19 C2 性能攻坚第一轮收尾 / 压缩用）
 
 ## 状态一句话
 
-**C2 ⑤⑥⑦ 全部落地**（f0787fa）：三段静态 OM（vision 27 层 / prefix 18 层+每层 k/v 输出 / flow 18 层单步 OM）编译+运行+OM 落盘全通（/data/apxinf/om_cache/）；flow 全深对拍 **1.6%**；vision/prefix 组件级逐位验证、全深为 tiling 变体差（104%/30%，口径待 fp32 oracle）。**bench：vision 723ms + prefix 750ms + flow 70.9ms/步 ≈ 2182ms 全模型——距 378ms 验收线 5.8×，不达标**。下一步 = msprof op 级定位慢 kernel（对照 C1 单层 10.28ms 的构成差）。
+三轮 msprof 定律：vision OM ~700ms 中 **busy 仅 ~87ms，~600ms 是 81 次/迭代的毫秒级空隙**（`EVENT → ~20ms → MemcopyAsync`）。已排除 PFA host 回调（换手工 attention 仍 700ms）与 unknown-shape 拆分（Const 折叠 OM 221→16MB 仍 700ms；flow 带 unknown 标记却 70.9ms 反例）。**头号嫌疑：111 图输出（LN aux）vs flow 的 1 输出**——GEB_NO_AUX 全深隔离实验进程卡死无结论。顺带修复 eager 参考竞态（d2h 非流序 + 中间量提前释放），**vision 全深对拍 0.1% 稳定，C2 的 104%/30% 漂移销案**。本轮代码/文档已提交。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**C2 战果与数据**（三段 bench 723/750/70.9ms；flow parity 1.6%；OM 缓存三件在 /data/apxinf/om_cache/；全模型外推 2182ms vs 验收线 378ms）；**skill 陷阱表 #12-18**（BroadcastToD 崩→TileD；DYNAMIC_INPUT 端口工厂不预建→符号直链 AddDynamicInputDesc、端口 x0/x1 从 0 起；Reshape 输出绑图输出→desc [-1] 动态→malloc 207001→图输出只绑静态 desc 节点；AddLayerNorm [768,1152] kernel 100× 放大→LayerNormV4；LayerNormV4 mean/rstd 死端会让 y 爆→绑图输出；Reshape→SliceD 与 mm(rank-3)→下游组合崩→全链 rank-2+Reshape 桥；GE vs eager 全深逐层 tiling 变体差→oracle 口径）；**ge_model_probe.rs 使用面**（GEB_SEG=vision|prefix|flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE/GEB_LOAD / GEB_OPTEST=btd|rsh|sld|gat|cat|aln|gln|gat2|tld|catx|p1-p7|v1-v5|r1|q1|lnv4*|glnn|rshn|v3n|tldn 单算/组合/数值验证矩阵 / GEB_TRACE）；**ge_builder 新 FFI**（geb_dyn_inputs/geb_dyn_probe/geb_link_idx；.so 需重编后 cp 到 /data/apxinf/ascendc/ge_builder/build/）；**性能疑点清单**（TileD/SliceD/Reshape 拷贝类 kernel 开销未 profile；LN 辅输出 108 个；336/195 输入的绑定开销；编译器融合未知）；**eager take_rows qkv/gate_up 切分 bug 取证**（交织布局 flat 切分数学错误，从未被数值对拍暴露——修复后置）；服务器三件套 + tar 后 touch（.rs 和 .cpp 都要）；子模块双仓两步提交（push fork）。丢弃：本轮 optest 逐轮试错过程（用例保留在例程 GEB_OPTEST，结论在 skill #12-18）。
+聚焦保留：**性能 profile 定律**（busy 87ms vs 墙钟 700ms；空隙 81 次/迭代 EVENT→~20ms→MemcopyAsync；算子账本：TransData 17-21/Trans 融合 mm 19/LN 14.7/Gelu 9.5/Softmax 6.3/**bmm 1.1ms(20µs/次)**）；**假设排除链**（PFA host 回调 InnerPFA 27 次/迭代但换手工 attention 仍 700；unknown-shape Const 折叠 OM 221→16MB 仍 700；**flow 反例**：2683 unknown 标记 + PFA + Data shape 却 70.9ms）；**未决头号嫌疑：111 图输出**（LN aux ×108，flow 只有 1 输出；GEB_NO_AUX 隔离实验全深卡死——**下轮第一动作 GEB_DEPTH=2 + GEB_ROUNDS=5 GEB_PER=3 + GEB_NO_AUX=1 最小 A/B，1 分钟出数**）；**eager 竞态 bug 取证**（d2h 非流序 + 闭包 drop 内存复用；C2 的 104%/30% 漂移是假的，vision 全深 0.1% 销案）；**新工具面**（GEB_ATTN=manual 手工 attention 0.1% 对拍、headsplit/headmerge、GEB_OPT_/GEB_INIT_OPT_ 选项直通、geb_add_const_i32、GEB_DBG/GEB_NO_AUX/GEB_ROUNDS/GEB_PER）；**坑**（enableSingleStream 无效且数值崩；AttentionScore 310P 无 kernel；SoftmaxV2 half_to_float=true 输出全 0；[768,1152]→[48,256,72] 直接 Reshape 是头/序错排；bmm 输出绑图输出 desc 动态；BiasAdd 在注册表存在未接线）；ascend-msprof skill（最小采集纪律）。丢弃：三轮 profile 逐条分析命令、竞态排查中间过程（结论在 skill #19-25 与 summary）。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 C2 后半：三段 OM 性能攻坚**（C2 三段已落地见 roadmap C2 ✅ 段 f0787fa：编译/运行/缓存全通但 bench 2182ms 距验收线 5.8×；陷阱在 ge-offline-om skill #12-18，先读）。第一动作：**msprof profile 三段 OM 的 task 时长分布**（Rust 侧挂 wrapper 脚本跑 ge_model_probe 的 GEB_LOAD 模式，看 vision 27 层 723ms 里 TileD/SliceD/Reshape/PFA/LN 各占多少——对照 C1 单层 10.28ms 的构成，找拷贝类 kernel 的低效点），然后逐热点换快替代（bias 广播试 GE BiasAdd 注册名、SliceD 合并、TileD 换 GatherV2D 行复制等），目标把 vision/prefix 拉回 ~100/200ms 量级后再判验收线。vision/prefix 的 parity 口径升级（host fp32 oracle）可并行做。
+继续 APXinf 昇腾 NPU **C 路线 C2 性能攻坚第二轮**（第一轮见 roadmap C2 攻坚段与 summary 2026-09-19_c2-perf-attack-round1：busy 87ms vs 墙钟 700ms 的空隙问题，已排除 PFA/unknown-shape）。第一动作：**最小 A/B 裁决 111 图输出假设**——`GEB_SEG=vision GEB_ATTN=manual GEB_DEPTH=2 GEB_ROUNDS=5 GEB_PER=3` 跑 aux 基线，再加 `GEB_NO_AUX=1` 跑对照（数值会坏——trap，只看时间；两轮各 ~1 分钟）。若 no-aux 显著降：给 LN mean/rstd 找图内 sink（或换无 aux 的 LN 形态）消除 108 输出；若不变：转向 prefix 同病对照与 msprof 最小采集（ascend-msprof skill：GEB_ROUNDS=5 采 15 次执行）。目标：vision/prefix 拉回 ~100ms 量级再判 378ms 验收线。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_c2-three-segment-om-compiled-but-slow.md（新文件：C2 三段 OM 全量落地——编译/缓存/flow parity 1.6%，bench 2182ms 不达标 5.8×，陷阱 #12-18 取证：BroadcastToD 崩/DYNAMIC_INPUT 端口符号直链/Reshape 动态输出/AddLayerNorm kernel bug/LayerNormV4 死端）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_c2-perf-attack-round1.md（新文件：C2 性能攻坚第一轮——msprof 定律 busy 87ms/墙钟 700ms、PFA 与 unknown-shape 假设排除、eager 竞态修复致 vision 全深 0.1%、手工 attention 落地）

@@ -92,7 +92,16 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 15 | `AddLayerNorm` 输出比期望大 ~100×（eager aclnn 与 GE 图**一致地**放大；输入行方差正常） | 310P 上该 kernel 在大 shape（[768,1152] 实测）的行为错误 | 换 `LayerNormV4`（INPUT x + normalized_shape 张量[int32/int64] + OPTIONAL gamma/beta → y/mean/rstd，ATTR epsilon）；数值 0.00098 验证通过 |
 | 16 | `Reshape` 输出接 `SliceD` 编译崩；Reshape 输出接 mm(rank-3 desc) 也崩 | 组合门槛（各自单算都过）；MatMulV2 rank-3 输出 desc 只能直出图输出，喂 SliceD 同样崩 | 全链 rank-2：mm(rank-2) → SliceD(rank-2) 切分 → Reshape 升 rank-3 → PFA（该链数值逐位一致） |
 | 17 | `LayerNormV4` 的 y 数值爆（65504）——绑满 3 输出的单算图正常 | **mean/rstd 死端（未被消费/未绑图输出）会让 y 也错**——与 AddRmsNorm 死端无害的行为相反 | 每个 LayerNormV4 的 mean/rstd 都绑成图输出（aux 输出，parity 对拍跳过 aux） |
-| 18 | GE OM vs eager aclnn 全层多层对拍逐层漂移（~2%/层，稳定不发散；层 0 逐位一致） | GE 静态 tiling 与 aclnn 运行时 tiling 选了不同 kernel 变体（这正是 C 路线性能来源），残差链上累积 | 对拍口径升级：**多层图对 fp32 host oracle**（GE 与 eager 互拍只对单算子/单层有意义）；正确性最终以 LIBERO 端到端为准 |
+| 18 | GE OM vs eager aclnn 全层多层对拍逐层漂移（~2%/层，稳定不发散；层 0 逐位一致） | GE 静态 tiling 与 aclnn 运行时 tiling 选了不同 kernel 变体（这正是 C 路线性能来源），残差链上累积 | 对拍口径升级：**多层图对 fp32 host oracle**（GE 与 eager 互拍只对单算子/单层有意义）；正确性最终以 LIBERO 端到端为准。⚠ 2026-09-19 追记：vision 104%/prefix 30% 实为对拍参考竞态（#19/#20），修复后 vision 全深 0.1%——遇"逐层稳定漂移"先查参考侧竞态再谈 tiling 变体 |
+| 19 | eager 对拍数值非确定（同图同输入 ref 量级随机跳变）；或含 host 读回的参考链在全 device kernel 图上确定性错 | **同步 d2h（aclrtMemcpy）不等待 compute 流上的生产 kernel**——读回跑赢生产者。含 PFA 的链被其 host 回调天然串行化掩盖，全 device kernel 链暴露 | host 读回前显式 `stream.synchronize()`（probe 的 host_ln 已带 stream 参数先同步） |
+| 20 | eager 闭包返回后参考 buffer 内容被改写；ref 与后续计算交叉污染 | **闭包内中间量 drop 时 kernel 未落**：aclrtFree 非流序，内存回池被后续 malloc（如 GE 输出 buffer）复用，踩烂在途数据 | eager 闭包末尾（return 前）强制 `stream.synchronize()`，再让局部量 drop |
+| 21 | Reshape/LayerNormV4 的 shape 类输入用 Data 节点 → 消费算子输出 desc unknown → 图被动态 shape 拆分、OM 膨胀（实测 221MB）、插运行时机制 | shape 张量是运行时输入，编译期不可折叠 | **Const 节点给 shape**（`geb_add_const_i32` FFI，编译期常量折叠；实测 OM 221MB→16MB）。⚠ 但 host 调度停顿另有其因——flow 带 2683 个 unknown 标记仅 70.9ms 反例 |
+| 22 | 静态 OM 里 PromptFlashAttention 每次执行都触发 host 侧 InnerPFA/GetWorkspaceSize（api_statistic 可见 27 次/迭代）+ 输入 staging MemcopyAsync×3 | PFA 是 transformer-API 型算子（opInterface 标记），静态图内走 host launcher 按设计 | 手工 attention 替代：BatchMatMulV2(q,k,adj_x2)+SoftmaxV2(axes=-1)+BatchMatMulV2，scale 折进 qkv 权重/bias 的 q 块；单算对拍 0.26%，kernel 20µs vs PFA 323µs |
+| 23 | AttentionScore（bert 时代融合静态 attention）注册表存在但 TBE 编译崩（三 mask 形态全崩） | 310P 无该 kernel 二进制（注册表与 kernel 目录不一致） | 查 kernel 目录 `opp/.../tbe/kernel/ascend310p/` 有无对应 .o 再选算子；用 #22 手工链 |
+| 24 | token 主序 [t, h·d] 直接 Reshape 成 [b·h, s, d] 喂 bmm——数值错但 |max| 逐级对得上、单点 max_diff 巨大 | **直接 Reshape 是头/序错排**（token-major ≠ head-major）；attention 输出幅度小时被残差掩盖，逐级 |max| 对比发现不了 | 正确变换 headsplit：Reshape[b,s,h,d] → TransposeD(perm 0,2,1,3) → Reshape[b·h,s,d]；逆变换 headmerge 同构 |
+| 25 | BatchMatMulV2/PFA 输出绑图输出 → desc 动态 [-1,-1,-1]（size ~1e18 → malloc 207001）；其直接下游 mm 输出也被感染 [-1,n] | 这些算子的输出 desc 动态推导，动态性只传一层 | 图输出只绑静态 desc 节点（Add/mm 尾部等）；调试需观察 attention 输出时绑其下游第二层之后的节点 |
+| 26 | SoftmaxV2 `half_to_float=true` 输出读数全 0 | 输出侧 dtype 行为异常（fp16 缓冲读 fp32 之类，机制未深究） | `half_to_float=false`（fp16 内算，数值验证过）；输入幅度控制在 q·k 点积不溢出 fp16（LN·W 后真实量级安全） |
+| 27 | `ge.enableSingleStream=true` 无效（仍 58 流）且改变融合选择 → 数值崩（d1 98.2%） | init 级选项被静默忽略 + 融合集变化 | 弃用；多流停顿问题另有根因（见 roadmap C2 攻坚段） |
 
 ## 环境与自检
 
