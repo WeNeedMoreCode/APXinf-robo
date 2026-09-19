@@ -102,6 +102,8 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 25 | BatchMatMulV2/PFA 输出绑图输出 → desc 动态 [-1,-1,-1]（size ~1e18 → malloc 207001）；其直接下游 mm 输出也被感染 [-1,n] | 这些算子的输出 desc 动态推导，动态性只传一层 | 图输出只绑静态 desc 节点（Add/mm 尾部等）；调试需观察 attention 输出时绑其下游第二层之后的节点 |
 | 26 | SoftmaxV2 `half_to_float=true` 输出读数全 0 | 输出侧 dtype 行为异常（fp16 缓冲读 fp32 之类，机制未深究） | `half_to_float=false`（fp16 内算，数值验证过）；输入幅度控制在 q·k 点积不溢出 fp16（LN·W 后真实量级安全） |
 | 27 | `ge.enableSingleStream=true` 无效（仍 58 流）且改变融合选择 → 数值崩（d1 98.2%） | init 级选项被静默忽略 + 融合集变化 | 弃用；多流停顿问题另有根因（见 roadmap C2 攻坚段） |
+| 28 | 静态 OM 执行墙钟远大于 kernel 总时（fill ~15%）；执行流上每层多次 MemcopyAsync（每次 ~380µs、前置 4.5-12ms host 停顿），下个 kernel 固定为切片的消费者（TransposeD/PFA/ConcatD）；换算子/换 attention/Const shape 都不动 | **SliceD 列切视图（stride≠连续）的下游 kernel 要连续物理布局 → GE 运行时每次执行插 D2D 物化拷贝，拷贝走 host 慢路径**（aclmdlExecuteAsync 内走走停顿提交）。msprof task_time 邻接分析可定位（MemcopyAsync 的 next kernel 恒定即指纹）。⚠ 动态路径（unknown 拆分）反而不付此税——切片被物化成 kernel | 图组织上消灭列切视图：① qkv 融合+切分 → 3 个独立 mm + 独立权重输入；② rope 的 lo/hi 半宽切+ConcatD → flat 视图行交换（Reshape[p,wd]→[p·h·2,d/2] → GatherV2D Const 索引 swap → mul/mul/add → Reshape back）。实测 vision 723→68 / prefix 750→188 / flow 70.9→17.5 ms |
+| 29 | 改动输入注册集（如 shape 张量 Data→Const 后输入槽消失）后 eager 参考硬编码索引 panic（buffer size 断言，如 [832,256] 读到 [2560,1024]），且可能伪装成 TBE task_distribute 编译崩 | 输入序号整体漂移，索引未同步；段内 const_i32 不占输入槽 | eager 的段级/层内索引与注册序耦合，改注册集必须同步索引（用段头注释记录当前注册序）；先看 panic 的 shape 与实际 buffer 对应哪个输入定位错位量 |
 
 ## 环境与自检
 

@@ -61,6 +61,10 @@ msprof --output=<目录> <你的程序> [程序参数]     # 新式：直接跟 
 ## 采集失败模式
 
 - **导出静默失败**：msprof 退出码 0、日志说 "Profiling finished"，但 mindstudio_profiler_output 目录为空/缺失——重跑一次通常就好；raw 数据在 `PROF_*/host/sqlite/*.db`（TaskInfo 表等）可救。
+- **顽固导出失败（2026-09-19 实测一轮）**：重跑/加长 bench/换 --application=wrapper 形式都无效；device 数据（aicore/hwts slices + all_file.complete + end_info）与 host sqlite 俱在、分析日志无 error、与成功采集的 pipeline 日志逐段相同，仅最后 CSV 导出阶段不产出。未定位根因。**恢复路径**：
+  - `host/sqlite/ge_info.db` 的 **TaskInfo**（op_name/op_type/stream_id/task_id/timestamp）——⚠ timestamp 是 host 提交时刻非设备执行时刻（同流相邻 10-20µs 即 launch 序列）；且常被截断（只覆盖前 2-3 次执行）。
+  - `device_6/sqlite/hwts-rec.db` 的 **HwtsBatch**（stream_id/task_id/start_time/end_time，设备侧真实时长）——⚠ **主执行流的任务不在其中**（在未导出的 aicore.data 二进制里），只有侧流/分片任务；task_id 是流内序号非全局。
+  - 两者按 `(stream_id, task_id)` JOIN 可恢复侧流算子账本；主链时序仍不可得。
 - 采集期间 npu-smi 看 AICore 占比没意义（采样时刻），以产物为准。
 - 共享芯片上 profile 数字有抖动，对照实验用同芯。
 
