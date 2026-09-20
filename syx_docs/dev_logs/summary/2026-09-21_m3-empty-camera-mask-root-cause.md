@@ -45,9 +45,9 @@
 | down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不加新误差）；gate/up 槽（15/32%）系覆写垃圾 |
 | h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程放大 + 逐层复合 |
 
-**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 norm2 只增 ~0.3%——**主嫌疑 = o_proj mm（WCONST Const+NZ 烤入，K=2048）**，addrms 次之。
+**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 norm2 只增 ~0.3%。**err_struct.py 结构裁决**：误差无行缩放分量（纯行尺度 -0.68%..-0.05%，去掉后 2.82% 原样——**addrms 无罪**，norm 误差必呈行缩放）；误差呈**通道结构**（top10 通道 12-30× 中位、m0 对照仅 3-5×）——mm 输出列特征污染，**o_proj mm（WCONST Const+NZ）定罪为头号嫌疑**。
 
-下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展或最小隔离图）；② addrms 同测（真 res 输入）；③ 若 mm 定罪：WCONST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO。
+下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展或最小隔离图）；② 若定罪：WCONST 开关 / NZ vs ND / split-K / 通道误差与 outlier 输入×权重行的相关性。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO。
 
 ## 性能（t712，零回归且更快）
 
