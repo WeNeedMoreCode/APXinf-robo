@@ -55,6 +55,7 @@ def _pre(name):
 
 
 hh = [lm0.layers[0].self_attn.o_proj.register_forward_pre_hook(_pre("m0_vis"), with_kwargs=True),
+      lm0.layers[0].post_attention_layernorm.register_forward_pre_hook(_pre("res0"), with_kwargs=True),
       lm0.layers[1].input_layernorm.register_forward_pre_hook(_pre("h1_vis"), with_kwargs=True)]
 with torch.no_grad():
     pos = torch.arange(Pv, device=x0_vis.device).unsqueeze(0)
@@ -64,7 +65,7 @@ with torch.no_grad():
         past_key_values=None, use_cache=True, adarms_cond=None)
 for x in hh:
     x.remove()
-for k in ("m0_vis", "h1_vis"):
+for k in ("m0_vis", "h1_vis", "res0"):
     golden[k] = capv[k][0].float().reshape(-1, 2048).cpu().numpy()
     print(f"[v3] {k}", golden[k].shape)
 pkv = pv_out.past_key_values

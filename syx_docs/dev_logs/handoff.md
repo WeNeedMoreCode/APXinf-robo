@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 summary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 mm vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712dbg OM 现成；err_struct.py 已证 addrms 无罪、误差呈通道结构 → mm 列污染）；② 若定罪 → WCONST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。
+继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 summary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：**manual attention 链孤立对拍**（真 x0_vis 输入跑 [norm1→qkv→rope→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指向 headsplit/headmerge 重排或 bmm 累加）；② GEB_OPTEST=arm 的 GE run rc=-3 顺手查。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。
 
 ## ③ Export 标题建议
 

@@ -4,7 +4,7 @@
 
 ## 一句话
 
-**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBERO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 pad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（968→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差（torch 同链 f16 仅 0.03%）。**
+**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBERO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 pad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（968→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到图内 manual attention 链的真实输出（~2.8% 执行误差、通道结构；o_proj mm 单算逐位干净、addrms 无罪——m0 槽回读 0.52% 美化了实际消费值）。**
 
 ## 定位链（当晚五步裁决，全部实测）
 
@@ -45,9 +45,9 @@
 | down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不加新误差）；gate/up 槽（15/32%）系覆写垃圾 |
 | h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程放大 + 逐层复合 |
 
-**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 norm2 只增 ~0.3%。**err_struct.py 结构裁决**：误差无行缩放分量（纯行尺度 -0.68%..-0.05%，去掉后 2.82% 原样——**addrms 无罪**，norm 误差必呈行缩放）；误差呈**通道结构**（top10 通道 12-30× 中位、m0 对照仅 3-5×）——mm 输出列特征污染，**o_proj mm（WCONST Const+NZ）定罪为头号嫌疑**。
+**判读更新（单算裁决后）**：`GEB_OPTEST=oproj`（真 m0_vis × 真 L0 o_proj，cst/nd 两形态）**GE 图 mm vs aclnn eager 逐位一致 0.000%**——o_proj mm 单算无罪；addrms 已被 err_struct 洗清（无行缩放分量；`GEB_OPTEST=arm` 真res0 单算已实现但 GE 侧 run rc=-3 待查，eager 侧通）。⇒ **2.82% 只能产自图内 manual attention 链的真实输出**：m0 槽回读 0.52% 美化了实际消费值（"槽与消费值不一致"再现——此前 m0_variants 时代的 41% 悖论同源）。误差呈通道结构（top10 通道 12-30× 中位）指向 attention 合并/headmerge 或其 bmm 累加。
 
-下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展或最小隔离图）；② 若定罪：WCONST 开关 / NZ vs ND / split-K / 通道误差与 outlier 输入×权重行的相关性。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO。
+下一步（第一动作）：**manual attention 链孤立对拍**——真 x0_vis 输入跑 [norm1→qkv→rope→GQA(TileD/bmm/softmax/headsplit)→merge] 最小图（或 DBG 中间槽位加密），对拍 golden m0_vis；② headsplit/headmerge 的重排与 bmm K=712 累加是通道结构误差的天然来源（列重排错位/累加序）；③ `arm` GE run rc=-3 顺手排查。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO。
 
 ## 性能（t712，零回归且更快）
 
