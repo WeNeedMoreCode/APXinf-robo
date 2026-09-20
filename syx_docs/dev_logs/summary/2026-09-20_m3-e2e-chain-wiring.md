@@ -31,9 +31,14 @@
 - **待 golden 裁决**：suffix att_masks `[1]+[0]*49`（make_att_2d_masks 语义——action tokens 间互相可见性 vs 引擎 cross-attn 全拼 kv）；prefix 漂移 100% 实际影响；patch 行序 (c,kh,kw)（引擎与 F.unfold 同构，按构造应一致但从未被真图验证）
 - time_mlp/te 维度 ✓ 一致（te=1024=min AW、min/max period 同 config）；position_ids=cumsum-1 → suffix 从 832 续 ✓ 与引擎 flow rope offset=832 一致
 
-1. **golden 对拍**：npu 容器产一帧 golden（确定性合成帧即可——对拍只要求两路同张量；`PI05Policy.from_pretrained` + `predict_action_chunk` + `sample_noise` 替换注入（npu_torch.py 现成语义）；patches = pixel_values F.unfold（行 (c,kh,kw)，与引擎 take_linear reshape 同构）；token_ids 不 padding、任务文本 pad 到 16 倍数；dump 键 patches[768,588]/token_ids/noise[50,32]/actions[50,32]（normalized 输出即 32 维原始终态）→ `GEB_E2E_GOLDEN=...` 对拍
-2. LIBERO 对标（9/10 基线）→ 真实 e2e 延迟 bench（host 中转/61s 加载/占位 tokenizer 一并工程化）
-3. 后置：pk/pv 设备直连（免 host 中转）、checkpoint 按段懒加载、真 tokenizer 进 Rust
+1. **golden 一帧已产出**（2026-09-20 晚，`/data/apxinf/golden/frame0.safetensors`，脚本 `syx_docs/dev_logs/golden_gen.py` ↔ 服务器 `/data/apxinf/golden_gen.py`；npu 容器跑法 `export PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf:$PYTHONPATH` **追加勿覆盖** + `ASCEND_RT_VISIBLE_DEVICES=N`）。侦察实锤四条：
+   - pixel_values **(3,3,224,224)** min=-1.0——三视图 + empty 相机 -1 pad 实锤，VT=768 无矛盾
+   - patches (768,588) F.unfold 构造正合（行 (c,kh,kw)）
+   - **input_ids len=200**（tokenizer pad 到 max_length；~50 真 token + 150 pad，pad mask=0 不参与 attention/position）→ **真实 prefix = 768+200=968，且 968 非 16 倍数 = 对齐死结**：候选解法 a) GE 静态 OM 直接编 M=968 试一把（非 16 倍 M 崩是 eager aclnn 经验，GE 未必）+ golden 任务文本填满 200 全真 token（pad token 引擎侧无 mask，必须消 pad）b) 引擎图内/host pad 到 976（GEB_TOKENS=208）但 torch 侧 200 上限锁死 → 两路输入不一致，不可行 → **先试 a**
+   - **actions (50,7)**：predict_action_chunk 返回已切 deployable 维——probe 对拍须取 e2e 输出前 7 列（golden 键 actions 即 (50,7)，probe 侧比较代码要适配）
+2. **对拍执行**（token 对齐解开后）：`GEB_E2E_GOLDEN=/data/apxinf/golden/frame0.safetensors GEB_TOKENS=<对齐值> GEB_SEG=e2e 四件套 GEB_CKPT=...`；⚠ prefix/flow OM 需按新 P 重建（GEB_SAVE 重烤，分钟级）
+3. LIBERO 对标（9/10 基线）→ 真实 e2e 延迟 bench（host 中转/61s 加载/占位 tokenizer 一并工程化）
+4. 后置：pk/pv 设备直连（免 host 中转）、checkpoint 按段懒加载、真 tokenizer 进 Rust
 
 ## 环境速记
 
