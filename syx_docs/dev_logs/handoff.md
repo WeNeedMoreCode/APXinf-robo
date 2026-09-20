@@ -1,18 +1,17 @@
-# Handoff（2026-09-20 M3 第二步 e2e 接线完成 / 压缩用）
+# Handoff（2026-09-20 晚 M3 对拍偏差定位 / 压缩用）
 
 ## 状态一句话
 
-**M3 第二步完成：三段真权重 OM 接入真实推理链（GEB_SEG=e2e，子模块 c8ca41b+d960a9b）——x0 真嵌入组装（vision_out ‖ token 查表×√2048）、styles 真值（time_mlp→style→1+s0 每步换绑）、pk/pv = prefix 36 输出直连、10 步 flow 循环 + LeRobot 语义对齐（euler c1=1.0），chip6 bring-up 全通（GE_E2E_PROBE_OK）**。M3 剩余：golden 对拍（npu 容器产一帧）→ 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）。
+**M3 314% 漂移已拆解定位：① rope f16-inv_freq 语义差已修（kvk_l0 12.6%→0.4%，t200 OM 重烤，子模块 c7db8c8）；② 引擎语义/权重/attention/MLP 全部教科书级洗清（0.03-0.14%）；③ 剩余偏差钉死在 GE OM 图内数值行为——同一算子链 x0 输入 0.4% vs golden-h1 输入 18.7%（数据依赖、数值级非结构级）**。详见 summary 2026-09-20_m3-parity-drift-bisect（裁决表 + 已排除清单 + 工具链用法）。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**e2e 接线口径**（x0 = cat(vision_out, token_embedding[ids]×√2048)，视觉前语言后；styles：t=1-step/N → sinusoidal(t,1024,4e-3,4.0) → silu 两层 time_mlp[32] → 每层 style [32,3AW] → ascl=1+s0/ash=s1（executor L714 切分）；pk/pv host 中转；**euler 已换绑 c1=1.0/c2=-0.1（LeRobot x'=x+dt·v 式，binds 尾两位 Data 输入）**；state 确证无通路（pi05 LeRobot 跳过 state_proj，suffix=50 纯 action）；视图数 768 确证（缺失相机=-1 pad 图+mask=0 占位））；**e2e 结果**（bring-up 全通、vision OM 主输出 idx0（108 LN aux 必须绑 trap #17）；各段一次性墙钟 10/77/9.5s 非稳态）；**运行口径**（四件套+GEB_CKPT+GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN 键：patches[768,588]/token_ids/noise[50,32]/actions f32）；**golden 待裁决**（suffix att_masks [1]+[0]*49 语义、prefix 漂移实际影响、patch 行序实证）。丢弃：编辑过程（结论在 summary 2026-09-20_m3-e2e-chain-wiring + roadmap）。
+聚焦保留：**bisect 裁决链**（vision 0.3%/x0 0.1%/权重 0.000%/attention+MLP 复刻 0.03-0.14% 全清；rope f16-inv_freq 根因+修复+rope_angle()；剩余=GE OM 数值：h1 输入同链 18.7% vs x0 0.4%，图 k_l1 值随内存计划变 41↔23.7%、中间量输出槽被图内复用覆写 res→norm2 实证）；**golden v2 键**（vision_out/x0/kvk_l{0..17}/m0/h1/step0_x1 + q0i/k0i/v0i；陷阱：paligemma.language_model 直接 .forward() 绕 hook、GemmaModel None mask 会 create_causal_mask）；**probe 新旋钮**（GEB_DEPTH_VISION/PREFIX、GEB_ATTN_PREFIX、GEB_E2E_STOP、GEB_LAYER_OFFSET、GEB_E2E_X0_KEY、GEB_DBG_MID/FULL、GEB_E2E_DUMP_MID、GEB_OUT_PAD）；**分析脚本七件**（l0_bisect/rope_probe/attn_scale_probe/attn_l0_h1/weights_cmp/m0_variants/stage_cmp，服务器 /data/apxinf/ 有同步副本）。丢弃：过程性烤图/跑批命令（模板在 summary 末尾）。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（首帧 golden 对拍已执行：max_diff=3.32/314%——链路全通量级正常但系统偏差，见 summary 2026-09-20_m3-e2e-chain-wiring；t200 OM 三件套 + golden 已就位）**。第一动作：**段边界 bisect 钉第一分岔点**——golden_gen.py 扩 dump：vision_tower 输出（post-projector 前的 vision 输出过 projector 后的 768×2048）、embed_prefix 输出 x0（968×2048）、prefix 首层 k/v、flow step0 输出 x1，同帧重跑存 frame0_full.safetensors；probe e2e 各段后加 GEB_TRACE 式对拍打印（vision_out/x0/kv0/step0 vs golden 逐段 max_diff）——第一分岔段即凶手。已知候选排序：① suffix att_masks `[1]+[0]*49`（modeling_pi05 L752——action tokens 只有第 1 个可被 prefix 侧看见？make_att_2d_masks 语义要读源码，引擎 cross-attn 是全拼 kv 无此 mask）② prefix 100% 漂移放大（GE vs eager 已知，对 golden 是首次实证）③ patch 行序 (c,kh,kw) ④ time/ada-cond 细节（te 维度 1024 已对齐）。之后：修正→对拍≤5% 量级 → 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden 脚本在 syx_docs/dev_logs/golden_gen.py。
+继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（rope 已修、语义全清，剩 GE OM 图内数值级偏差：golden h1 直入同链 18.7% vs x0 0.4%——见 summary 2026-09-20_m3-parity-drift-bisect 裁决表）**。第一动作（按嫌疑序）：① **AddRmsNorm f16 方差/累加在大动态范围输入的精度**——optest 单算子复测（真权重、真 x0/h1 输入，golden h1 已在 frame0.safetensors）；② **WCONST vs Data 权重数值差**——同图关 WCONST 重烤 d2 对比（GEB_WCONST 不设 + 手动喂权重 Data）；③ mm cube 累加精度——GE vs aclnn eager 单算对拍；④ 输出槽复用覆写——需观测节点防复用。修到 kvk 全层 ≤5% → e2e 终态复测 → 延迟 bench → LIBERO（9/10）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden/分析脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 要全路径文件名。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-e2e-chain-wiring.txt（新导出：M3 第二步——三段 OM 接真实推理链，e2e bring-up 全通 + golden 钩子就位）
-
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-parity-drift-bisect.txt（M3 偏差定位：bisect 工具链 + rope 根因修复 + GE OM 数值残留）
