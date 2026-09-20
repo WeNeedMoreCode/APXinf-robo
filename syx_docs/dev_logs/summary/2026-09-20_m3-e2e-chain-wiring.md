@@ -23,7 +23,15 @@
 
 ## 遗留 / 下一步
 
-1. **golden 对拍**：npu 容器产一帧 golden（patches/token_ids/noise/actions safetensors——用 stage-1 `noise=` 精确注入同噪声）→ probe 对拍；**同时裁决 prefix 100% 漂移的实际影响与 euler/视图数语义**（⚠ 开放矛盾：引擎 VT=768 三视图 vs stage-1 mask 修复后官方链疑似 2 视图——golden 形状见分晓；prompt token 数须 16 倍数对齐，可在 golden 侧 pad 任务文本）
+### 语义侦察（2026-09-20 追记，lerobot modeling_pi05.py 取证，golden 对拍前置）
+
+- **已对齐两处**（子模块 d960a9b）：① lang 查表行 **× √2048**（embed_language_tokens L695，gemma embed scale；vision 段无缩放）② euler 换绑 **c1=1.0/c2=-0.1**（sample_actions L894 积分式 x'=x+dt·v；OM 缺省 0.9/-0.1 是 openpi x1-预测式——两官方实现本身不同源）——c1/c2 是 flow OM 的 Data 输入（binds 尾两位），h2d 覆写即可
+- **state 无通路（确证）**：pi05 LeRobot 显式跳过 state_proj（L1129）、suffix = 50 纯 action tokens（time 只进 ada-norm cond 不进 token 流）——**Rust 引擎无缺输入通路**；此前"state 走 suffix/prompt"两说均不成立
+- **视图数矛盾解除**：缺失相机 = -1 pad 图占位 + mask=0（_preprocess_images）→ 模型仍消费 **768 patches/3 视图**，与引擎 VT=768 一致（mask 只影响 attention 侧，prefix OM 无 mask 的差异待 golden 裁决量级）
+- **待 golden 裁决**：suffix att_masks `[1]+[0]*49`（make_att_2d_masks 语义——action tokens 间互相可见性 vs 引擎 cross-attn 全拼 kv）；prefix 漂移 100% 实际影响；patch 行序 (c,kh,kw)（引擎与 F.unfold 同构，按构造应一致但从未被真图验证）
+- time_mlp/te 维度 ✓ 一致（te=1024=min AW、min/max period 同 config）；position_ids=cumsum-1 → suffix 从 832 续 ✓ 与引擎 flow rope offset=832 一致
+
+1. **golden 对拍**：npu 容器产一帧 golden（确定性合成帧即可——对拍只要求两路同张量；`PI05Policy.from_pretrained` + `predict_action_chunk` + `sample_noise` 替换注入（npu_torch.py 现成语义）；patches = pixel_values F.unfold（行 (c,kh,kw)，与引擎 take_linear reshape 同构）；token_ids 不 padding、任务文本 pad 到 16 倍数；dump 键 patches[768,588]/token_ids/noise[50,32]/actions[50,32]（normalized 输出即 32 维原始终态）→ `GEB_E2E_GOLDEN=...` 对拍
 2. LIBERO 对标（9/10 基线）→ 真实 e2e 延迟 bench（host 中转/61s 加载/占位 tokenizer 一并工程化）
 3. 后置：pk/pv 设备直连（免 host 中转）、checkpoint 按段懒加载、真 tokenizer 进 Rust
 
