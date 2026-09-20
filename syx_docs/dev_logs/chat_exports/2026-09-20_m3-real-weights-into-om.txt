@@ -1,0 +1,1729 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● C2 收尾完成，目标全达成并超额。 收官报告：
+
+  本轮战果（三连击）
+
+  ① prefix 漂移销案（handoff 第一动作）：depth 2/4/8/18 =
+  6.0/10.9/15.6/25.1%，平滑次线性无跳变；决定性细节——layer0 的 k/v 
+  输出逐位一致（0.00000），第一个完整 transformer block 后才分岔 5.6% = 首个
+  K=16384 down-proj 重排 fp16 累加序的指纹。probe 侧结案，归 M3 e2e 判定。
+
+  ② NZ 权重税根因（新根因，本轮最大发现）：flow 每层 0.975ms 分解后 msprof
+  直击——GE 对每个 ND Data mm 权重每执行插一次设备侧 ND→FRACTAL_NZ TransData（54%
+  总时长，~531µs/层，[4096,1024]→[64,256,16,16] 签名钉死）。torch_npu 397ms
+  里的 TransData 100ms 是同源税——TorchAir 378ms 靠权重入图逃掉，我们现在也有了。
+
+  ③ GEB_WCONST 权重 Const 入图：单算裁决（wgt：0.3945→0.2945 ms/mm，OM 烤入权重
+  8.4MB 铁证）→ 三段推广（eager 索引镜像设计，parity 逐位同验证）。
+
+  最终数字（median/10×30，chip6）
+
+  ┌──────────────┬─────────┬─────────┬──────────────────────┐
+  │      段      │ round-2 │  本轮   │        parity        │
+  ├──────────────┼─────────┼─────────┼──────────────────────┤
+  │ vision 27 层 │ 68.06   │ 55.89   │ 0.1%                 │
+  ├──────────────┼─────────┼─────────┼──────────────────────┤
+  │ prefix 18 层 │ 187.75  │ 128.44  │ 25.1%（同档，M3 判） │
+  ├──────────────┼─────────┼─────────┼──────────────────────┤
+  │ flow /步     │ 17.51   │ 7.90    │ 1.6%                 │
+  ├──────────────┼─────────┼─────────┼──────────────────────┤
+  │ 全模型       │ ~431    │ 263.3ms │ —                    │
+  └──────────────┴─────────┴─────────┴──────────────────────┘
+
+  263.3ms = 378ms 验收线的 0.70×（比 torch_npu 基线快 31%），累计 2182→263 = 
+  8.3×——C 路线全面达标。产物
+  {vision,prefix,flow}_r3.om（5.2GB，per-checkpoint，GEB_LOAD 已验证）。
+
+  收尾清单
+
+  - 子模块 758b90e 已推 fork/ascend-port；外层 1e7ee64（gitlink bump + summary
+    round3 + roadmap/ADR-002/README/setup + skill #30 + handoff M3 起跑版）
+  - profile 目录已清理；bench ROUNDS=3 panic 顺手修掉
+  - 开放项：nz desc 直入（TBE 编译崩，OM 保持 checkpoint
+    无关的替代路线）、非税常量 Const 化（小收益）
+
+  下一步（handoff ② 已备好）：M3 起跑——真 checkpoint 权重接入 wt() Const 路径 →
+  e2e bench + LIBERO 对标（9/10 基线），同时判定 prefix 漂移实际影响。
+
+● Goal paused · the goal check timed out · send a message to continue
+
+✻ Baked for 56m 49s · done 10:29 AM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   206.4k/1m tokens (21%)
+     ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 203.9k tokens (20.4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 793.2k (79.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_c2-wrapup 
+-nz-weight-tax                                                                  
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-20_c2-wrapup-nz-weight-tax.txt
+
+❯ /compact 聚焦保留：**NZ 权重税根因与修法**（每执行 ND→FRACTAL_NZ TransData    
+~63GB/s，[n,k]→[k/16,n/16,16,16] 签名；Const 入图编译期折叠实证 0.3945→0.2945   
+ms/mm、OM 烤权重 8.4MB；GEB_WCONST 设计 = binds 全量库存 + data_inputs 映射 +   
+ins()，eager 索引两模式恒同，flow depth2 parity                                 
+逐位同验证）；**最终数字**（vision 55.89/0.1%、prefix 128.44/25.1%、flow        
+7.90/步/1.6%、全模型 263.3ms = 0.70× 线，8.3× 累计；OM _r3.om 三件套 5.2GB      
+per-checkpoint，GEB_LOAD 已验证）；**prefix 漂移销案证据**（depth 2/4/8/18 =    
+6.0/10.9/15.6/25.1% 次线性无跳变 + layer0 k/v 0.00000 + 首块后 5.6% = fp16 大 K 
+down-proj 累加序指纹；WCONST 后 worst 0.237→0.361 同档微移 rel 不变）；**flow   
+分解**（ms(d)=0.06+0.975d，成本全图内）；**wgt 实验三变体**（nd/cst/nz——nz desc 
+直入 310P TBE 编译崩，开放项）；GE 自动融合                                     
+matmul+add/mul（AutomaticBufferFusionOp）顺带发现；bench ROUNDS=3 panic         
+修复（skip 吃光轮次）。丢弃：msprof 分析脚本细节、16                            
+个权重位点逐个编辑过程（结论在 summary round3 + skill #30）。                   
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\dev_logs\handoff.md (18 lines)
+  ⎿  Read .claude\skills\ge-offline-om\SKILL.md (136 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read syx_docs\README.md (30 lines)
+  ⎿  Read syx_docs\decisions\002-ge-native-om-route.md (35 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3 起跑                                   
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU **C 路线 M3 起跑
+
+  Thought for 16s (ctrl+o to expand)
+
+● M3 起跑：真 checkpoint 权重接入三段 OM。先摸清两块现状——M2
+  期的权重解析管线（可复用）和 ge_model_probe 的合成权重路径（要替换的）。
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/weights/pi05_libero_finetuned/
+      2>/dev/null | head…)
+  ⎿  config.json
+     configuration.json
+     model.safetensors
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● checkpoint 在位（单文件 model.safetensors，7GB）。看 M2 期的 host 解析管线和
+  loader：
+
+  Thought for 37s, read 4 files (ctrl+o to expand)
+
+● 管线齐全：Pi05Weights::from_safetensors 已做 LeRobot 前缀归一、SigLIP/Gemma
+  结构映射、[in,out] 物理转置、语言层 1+weight scale 折叠、形状校验。现在看
+  probe 侧的权重注册点与段输入结构，确定对接面：
+
+  Thought for 7s, searched for 1 pattern (ctrl+o to expand)
+
+● 看三段 builder 的完整结构（vision/prefix/flow 的 LN 处理与输入约定）：
+
+  Thought for 1m 7s, read 1 file (ctrl+o to expand)
+
+● prefix 结构清楚了（g1/g2 = RMS gamma，Gemma 无 bias → 真权重时
+  zeros；Pi05Weights 的 scale 折叠约定正好衔接）。再看 flow 段：
+
+  Thought for 2m 3s, read 1 file (ctrl+o to expand)
+
+● flow 段结构也齐了。三段的真实权重映射面已明确——vision 全 LN/bias
+  有值，prefix/flow 的 Gemma 投影无 bias（真权重时喂 zeros）、g1/g2 用
+  Pi05Weights 折叠后的 ones、ada-norm 条件向量（ascl/ash/mscl/msh）与
+  x0/state/pk/pv 保持合成输入（它们是运行时输入，两路同值对拍不受影响）。查
+  probe 头部常量、main 分发与 crate 导出面：
+
+  Thought for 18s, searched for 4 patterns, read 3 files, listed 2 directories (ctrl+o to expand)
+
+● config 与 probe 常量完全对齐（18/18/27 层）。看 main 分发与 Seg 辅助方法：
+
+  Thought for 31s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+● 设计定了：GEB_CKPT env → main 里加载一次
+  Pi05Weights::from_safetensors，Option<&Pi05Weights> 穿进三段
+  builder，各权重位点 real.map(...).unwrap_or_else(rand_f16) 换源；Gemma 无 bias
+  位点真权重时喂 zeros；ada 条件/x0/state/pk/pv
+  保持合成输入。先看三个段函数签名：
+
+  Thought for 1m 27s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 映射面与代码位置全部确认。开始改 ge_model_probe.rs——加 GEB_CKPT
+  真权重路径（host 解析复用 Pi05Weights::from_safetensors，bf16→f16，走既有 wt()
+  Const 管线）。
+
+  先加 import、header 说明、转换辅助：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines
+      35  //!   GEB_TOKENS（prefix token 数，默认 64 → P=832，16 倍数纪律
+          ）/
+      36  //!   GEB_BENCH / GEB_SAVE / GEB_LOAD / GEB_ATTN=manual（手工 a
+          ttention）/
+      37  //!   GEB_QKV3=1（q/k/v 独立投影，消 SliceD 视图运行时物化）
+      38 +//!   GEB_CKPT=<dir>（真 checkpoint：权重经 Pi05Weights::from_s
+         +afetensors                                                     
+      39 +//!   host 解析（含 Gemma 1+w scale 折叠）→ bf16→f16 → wt() Con
+         +st 路径烤入                                                    
+      40 +//!   OM（per-checkpoint，ADR-002）；缺省合成权重。x0/state/pk/
+         +pv/ada 条件                                                    
+      41 +//!   向量等运行时输入保持合成（两路同值对拍不受影响）         
+      42  use half::f16;
+      43  
+      44  use apxinf_ascend::ge_builder::{self, Dtype, GeGraph};
+      45  use apxinf_ascend::{ops as aops, AscendBackend, AscendContext, 
+          AscendStream, DeviceBuffer};
+      46 +use apxinf_model::pi05::{LinearWeights, Pi05Weights};          
+      47  
+      48  // π0.5 3 视图档维度（Pi05Config::default）
+      49  const VT: i64 = 768; // vision tokens = 3 views × 256 patches
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 18 lines
+      122      v
+      123  }
+      124  
+      125 +/// 真 checkpoint Tensor（bf16/f32）→ host f16（310P 无 bf16，
+          +精度策略 fp16）                                               
+      126 +fn t_f16(t: &apxinf_core::Tensor) -> Vec<f16> {               
+      127 +    t.to_f32_vec().unwrap().into_iter().map(f16::from_f32).col
+          +lect()                                                        
+      128 +}                                                             
+      129 +                                                              
+      130 +/// LinearWeights.weight [in,out] → host f16（wt()/wbuf_t 的 h
+          +ost 布局同构）                                                
+      131 +fn lw_f16(l: &LinearWeights) -> Vec<f16> {                    
+      132 +    t_f16(&l.weight)                                          
+      133 +}                                                             
+      134 +                                                              
+      135 +/// LinearWeights.bias → f16；None（Gemma 投影无 bias）→ zeros
+      136 +fn lb_f16(l: &LinearWeights, n: usize) -> Vec<f16> {          
+      137 +    match &l.bias {                                           
+      138 +        Some(b) => t_f16(b),                                  
+      139 +        None => vec![f16::from_f32(0.0); n],                  
+      140 +    }                                                         
+      141 +}                                                             
+      142 +                                                              
+      143  fn upload(ctx: &AscendContext, vals: &[f16]) -> DeviceBuffer {
+      144      let bytes =
+      145          unsafe { std::slice::from_raw_parts(vals.as_ptr() as *
+           const u8, vals.len() * 2) };
+
+● main 加载 + 三段签名传参：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 16 lines, removed 3 lines
+      3201      let bench = std::env::var("GEB_BENCH").is_ok();
+      3202      ge_builder::init("Ascend310P3").expect("geb init (before 
+            acl runtime)");
+      3203      let be = AscendBackend::new(0).expect("be");
+      3204 +    // GEB_CKPT：真 checkpoint（LeRobot safetensors 目录/单文
+           +件）。host 解析                                              
+      3205 +    // 管线含 LeRobot 前缀归一、[in,out] 物理转置、Gemma 1+w 
+           +scale 折叠                                                   
+      3206 +    // （g1/g2 变 ones，折叠进 q/k/v/gate/up——probe 图直接消 
+           +费该约定）                                                   
+      3207 +    let real = std::env::var("GEB_CKPT").ok().map(|path| {   
+      3208 +        let t0 = std::time::Instant::now();                  
+      3209 +        let w = Pi05Weights::from_safetensors(               
+      3210 +            &apxinf_model::Pi05Config::default(),            
+      3211 +            std::path::Path::new(&path),                     
+      3212 +        )                                                    
+      3213 +        .expect("GEB_CKPT load");                            
+      3214 +        println!("GEB_CKPT: {path} loaded in {:?}", t0.elapse
+           +d());                                                        
+      3215 +        w                                                    
+      3216 +    });                                                      
+      3217      if let Ok(t) = std::env::var("GEB_OPTEST") {
+      3218          optest(&be, &t);
+      3219          return;
+      3220      }
+      3221      match seg.as_str() {
+      3209 -        "vision" => seg_vision(&be, bench),                  
+      3210 -        "prefix" => seg_prefix(&be, bench),                  
+      3211 -        "flow" => seg_flow(&be, bench),                      
+      3222 +        "vision" => seg_vision(&be, bench, real.as_ref()),   
+      3223 +        "prefix" => seg_prefix(&be, bench, real.as_ref()),   
+      3224 +        "flow" => seg_flow(&be, bench, real.as_ref()),       
+      3225          other => panic!("GEB_SEG: vision|prefix|flow, got {ot
+            her}"),
+      3226      }
+      3227  }
+
+  Thought for 7s (ctrl+o to expand)
+
+● vision 段 16 个位点：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1021  // eager = ascend_executor::vision_layer_ascend 序列镜像
+      1022  // ----------------------------------------------------------
+            -----------------
+      1023  
+      1024 -fn seg_vision(be: &AscendBackend, bench: bool) {             
+      1024 +fn seg_vision(be: &AscendBackend, bench: bool, real: Option<&
+           +Pi05Weights>) {                                              
+      1025      let ctx = be.ctx();
+      1026      let stream = be.stream();
+      1027      let depth = envi("GEB_DEPTH", 27) as usize;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines, removed 3 lines
+      1046      // 5 shp_qkv3 / 6 shp_flat2 / 每层 12 项（GEB_QKV3: 16 项
+            ）/ 尾 4 项(pnw,pnb,projwt,projb)
+      1047      s.data(ctx, "patches", &[t, V_PATCH_W], &rand_f16((t * V_
+            PATCH_W) as usize, &mut seed, 300.0));
+      1048      {
+      1049 -        let host = rand_f16((V_PATCH_W * VW) as usize, &mut s
+           -eed, 30000.0);                                               
+      1049 +        let host = real                                      
+      1050 +            .map(|w| lw_f16(&w.vision.patch_embedding))      
+      1051 +            .unwrap_or_else(|| rand_f16((V_PATCH_W * VW) as u
+           +size, &mut seed, 30000.0));                                  
+      1052          s.wt(ctx, "patch_wt", &[VW, V_PATCH_W], &host, V_PATC
+            H_W, VW);
+      1053      }
+      1052 -    s.data(ctx, "patch_b", &[1, VW], &rand_f16(VW as usize, &
+           -mut seed, 12000.0));                                         
+      1054 +    let patch_b_h = real                                     
+      1055 +        .map(|w| lb_f16(&w.vision.patch_embedding, VW as usiz
+           +e))                                                          
+      1056 +        .unwrap_or_else(|| rand_f16(VW as usize, &mut seed, 1
+           +2000.0));                                                    
+      1057 +    s.data(ctx, "patch_b", &[1, VW], &patch_b_h);            
+      1058      {
+      1059          // position 表循环重复（cuda kernel 语义：行 r 读 tab
+            le[r % tpv]）
+      1055 -        let table = rand_f16((VPV * VW) as usize, &mut seed, 
+           -300.0);                                                      
+      1060 +        let table = real                                     
+      1061 +            .map(|w| t_f16(&w.vision.position_embedding))    
+      1062 +            .unwrap_or_else(|| rand_f16((VPV * VW) as usize, 
+           +&mut seed, 300.0));                                          
+      1063          let mut rep = Vec::with_capacity((t * VW) as usize);
+      1064          for r in 0..t as usize {
+      1065              let src = (r % VPV as usize) * VW as usize;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 8 lines, removed 2 lines
+      1098          let base = s.binds.len();
+      1099          layer_bases.push(base);
+      1100          let p = format!("l{i}_");
+      1101 -        let n1w_h = norm_f16(VW as usize, &mut seed, 1.0);   
+      1102 -        let n1b_h = norm_f16(VW as usize, &mut seed, 0.0);   
+      1101 +        // 真权重：SigLIP 块按层索引（GEB_DEPTH 冒烟 <= 27） 
+      1102 +        let blk = real.and_then(|w| w.vision.blocks.get(i)); 
+      1103 +        let n1w_h = blk                                      
+      1104 +            .map(|b| t_f16(&b.norm1.weight))                 
+      1105 +            .unwrap_or_else(|| norm_f16(VW as usize, &mut see
+           +d, 1.0));                                                    
+      1106 +        let n1b_h = blk                                      
+      1107 +            .map(|b| t_f16(&b.norm1.bias))                   
+      1108 +            .unwrap_or_else(|| norm_f16(VW as usize, &mut see
+           +d, 0.0));                                                    
+      1109          s.data(ctx, &format!("{}n1w", p), &[VW], &n1w_h);
+      1110          s.data(ctx, &format!("{}n1b", p), &[VW], &n1b_h);
+      1111          {
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 9 lines, removed 3 lines
+      1113              // eager 三块各自转置上传；bias 整条（GE）/host 
+            切三段（eager）。
+      1114              // manual attention 时 GE 侧 q 块（权重+bias）预
+            乘 1/√hd（图内
+      1115              // 无 scale 算子）；eager 侧保持原值（PFA 的 scal
+            e_value attr 承担）
+      1116 -            let wq = rand_f16((VW * vqd) as usize, &mut seed,
+           - 30000.0);                                                   
+      1117 -            let wk = rand_f16((VW * vqd) as usize, &mut seed,
+           - 30000.0);                                                   
+      1118 -            let wv = rand_f16((VW * vqd) as usize, &mut seed,
+           - 30000.0);                                                   
+      1116 +            let wq = blk                                     
+      1117 +                .map(|b| lw_f16(&b.q))                       
+      1118 +                .unwrap_or_else(|| rand_f16((VW * vqd) as usi
+           +ze, &mut seed, 30000.0));                                    
+      1119 +            let wk = blk                                     
+      1120 +                .map(|b| lw_f16(&b.k))                       
+      1121 +                .unwrap_or_else(|| rand_f16((VW * vqd) as usi
+           +ze, &mut seed, 30000.0));                                    
+      1122 +            let wv = blk                                     
+      1123 +                .map(|b| lw_f16(&b.v))                       
+      1124 +                .unwrap_or_else(|| rand_f16((VW * vqd) as usi
+           +ze, &mut seed, 30000.0));                                    
+      1125              let wq_s: Vec<f16> = if attn_manual {
+      1126                  wq.iter().map(|v| f16::from_f32(v.to_f32() * 
+            vscale)).collect()
+      1127              } else {
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 11 lines, removed 1 line
+      1127              } else {
+      1128                  wq.clone()
+      1129              };
+      1130 -            let bias = rand_f16(qkvw as usize, &mut seed, 120
+           -00.0);                                                       
+      1130 +            // 真权重 qkv bias = q.bias ‖ k.bias ‖ v.bias（Si
+           +gLIP 三投影各有 bias）                                       
+      1131 +            let bias = blk                                   
+      1132 +                .map(|b| {                                   
+      1133 +                    [                                        
+      1134 +                        lb_f16(&b.q, vqd as usize),          
+      1135 +                        lb_f16(&b.k, vqd as usize),          
+      1136 +                        lb_f16(&b.v, vqd as usize),          
+      1137 +                    ]                                        
+      1138 +                    .concat()                                
+      1139 +                })                                           
+      1140 +                .unwrap_or_else(|| rand_f16(qkvw as usize, &m
+           +ut seed, 12000.0));                                          
+      1141              let bias_s: Vec<f16> = if attn_manual {
+      1142                  bias.iter()
+      1143                      .enumerate()
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Error editing file
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 13 lines, removed 4 lines
+      1261      }
+      1262  
+      1263      // ---- post norm + projector ----
+      1264 -    let pnw_h = norm_f16(VW as usize, &mut seed, 1.0);       
+      1265 -    let pnb_h = norm_f16(VW as usize, &mut seed, 0.0);       
+      1264 +    let pnw_h = real                                         
+      1265 +        .map(|w| t_f16(&w.vision.post_layer_norm.weight))    
+      1266 +        .unwrap_or_else(|| norm_f16(VW as usize, &mut seed, 1
+           +.0));                                                        
+      1267 +    let pnb_h = real                                         
+      1268 +        .map(|w| t_f16(&w.vision.post_layer_norm.bias))      
+      1269 +        .unwrap_or_else(|| norm_f16(VW as usize, &mut seed, 0
+           +.0));                                                        
+      1270      s.data(ctx, "pnw", &[VW], &pnw_h);
+      1271      s.data(ctx, "pnb", &[VW], &pnb_h);
+      1272      {
+      1269 -        let host = rand_f16((VW * PW) as usize, &mut seed, 30
+           -000.0);                                                      
+      1273 +        let host = real                                      
+      1274 +            .map(|w| lw_f16(&w.vision.multimodal_projector)) 
+      1275 +            .unwrap_or_else(|| rand_f16((VW * PW) as usize, &
+           +mut seed, 30000.0));                                         
+      1276          s.wt(ctx, "projwt", &[PW, VW], &host, VW, PW);
+      1277      }
+      1272 -    s.data(ctx, "projb", &[1, PW], &rand_f16(PW as usize, &mu
+           -t seed, 12000.0));                                           
+      1278 +    let projb_h = real                                       
+      1279 +        .map(|w| lb_f16(&w.vision.multimodal_projector, PW as
+           + usize))                                                     
+      1280 +        .unwrap_or_else(|| rand_f16(PW as usize, &mut seed, 1
+           +2000.0));                                                    
+      1281 +    s.data(ctx, "projb", &[1, PW], &projb_h);                
+      1282      let pln = s.addln("pln", &cur, "pnw", "pnb", "nsh", &[t, 
+            VW]);
+      1283      let proj = s.mm("proj", &pln, &[t, VW], "projwt", &[PW, V
+            W], &[t, PW]);
+      1284      let out = s.bias("out", &proj, &[t, PW], "projb");
+
+  Thought for 11s (ctrl+o to expand)
+
+● old_string 漏了中间的 eager_norms.push 行。修正重试：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 27 lines, removed 8 lines
+      1178              eager_qkv.push((ebq, ebk, ebv, bq, bk, bv));
+      1179          }
+      1180          {
+      1181 -            let host = rand_f16((vqd * VW) as usize, &mut see
+           -d, 30000.0);                                                 
+      1181 +            let host = blk                                   
+      1182 +                .map(|b| lw_f16(&b.output))                  
+      1183 +                .unwrap_or_else(|| rand_f16((vqd * VW) as usi
+           +ze, &mut seed, 30000.0));                                    
+      1184              s.wt(ctx, &format!("{}outwt", p), &[VW, vqd], &ho
+            st, vqd, VW);
+      1185          }
+      1184 -        s.data(ctx, &format!("{}outb", p), &[1, VW], &rand_f1
+           -6(VW as usize, &mut seed, 12000.0));                         
+      1185 -        let n2w_h = norm_f16(VW as usize, &mut seed, 1.0);   
+      1186 -        let n2b_h = norm_f16(VW as usize, &mut seed, 0.0);   
+      1186 +        let outb_h = blk                                     
+      1187 +            .map(|b| lb_f16(&b.output, VW as usize))         
+      1188 +            .unwrap_or_else(|| rand_f16(VW as usize, &mut see
+           +d, 12000.0));                                                
+      1189 +        s.data(ctx, &format!("{}outb", p), &[1, VW], &outb_h)
+           +;                                                            
+      1190 +        let n2w_h = blk                                      
+      1191 +            .map(|b| t_f16(&b.norm2.weight))                 
+      1192 +            .unwrap_or_else(|| norm_f16(VW as usize, &mut see
+           +d, 1.0));                                                    
+      1193 +        let n2b_h = blk                                      
+      1194 +            .map(|b| t_f16(&b.norm2.bias))                   
+      1195 +            .unwrap_or_else(|| norm_f16(VW as usize, &mut see
+           +d, 0.0));                                                    
+      1196          s.data(ctx, &format!("{}n2w", p), &[VW], &n2w_h);
+      1197          s.data(ctx, &format!("{}n2b", p), &[VW], &n2b_h);
+      1198          eager_norms.push((n1w_h, n1b_h, n2w_h, n2b_h));
+      1199          {
+      1191 -            let host = rand_f16((VW * V_INTER) as usize, &mut
+           - seed, 30000.0);                                             
+      1200 +            let host = blk                                   
+      1201 +                .map(|b| lw_f16(&b.fc1))                     
+      1202 +                .unwrap_or_else(|| rand_f16((VW * V_INTER) as
+           + usize, &mut seed, 30000.0));                                
+      1203              s.wt(ctx, &format!("{}fc1wt", p), &[V_INTER, VW],
+             &host, VW, V_INTER);
+      1204          }
+      1194 -        s.data(ctx, &format!("{}fc1b", p), &[1, V_INTER], &ra
+           -nd_f16(V_INTER as usize, &mut seed, 12000.0));               
+      1205 +        let fc1b_h = blk                                     
+      1206 +            .map(|b| lb_f16(&b.fc1, V_INTER as usize))       
+      1207 +            .unwrap_or_else(|| rand_f16(V_INTER as usize, &mu
+           +t seed, 12000.0));                                           
+      1208 +        s.data(ctx, &format!("{}fc1b", p), &[1, V_INTER], &fc
+           +1b_h);                                                       
+      1209          {
+      1196 -            let host = rand_f16((V_INTER * VW) as usize, &mut
+           - seed, 30000.0);                                             
+      1210 +            let host = blk                                   
+      1211 +                .map(|b| lw_f16(&b.fc2))                     
+      1212 +                .unwrap_or_else(|| rand_f16((V_INTER * VW) as
+           + usize, &mut seed, 30000.0));                                
+      1213              s.wt(ctx, &format!("{}fc2wt", p), &[VW, V_INTER],
+             &host, V_INTER, VW);
+      1214          }
+      1199 -        s.data(ctx, &format!("{}fc2b", p), &[1, VW], &rand_f1
+           -6(VW as usize, &mut seed, 12000.0));                         
+      1215 +        let fc2b_h = blk                                     
+      1216 +            .map(|b| lb_f16(&b.fc2, VW as usize))            
+      1217 +            .unwrap_or_else(|| rand_f16(VW as usize, &mut see
+           +d, 12000.0));                                                
+      1218 +        s.data(ctx, &format!("{}fc2b", p), &[1, VW], &fc2b_h)
+           +;                                                            
+      1219  
+      1220          // attention（v3 方案：rank-2 列切 → Reshape rank-3 
+            桥）。
+      1221          // manual：[b*h,s,d] 桥 + bmm/softmax/bmm（全静态）；
+            pfa：batch PFA
+
+  Thought for 2s (ctrl+o to expand)
+
+● vision 段完成。prefix 段（Gemma：bias 全 zeros，g1/g2 用折叠后的 norm
+  scale，q/k/v/gate/up 已含 scale 折叠）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1391  // compute_tail=false 语义）
+      1392  // ----------------------------------------------------------
+            -----------------
+      1393  
+      1394 -fn seg_prefix(be: &AscendBackend, bench: bool) {             
+      1394 +fn seg_prefix(be: &AscendBackend, bench: bool, real: Option<&
+           +Pi05Weights>) {                                              
+      1395      let ctx = be.ctx();
+      1396      let stream = be.stream();
+      1397      let depth = envi("GEB_DEPTH", 18) as usize;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 20 lines, removed 5 lines
+      1458          layer_bases.push(base);
+      1459          let tag = format!("l{i}_");
+      1460          let last = i + 1 == depth;
+      1461 -        s.data(ctx, &format!("{}g1", tag), &[PW], &norm_f16(P
+           -W as usize, &mut seed, 1.0));                                
+      1461 +        // 真权重：语言层 host 解析时已把 Gemma 1+w scale 折 
+           +进 q/k/v/gate/up                                             
+      1462 +        //（g1/g2 = ones）——probe 图直接消费该约定，无需再乘 
+           +norm scale                                                   
+      1463 +        let lay = real.and_then(|w| w.language_layers.get(i))
+           +;                                                            
+      1464 +        let g1_h = lay                                       
+      1465 +            .map(|l| t_f16(&l.input_norm_scale))             
+      1466 +            .unwrap_or_else(|| norm_f16(PW as usize, &mut see
+           +d, 1.0));                                                    
+      1467 +        s.data(ctx, &format!("{}g1", tag), &[PW], &g1_h);    
+      1468          {
+      1463 -            let wq = rand_f16((PW * QD) as usize, &mut seed, 
+           -8000.0);                                                     
+      1464 -            let wk = rand_f16((PW * KVD) as usize, &mut seed,
+           - 8000.0);                                                    
+      1465 -            let wv = rand_f16((PW * KVD) as usize, &mut seed,
+           - 8000.0);                                                    
+      1466 -            let bias = rand_f16(QKVW as usize, &mut seed, 400
+           -0.0);                                                        
+      1469 +            let wq = lay                                     
+      1470 +                .map(|l| lw_f16(&l.attention.q))             
+      1471 +                .unwrap_or_else(|| rand_f16((PW * QD) as usiz
+           +e, &mut seed, 8000.0));                                      
+      1472 +            let wk = lay                                     
+      1473 +                .map(|l| lw_f16(&l.attention.k))             
+      1474 +                .unwrap_or_else(|| rand_f16((PW * KVD) as usi
+           +ze, &mut seed, 8000.0));                                     
+      1475 +            let wv = lay                                     
+      1476 +                .map(|l| lw_f16(&l.attention.v))             
+      1477 +                .unwrap_or_else(|| rand_f16((PW * KVD) as usi
+           +ze, &mut seed, 8000.0));                                     
+      1478 +            // Gemma 投影无 bias（真权重 = zeros）           
+      1479 +            let bias = lay                                   
+      1480 +                .map(|_| vec![f16::from_f32(0.0); QKVW as usi
+           +ze])                                                         
+      1481 +                .unwrap_or_else(|| rand_f16(QKVW as usize, &m
+           +ut seed, 4000.0));                                           
+      1482              // manual attention：q 块（权重+bias）预乘 1/√hd
+            （图内无 scale
+      1483              // 算子）；eager 侧保持原值（PFA scale_value 承担
+            ）
+      1484              let wq_s: Vec<f16> = if attn_manual {
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 24 lines, removed 7 lines
+      1521              eager_qkv.push((ebq, ebk, ebv, bq, bk, bv));
+      1522          }
+      1523          {
+      1524 -            let host = rand_f16((QD * PW) as usize, &mut seed
+           -, 8000.0);                                                   
+      1524 +            let host = lay                                   
+      1525 +                .map(|l| lw_f16(&l.attention.output))        
+      1526 +                .unwrap_or_else(|| rand_f16((QD * PW) as usiz
+           +e, &mut seed, 8000.0));                                      
+      1527              s.wt(ctx, &format!("{}outwt", tag), &[PW, QD], &h
+            ost, QD, PW);
+      1528          }
+      1527 -        s.data(ctx, &format!("{}outb", tag), &[1, PW], &rand_
+           -f16(PW as usize, &mut seed, 4000.0));                        
+      1528 -        s.data(ctx, &format!("{}g2", tag), &[PW], &norm_f16(P
+           -W as usize, &mut seed, 1.0));                                
+      1529 +        let outb_h = lay                                     
+      1530 +            .map(|_| vec![f16::from_f32(0.0); PW as usize])  
+      1531 +            .unwrap_or_else(|| rand_f16(PW as usize, &mut see
+           +d, 4000.0));                                                 
+      1532 +        s.data(ctx, &format!("{}outb", tag), &[1, PW], &outb_
+           +h);                                                          
+      1533 +        let g2_h = lay                                       
+      1534 +            .map(|l| t_f16(&l.post_attention_norm_scale))    
+      1535 +            .unwrap_or_else(|| norm_f16(PW as usize, &mut see
+           +d, 1.0));                                                    
+      1536 +        s.data(ctx, &format!("{}g2", tag), &[PW], &g2_h);    
+      1537          {
+      1530 -            let host = rand_f16((PW * INTER) as usize, &mut s
+           -eed, 8000.0);                                                
+      1538 +            let host = lay                                   
+      1539 +                .map(|l| lw_f16(&l.mlp.gate))                
+      1540 +                .unwrap_or_else(|| rand_f16((PW * INTER) as u
+           +size, &mut seed, 8000.0));                                   
+      1541              s.wt(ctx, &format!("{}gatewt", tag), &[INTER, PW]
+            , &host, PW, INTER);
+      1542          }
+      1543          {
+      1534 -            let host = rand_f16((PW * INTER) as usize, &mut s
+           -eed, 8000.0);                                                
+      1544 +            let host = lay                                   
+      1545 +                .map(|l| lw_f16(&l.mlp.up))                  
+      1546 +                .unwrap_or_else(|| rand_f16((PW * INTER) as u
+           +size, &mut seed, 8000.0));                                   
+      1547              s.wt(ctx, &format!("{}upwt", tag), &[INTER, PW], 
+            &host, PW, INTER);
+      1548          }
+      1549          {
+      1538 -            let host = rand_f16((INTER * PW) as usize, &mut s
+           -eed, 8000.0);                                                
+      1550 +            let host = lay                                   
+      1551 +                .map(|l| lw_f16(&l.mlp.down))                
+      1552 +                .unwrap_or_else(|| rand_f16((INTER * PW) as u
+           +size, &mut seed, 8000.0));                                   
+      1553              s.wt(ctx, &format!("{}downwt", tag), &[PW, INTER]
+            , &host, INTER, PW);
+      1554          }
+      1541 -        s.data(ctx, &format!("{}downb", tag), &[1, PW], &rand
+           -_f16(PW as usize, &mut seed, 4000.0));                       
+      1555 +        let downb_h = lay                                    
+      1556 +            .map(|_| vec![f16::from_f32(0.0); PW as usize])  
+      1557 +            .unwrap_or_else(|| rand_f16(PW as usize, &mut see
+           +d, 4000.0));                                                 
+      1558 +        s.data(ctx, &format!("{}downb", tag), &[1, PW], &down
+           +b_h);                                                        
+      1559  
+      1560          let norm1 = s.addrms(&format!("{}n1", tag), &cur, "ze
+            ros", &format!("{}g1", tag), &[p, PW]);
+      1561          // rank-2 切分 + rope（rank-2 版）+ Reshape rank-3 桥
+            。
+
+● flow 段（action expert：ada 条件向量 ascl/ash/mscl/msh/fsc/fsh
+  保持合成运行时输入；ain/aout 有真 bias，投影 bias zeros）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)  ⎿  Added 1 line, removed 1 line
+      1681  // geglu) → action_out → euler）。styles/prefix-kv/euler 常数
+            全为外部输入。
+      1682  // ----------------------------------------------------------
+            -----------------
+      1683  
+      1684 -fn seg_flow(be: &AscendBackend, bench: bool) {               
+      1684 +fn seg_flow(be: &AscendBackend, bench: bool, real: Option<&Pi
+           +05Weights>) {                                                
+      1685      let ctx = be.ctx();
+      1686      let stream = be.stream();
+      1687      let depth = envi("GEB_DEPTH", 18) as usize;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines, removed 2 lines
+      1736      s.const_i32("shp_fq3", &[HEADS as i32, HOR as i32, HD as 
+            i32]);
+      1737      s.const_i32("shp_fa4", &[1, HEADS as i32, HOR as i32, HD 
+            as i32]);
+      1738      {
+      1739 -        let host = rand_f16((ADIM * AW) as usize, &mut seed, 
+           -8000.0);                                                     
+      1739 +        let host = real                                      
+      1740 +            .map(|w| lw_f16(&w.action_in))                   
+      1741 +            .unwrap_or_else(|| rand_f16((ADIM * AW) as usize,
+           + &mut seed, 8000.0));                                        
+      1742          s.wt(ctx, "ainwt", &[AW, ADIM], &host, ADIM, AW);
+      1743      }
+      1742 -    s.data(ctx, "ainb", &[1, AW], &rand_f16(AW as usize, &mut
+           - seed, 4000.0));                                             
+      1744 +    let ainb_h = real                                        
+      1745 +        .map(|w| lb_f16(&w.action_in, AW as usize))          
+      1746 +        .unwrap_or_else(|| rand_f16(AW as usize, &mut seed, 4
+           +000.0));                                                     
+      1747 +    s.data(ctx, "ainb", &[1, AW], &ainb_h);                  
+      1748      // prefix k/v（rank-2——ConcatD axis=0 拼接后统一 Unsqueez
+            e）
+      1749      for i in 0..depth {
+      1750          s.data(ctx, &format!("pk{i}"), &[p, KVD], &rand_f16((
+            p * KVD) as usize, &mut seed, 100.0));
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 17 lines, removed 4 lines
+      1757      for i in 0..depth {
+      1758          layer_bases.push(s.binds.len());
+      1759          let tag = format!("l{i}_");
+      1760 +        // 真权重：ascl/ash/mscl/msh 是 ada-norm 条件向量（st
+           +yle 投影 ×                                                   
+      1761 +        // conditioning 的运行时产物，随 time step 变化）——保
+           +持合成输入，                                                 
+      1762 +        // 真权重接入只换投影/LN 类权重                      
+      1763 +        let lay = real.and_then(|w| w.action_layers.get(i)); 
+      1764          s.data(ctx, &format!("{}ascl", tag), &[AW], &norm_f16
+            (AW as usize, &mut seed, 1.0));
+      1765          s.data(ctx, &format!("{}ash", tag), &[AW], &norm_f16(
+            AW as usize, &mut seed, 0.0));
+      1766          {
+      1763 -            let wq = rand_f16((AW * QD) as usize, &mut seed, 
+           -8000.0);                                                     
+      1764 -            let wk = rand_f16((AW * KVD) as usize, &mut seed,
+           - 8000.0);                                                    
+      1765 -            let wv = rand_f16((AW * KVD) as usize, &mut seed,
+           - 8000.0);                                                    
+      1766 -            let bias = rand_f16(QKVW as usize, &mut seed, 400
+           -0.0);                                                        
+      1767 +            let wq = lay                                     
+      1768 +                .map(|l| lw_f16(&l.attention.q))             
+      1769 +                .unwrap_or_else(|| rand_f16((AW * QD) as usiz
+           +e, &mut seed, 8000.0));                                      
+      1770 +            let wk = lay                                     
+      1771 +                .map(|l| lw_f16(&l.attention.k))             
+      1772 +                .unwrap_or_else(|| rand_f16((AW * KVD) as usi
+           +ze, &mut seed, 8000.0));                                     
+      1773 +            let wv = lay                                     
+      1774 +                .map(|l| lw_f16(&l.attention.v))             
+      1775 +                .unwrap_or_else(|| rand_f16((AW * KVD) as usi
+           +ze, &mut seed, 8000.0));                                     
+      1776 +            // Gemma 投影无 bias（真权重 = zeros）           
+      1777 +            let bias = lay                                   
+      1778 +                .map(|_| vec![f16::from_f32(0.0); QKVW as usi
+           +ze])                                                         
+      1779 +                .unwrap_or_else(|| rand_f16(QKVW as usize, &m
+           +ut seed, 4000.0));                                           
+      1780              // manual attention：q 块（权重+bias）预乘 1/√hd
+            ；eager 保持原值
+      1781              let wq_s: Vec<f16> = if attn_manual {
+      1782                  wq.iter().map(|v| f16::from_f32(v.to_f32() * 
+            fscale)).collect()
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 27 lines, removed 8 lines
+      1818              eager_qkv.push((ebq, ebk, ebv, bq, bk, bv));
+      1819          }
+      1820          {
+      1821 -            let host = rand_f16((QD * AW) as usize, &mut seed
+           -, 8000.0);                                                   
+      1821 +            let host = lay                                   
+      1822 +                .map(|l| lw_f16(&l.attention.output))        
+      1823 +                .unwrap_or_else(|| rand_f16((QD * AW) as usiz
+           +e, &mut seed, 8000.0));                                      
+      1824              s.wt(ctx, &format!("{}outwt", tag), &[AW, QD], &h
+            ost, QD, AW);
+      1825          }
+      1824 -        s.data(ctx, &format!("{}outb", tag), &[1, AW], &rand_
+           -f16(AW as usize, &mut seed, 4000.0));                        
+      1826 +        let outb_h = lay                                     
+      1827 +            .map(|_| vec![f16::from_f32(0.0); AW as usize])  
+      1828 +            .unwrap_or_else(|| rand_f16(AW as usize, &mut see
+           +d, 4000.0));                                                 
+      1829 +        s.data(ctx, &format!("{}outb", tag), &[1, AW], &outb_
+           +h);                                                          
+      1830          s.data(ctx, &format!("{}mscl", tag), &[AW], &norm_f16
+            (AW as usize, &mut seed, 1.0));
+      1831          s.data(ctx, &format!("{}msh", tag), &[AW], &norm_f16(
+            AW as usize, &mut seed, 0.0));
+      1832          {
+      1828 -            let host = rand_f16((AW * AINTER) as usize, &mut 
+           -seed, 8000.0);                                               
+      1833 +            let host = lay                                   
+      1834 +                .map(|l| lw_f16(&l.mlp.gate))                
+      1835 +                .unwrap_or_else(|| rand_f16((AW * AINTER) as 
+           +usize, &mut seed, 8000.0));                                  
+      1836              s.wt(ctx, &format!("{}gatewt", tag), &[AINTER, AW
+            ], &host, AW, AINTER);
+      1837          }
+      1838          {
+      1832 -            let host = rand_f16((AW * AINTER) as usize, &mut 
+           -seed, 8000.0);                                               
+      1839 +            let host = lay                                   
+      1840 +                .map(|l| lw_f16(&l.mlp.up))                  
+      1841 +                .unwrap_or_else(|| rand_f16((AW * AINTER) as 
+           +usize, &mut seed, 8000.0));                                  
+      1842              s.wt(ctx, &format!("{}upwt", tag), &[AINTER, AW],
+             &host, AW, AINTER);
+      1843          }
+      1844          {
+      1836 -            let host = rand_f16((AINTER * AW) as usize, &mut 
+           -seed, 8000.0);                                               
+      1845 +            let host = lay                                   
+      1846 +                .map(|l| lw_f16(&l.mlp.down))                
+      1847 +                .unwrap_or_else(|| rand_f16((AINTER * AW) as 
+           +usize, &mut seed, 8008.0));                                  
+      1848              s.wt(ctx, &format!("{}downwt", tag), &[AW, AINTER
+            ], &host, AINTER, AW);
+      1849          }
+      1839 -        s.data(ctx, &format!("{}downb", tag), &[1, AW], &norm
+           -_f16(AW as usize, &mut seed, 0.0));                          
+      1850 +        let downb_h = lay                                    
+      1851 +            .map(|_| vec![f16::from_f32(0.0); AW as usize])  
+      1852 +            .unwrap_or_else(|| norm_f16(AW as usize, &mut see
+           +d, 0.0));                                                    
+      1853 +        s.data(ctx, &format!("{}downb", tag), &[1, AW], &down
+           +b_h);                                                        
+      1854      }
+      1855      s.data(ctx, "fsc", &[AW], &norm_f16(AW as usize, &mut see
+            d, 1.0));
+      1856      s.data(ctx, "fsh", &[AW], &norm_f16(AW as usize, &mut see
+            d, 0.0));
+      1857      {
+      1844 -        let host = rand_f16((AW * ADIM) as usize, &mut seed, 
+           -8000.0);                                                     
+      1858 +        let host = real                                      
+      1859 +            .map(|w| lw_f16(&w.action_out))                  
+      1860 +            .unwrap_or_else(|| rand_f16((AW * ADIM) as usize,
+           + &mut seed, 8000.0));                                        
+      1861          s.wt(ctx, "aoutwt", &[ADIM, AW], &host, AW, ADIM);
+      1862      }
+      1847 -    s.data(ctx, "aoutb", &[1, ADIM], &rand_f16(ADIM as usize,
+           - &mut seed, 4000.0));                                        
+      1863 +    let aoutb_h = real                                       
+      1864 +        .map(|w| lb_f16(&w.action_out, ADIM as usize))       
+      1865 +        .unwrap_or_else(|| rand_f16(ADIM as usize, &mut seed,
+           + 4000.0));                                                   
+      1866 +    s.data(ctx, "aoutb", &[1, ADIM], &aoutb_h);              
+      1867      // euler 常数（σ = dt = -0.1：x' = (1+σ)x + σ·v）
+      1868      let eul_c1 = vec![f16::from_f32(0.9); (HOR * ADIM) as usi
+            ze];
+      1869      let eul_c2 = vec![f16::from_f32(-0.1); (HOR * ADIM) as us
+            ize];
+
+  Thought for 5s (ctrl+o to expand)
+
+● flow downwt 的合成回退里手滑打了 8008.0，改回 8000.0：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1844          {
+      1845              let host = lay
+      1846                  .map(|l| lw_f16(&l.mlp.down))
+      1847 -                .unwrap_or_else(|| rand_f16((AINTER * AW) as 
+           -usize, &mut seed, 8008.0));                                  
+      1847 +                .unwrap_or_else(|| rand_f16((AINTER * AW) as 
+           +usize, &mut seed, 8000.0));                                  
+      1848              s.wt(ctx, &format!("{}downwt", tag), &[AW, AINTER
+            ], &host, AINTER, AW);
+      1849          }
+      1850          let downb_h = lay
+
+  Thought for 16s (ctrl+o to expand)
+
+● 同步服务器编译验证。先本地试探有无 cargo（快反馈），无则直接 tar
+  同步走服务器：
+
+● Bash(cargo --version 2>/dev/null || echo NO_CARGO)
+  ⎿  NO_CARGO
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model apxinf-ascend
+      apxinf-loader apxinf-core 2>/dev/null | ssh -i /c/…)
+  ⎿       |                      |
+          |                      argument has type `Result<(), AclError>`
+          |
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● check 通过（仅既有 warnings）。构建 release + 挑空闲芯，跑最小配置（DEPTH=2 真
+  checkpoint 冒烟）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'npu-smi info | sed -n "8,30p"')
+  ⎿  | 0       0                     | 0000:01:00.0    | 0            1678
+     / 44278                            |
+     +-------------------------------+-----------------+-------------------
+     … +33 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● chip6 空闲（沿用 r3 同芯对照）。构建 + vision DEPTH=2 真权重冒烟：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  warning: `apxinf-model` (example "ge_model_probe") generated 32 warnin
+     gs (run `cargo fix --example "ge_model_probe"` to apply 1 suggestion)
+         Finished `release` profile [optimized] target(s) in 23.95s
+     BUILD_DONE
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  [geb]   out[10] size=3072 dims=768,1
+     vision OM built: depth=2 n_in=27 n_out=1
+     [mem] before-eager: binds total = 71.5 MB
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● vision 真权重 depth2：rel=0.1%，与合成口径完全同档（ref |max|=91.6
+  真实量级）。prefix（关注 25.1% 漂移在真权重下的表现）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  GEB_CKPT: /data/apxinf/weights/pi05_libero_finetuned loaded in 61.4180
+     0653s
+     prefix OM built: depth=2 P=832 n_in=26 n_out=4
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 11s (ctrl+o to expand)
+
+● prefix 真权重 depth2：layer0 K/V 逐位一致（同合成指纹），layer1 K/V
+  15-17%（合成时 6.0%——真 Gemma 权重的 outlier 通道放大 fp16
+  累加序差，机制同源）。flow：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  flow OM built: depth=2 P=832 n_in=40 n_out=1
+     parity[flow out0] max_diff=0.21826 (ref |max|=1.126, rel=19.4%)
+     GE_FLOW_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 15s (ctrl+o to expand)
+
+● flow 真权重 depth2：19.4%（输出量级 |max|≈1.1，真权重 outlier +
+  小分母放大）。三段机制均同源，e2e 判定照旧归 M3 LIBERO。现在全深度三段跑真权重
+  + bench + 存 _real.om：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  === vision full (27) ===
+     vision OM built: depth=27 n_in=277 n_out=1
+     vision_PARITY_OK n_in=277 worst=0.25000 rel=0.1%
+     … +14 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 28s (ctrl+o to expand)
+● OM 三件套落盘（字节数与 _r3 完全一致 = 同拓扑）。prefix 全深 100%
+  需要定性——真权重深度曲线扫描（平滑增长 = 累加序机制被真权重 outlier 放大；跳变
+  = bug），顺带补抓 bench 行（大小写 grep 漏了）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  Error: Exit code 1
+     === prefix depth 2 (real) ===
+     prefix_PARITY_OK n_in=26 worst=5.49609 rel=16.8%
+     === prefix depth 4 (real) ===
+     === prefix depth 8 (real) ===
+
+  Thought for 7s (ctrl+o to expand)
+
+● depth4 起漂移 ≥20% 走了"oracle 待做"分支且无 bench 时提前退出。加最小 bench
+  参数（ROUNDS=5 PER=3）重跑扫描：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  === prefix depth 4 (real) ===
+     [geb] node x0(Data) out0 dims[832,2048] in0<-<none> dims[832,2048]
+     [geb] node zeros(Data) out0 dims[832,2048] in0<-<none> dims[832,2048]
+     … +426 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 输出被 [geb] 节点 dump 淹没（≥20% 分支触发了图
+  dump）。直接从落盘输出里提取结论行：
+
+  Thought for 17s, searched memories (ctrl+o to expand)
+
+● 真权重深度曲线：2→16.8%、4→59.7%、8→100%、18→100%——平滑饱和（合成时
+  6→25.1%），机制同源（layer0 逐位一致 + 次线性），真 Gemma outlier
+  通道放大。绝对 max_diff 5.5→36.7 次线性增长，无跳变无 NaN。定性：非 bug，e2e
+  判定。补找 bench 行：
+
+  Thought for 16s, searched memories (ctrl+o to expand)
+
+● bench 行格式拿到了。用 GEB_LOAD 直接对 _real.om 做正式 bench（顺带验证真权重
+  OM 的加载路径）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER' >
+      /tmp/realbench.lo…)
+  ⎿  GEB_CKPT: /data/apxinf/weights/pi05_libero_finetuned loaded in 62.4084
+     4069s
+     vision_PARITY_OK n_in=277 worst=0.25000 rel=0.1%
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 9s (ctrl+o to expand)
+
+● vision 的 LOAD 路径 parity 打出来了，prefix/flow 没有。看完整日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -vE "^\[geb\] node" /tmp/realbench.log | tail
+      -30')
+  ⎿  grep: /tmp/realbench.log: No such file or directory
+
+  Thought for 12s (ctrl+o to expand)
+
+● 重定向落在本地了。本地 grep：
+
+  Thought for 13s, searched for 2 patterns (ctrl+o to expand)
+
+● 原因明确：≥20% 漂移段在无 GEB_BENCH 时静默 exit(1)（prefix 100%、flow 37%
+  都命中）。带 bench 重跑 LOAD 路径：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -s' <<'OUTER'
+      source /data/apxinf…)
+  ⎿  === vision (load bench) ===
+     vision_PARITY_OK n_in=277 worst=0.25000 rel=0.1%
+     vision GE OM: 55.8608 ms (median/10, rounds=30)
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 真权重 OM 全套数字齐了：
+
+  ┌───────────┬───────────────────────────┬─────────┬──────────────────┐
+  │    段     │ 真权重 bench（LOAD 路径） │ r3 合成 │      parity      │
+  ├───────────┼───────────────────────────┼─────────┼──────────────────┤
+  │ vision 27 │ 55.86 ms                  │ 55.89   │ 0.1%             │
+  ├───────────┼───────────────────────────┼─────────┼──────────────────┤
+  │ prefix 18 │ 124.61 ms                 │ 128.44  │ 100%（机制见下） │
+  ├───────────┼───────────────────────────┼─────────┼──────────────────┤
+  │ flow /步  │ 7.89 ms                   │ 7.90    │ 37.4%            │
+  └───────────┴───────────────────────────┴─────────┴──────────────────┘
+
+  真权重零延迟代价，全模型 ~259ms 与 r3 同档；_real.om 三件套加载路径验证通过。
+  补一个 GEB_LOAD 脚枪注记（真权重 OM 必须配 GEB_CKPT，否则 eager 参考错权重
+  parity 无意义）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 3 lines, removed 1 line
+      38  //!   GEB_CKPT=<dir>（真 checkpoint：权重经 Pi05Weights::from_s
+          afetensors
+      39  //!   host 解析（含 Gemma 1+w scale 折叠）→ bf16→f16 → wt() Con
+          st 路径烤入
+      40  //!   OM（per-checkpoint，ADR-002）；缺省合成权重。x0/state/pk/
+          pv/ada 条件
+      41 -//!   向量等运行时输入保持合成（两路同值对拍不受影响）         
+      41 +//!   向量等运行时输入保持合成（两路同值对拍不受影响）。       
+      42 +//!   ⚠ GEB_LOAD 真 OM（*_real.om）必须配 GEB_CKPT——权重烤在 OM
+         + 里，但                                                        
+      43 +//!   eager 参考仍从 binds 取权重，缺 GEB_CKPT 时对拍错权重无意
+         +义                                                             
+      44  use half::f16;
+      45  
+      46  use apxinf_ascend::ge_builder::{self, Dtype, GeGraph};
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/…)
+  ⎿   M crates/apxinf-model/examples/ge_model_probe.rs
+     warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 子模块提交（两步走 ①）：
+
+● Bash(cd "D:/compass/APXinf/apxinf" && git add
+      crates/apxinf-model/examples/ge_model_probe.rs && git commit -m "M3:
+      real-checkpoint weights into three-segment OM (GEB…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port 281d703] M3: real-checkpoint weights into three-segment O
+     … +3 lines (ctrl+o to expand)
+
+● Bash(cd "D:/compass/APXinf/apxinf" && git push fork ascend-port 2>&1 | tail
+      -3)
+  ⎿  To github.com:WeNeedMoreCode/ApxInf.git
+        758b90e..281d703  ascend-port -> ascend-port
+
+  Thought for 5s (ctrl+o to expand)
+
+● 推送完成（758b90e..281d703）。更新文档——先看 roadmap 的 M3 节现状：
+
+  Thought for 5s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+● roadmap 追加 M3 起跑第一动作条目：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      129    - **⚙ C2 性能攻坚第一轮（2026-09-19，见 summary/2026-09-19_c
+           2-perf-attack-round1）——定位完成、未提速、对拍销案**。三轮 msp
+           rof（ascend-msprof skill）定律：vision OM ~700ms 中**设备 busy
+            仅 ~87ms，~600ms 是 81 次/迭代的毫秒级空隙**（形态 `EVENT → ~
+           20ms → MemcopyAsync`，跨流同步后 host 轮询延迟量级）；bmm 20µs
+           /次 vs PFA 323µs。**排除两大嫌疑**：① PFA host 回调（InnerPFA 
+           每次执行 host tiling）——换手工 attention（BatchMatMulV2+Softma
+           xV2+headsplit，对拍 0.1%）仍 700ms；② unknown-shape 动态拆分——
+           Const 折叠 shape（OM 221MB→16MB）仍 700ms，且 **flow 带 2683 
+           个 unknown 标记 + PFA + Data shape 却 70.9ms（反例实锤）**。**
+           头号嫌疑（未决）：111 图输出**（LN aux ×108 + 主输出）vs flow 
+           的 1 输出——GEB_NO_AUX 全深隔离实验进程卡死无结论，**下一动作：
+           GEB_DEPTH=2 + GEB_ROUNDS=5 最小 A/B（分钟级）**。**重大修复：e
+           ager 参考竞态**（同步 d2h 不等 compute 流 + 闭包中间量 drop 内
+           存复用踩烂，skill #19/#20）——**C2 记录的 vision 104%/prefix 30
+           % 漂移销案，vision 全深 27 层对拍 0.1% 稳定，fp32 oracle 待办
+           撤销**。新工具：GEB_ATTN=manual / GEB_OPT_* / GEB_INIT_OPT_* /
+            geb_add_const_i32 / GEB_DBG / GEB_NO_AUX / GEB_ROUNDS+GEB_PER
+           （最小验证纪律）；BiasAdd 在 310P 注册表存在（未接线，bias 链
+           单 kernel 替代候选）。陷阱回填 skill #19-27。
+      130    - **✅ C2 性能攻坚第二轮（2026-09-19，见 summary/2026-09-19_
+           c2-perf-attack-round2）——根因捕获：切片视图运行时物化，三段修
+           复 5.06×**。第一动作最小 A/B 反向击毙 111 输出假设（noaux 更糟
+            710ms：死端 mean/rstd 换 LN 动态变体）；上轮 vision_ma profil
+           e 重挖出铁证：**82.4 次 MemcopyAsync/执行全在执行流上、每次前 
+           4.5-12ms host 停顿、下个 kernel 恒为切片消费者（te_transpose）
+           **——根因 = SliceD 列切视图触发运行时 D2D 物化（host 慢路径）。
+           PFA 模式同数（27×3=81）反证共同因子是 q/k/v 切片而非 attention
+            实现；flow 反例解释（unknown 动态路径把切片物化成 kernel，不
+           付此税）。**三个图组织修复**（全 env 门控）：GEB_QKV3=1（qkv 3
+           ×mm 独立权重输入）、GEB_ROPEFLAT=1（rope 换 flat 视图行交换，G
+           atherV2D Const 索引）、GEB_ATTN=manual（三段统一手工/GQA/cross
+            attention，scale 折权重）。**全量确认（median/10×30）：vision
+            723→68.06（0.1%）/ prefix 750→187.75（25.1% ⚠ 随 MLP 宽度单调
+           ，假设大 K fp16 累加序差，M3 判）/ flow 70.9→17.51/步（1.6%）→
+            全模型 2182→~431ms（5.06×），距 378ms 线 14%**。顺带修 flow e
+           ager 段级索引陈旧 bug（const_i32 化后槽位漂移，const 改造后 fl
+           ow 未重跑所以一直没暴露）。OM 产物 {vision,prefix,flow}_r2.om
+           。陷阱回填 skill #28-29；msprof 顽固导出失败 + sqlite 恢复路径
+           记入 ascend-msprof skill
+      131    - **✅ C2 收尾（2026-09-20，见 summary/2026-09-20_c2-wrapup-
+           nz-weight-tax）——prefix 漂移销案 + NZ 权重税根因 + WCONST 三段
+            → 全模型 263ms = 378 线 0.70×，C 路线达标进 M3**。① prefix 漂
+           移深度扫描（2/4/8/18 = 6.0/10.9/15.6/25.1%）平滑次线性无跳变 +
+            **layer0 k/v 逐位一致、首块后才分岔** → fp16 大 K 累加序差坐
+           实（probe 侧销案，M3 e2e 判）；② flow 分解 ms(d)=0.06+0.975d（
+           成本全在图内每层）；③ **NZ 权重税根因**：GE 对每个 ND Data mm 
+           权重**每执行**插设备侧 ND→FRACTAL_NZ TransData（flow 54% 总时
+           长 ≈ 531µs/层；torch_npu TransData 100ms 同源，TorchAir 靠权重
+           入图逃税）；④ 单算裁决 GEB_OPTEST=wgt：**Const 入图编译期折叠
+           实证（0.3945→0.2945 ms/mm −25%、OM 烤入权重 8.4MB）**，NZ desc
+            直入 310P 编译崩（开放项）；⑤ **GEB_WCONST 三段**（binds 全量
+           库存 + data_inputs 映射，eager 索引两模式恒同——depth2 parity 
+           逐位同验证）：vision 68.06→**55.89** / prefix 187.75→**128.44*
+           * / flow 17.51→**7.90 ms/步** → **全模型 ~431→263.3ms（8.3× 累
+           计），378ms 验收线 0.70×（比 torch_npu 基线快 31%）**。OM _r3.
+           om 三件套 5.2GB（**per-checkpoint**，ADR-002 缓存 key 更新）+ 
+           GEB_LOAD 验证通过。陷阱 #30 回填 skill
+      132 -  - **C3 判定收尾**：⑧ ≤378ms 或接近 → M3 LIBERO 对标；⑨ 文档/
+          -skill 回填（ge-offline-om skill 实战检验）                    
+      132 +  - **✅ M3 起跑第一动作（2026-09-20，281d703）——真 checkpoint
+          + 权重接入三段 OM（`GEB_CKPT`）**。复用 `Pi05Weights::from_safe
+          +tensors` host 解析管线（LeRobot 前缀归一、[in,out] 物理转置、*
+          +*Gemma 1+w scale 折叠**——g1/g2=ones、折叠进 q/k/v/gate/up，pro
+          +be 图直接消费该约定）→ bf16→f16 → 既有 `wt()` Const 路径烤入 O
+          +M。映射面：vision 全 LN/bias 有值（SigLIP 块 + patch/pos/proj 
+          +）；prefix/flow 的 Gemma 投影无 bias（真权重=zeros）；ada-norm
+          + 条件向量（ascl/ash/mscl/msh/fsc/fsh）与 x0/state/pk/pv 保持合
+          +成运行时输入（两路同值对拍不受影响）。**真 OM 三件套 `{vision,
+          +prefix,flow}_real.om`（字节数与 _r3 逐位同 = 同拓扑），bench  
+          +与合成 r3 打平：vision 55.86 / prefix 124.61 / flow 7.89 ms/步
+          +（全模型 ~259ms），GEB_LOAD 加载路径验证通过——真权重零延迟代价
+          +**。**真权重 parity**：vision 0.1%（同合成）；prefix 深度曲线 
+          +**16.8/59.7/100/100%**（d=2/4/8/18；合成时 6.0→25.1%）——layer0
+          + K/V 仍逐位一致、绝对 max_diff 次线性（5.5→36.7）平滑饱和，fp1
+          +6 累加序机制被真 Gemma outlier 通道放大，非 bug，e2e 判定；flo
+          +w 37.4%（输出 |max|≈1.1 小分母 + 同机制）。checkpoint 加载 61s
+          +/进程（全量 mmap+解析，可后置优化为按段懒加载）。⚠ GEB_LOAD 真
+          + OM 必须配 GEB_CKPT（eager 参考从 binds 取权重）              
+      133 +  - **M3 剩余**：② 三段 OM 接入真实推理链（prefix x0 = 真嵌入 
+          +查表 + vision 输出 projector 合流、flow ada 条件 = 真 style 投
+          +影 × time embedding、pk/pv = prefix OM 输出直连）→ e2e 延迟 be
+          +nch；③ LIBERO 对标（9/10 基线）——同时判定 prefix 100% 漂移的实
+          +际影响（GE OM 输出 vs torch_npu golden 对拍）                 
+      134    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      135      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      136    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 4s (ctrl+o to expand)
+
+● 误删了 C3 判定收尾行，恢复：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line
+      129    - **⚙ C2 性能攻坚第一轮（2026-09-19，见 summary/2026-09-19_c
+           2-perf-attack-round1）——定位完成、未提速、对拍销案**。三轮 msp
+           rof（ascend-msprof skill）定律：vision OM ~700ms 中**设备 busy
+            仅 ~87ms，~600ms 是 81 次/迭代的毫秒级空隙**（形态 `EVENT → ~
+           20ms → MemcopyAsync`，跨流同步后 host 轮询延迟量级）；bmm 20µs
+           /次 vs PFA 323µs。**排除两大嫌疑**：① PFA host 回调（InnerPFA 
+           每次执行 host tiling）——换手工 attention（BatchMatMulV2+Softma
+           xV2+headsplit，对拍 0.1%）仍 700ms；② unknown-shape 动态拆分——
+           Const 折叠 shape（OM 221MB→16MB）仍 700ms，且 **flow 带 2683 
+           个 unknown 标记 + PFA + Data shape 却 70.9ms（反例实锤）**。**
+           头号嫌疑（未决）：111 图输出**（LN aux ×108 + 主输出）vs flow 
+           的 1 输出——GEB_NO_AUX 全深隔离实验进程卡死无结论，**下一动作：
+           GEB_DEPTH=2 + GEB_ROUNDS=5 最小 A/B（分钟级）**。**重大修复：e
+           ager 参考竞态**（同步 d2h 不等 compute 流 + 闭包中间量 drop 内
+           存复用踩烂，skill #19/#20）——**C2 记录的 vision 104%/prefix 30
+           % 漂移销案，vision 全深 27 层对拍 0.1% 稳定，fp32 oracle 待办
+           撤销**。新工具：GEB_ATTN=manual / GEB_OPT_* / GEB_INIT_OPT_* /
+            geb_add_const_i32 / GEB_DBG / GEB_NO_AUX / GEB_ROUNDS+GEB_PER
+           （最小验证纪律）；BiasAdd 在 310P 注册表存在（未接线，bias 链
+           单 kernel 替代候选）。陷阱回填 skill #19-27。
+      130    - **✅ C2 性能攻坚第二轮（2026-09-19，见 summary/2026-09-19_
+           c2-perf-attack-round2）——根因捕获：切片视图运行时物化，三段修
+           复 5.06×**。第一动作最小 A/B 反向击毙 111 输出假设（noaux 更糟
+            710ms：死端 mean/rstd 换 LN 动态变体）；上轮 vision_ma profil
+           e 重挖出铁证：**82.4 次 MemcopyAsync/执行全在执行流上、每次前 
+           4.5-12ms host 停顿、下个 kernel 恒为切片消费者（te_transpose）
+           **——根因 = SliceD 列切视图触发运行时 D2D 物化（host 慢路径）。
+           PFA 模式同数（27×3=81）反证共同因子是 q/k/v 切片而非 attention
+            实现；flow 反例解释（unknown 动态路径把切片物化成 kernel，不
+           付此税）。**三个图组织修复**（全 env 门控）：GEB_QKV3=1（qkv 3
+           ×mm 独立权重输入）、GEB_ROPEFLAT=1（rope 换 flat 视图行交换，G
+           atherV2D Const 索引）、GEB_ATTN=manual（三段统一手工/GQA/cross
+            attention，scale 折权重）。**全量确认（median/10×30）：vision
+            723→68.06（0.1%）/ prefix 750→187.75（25.1% ⚠ 随 MLP 宽度单调
+           ，假设大 K fp16 累加序差，M3 判）/ flow 70.9→17.51/步（1.6%）→
+            全模型 2182→~431ms（5.06×），距 378ms 线 14%**。顺带修 flow e
+           ager 段级索引陈旧 bug（const_i32 化后槽位漂移，const 改造后 fl
+           ow 未重跑所以一直没暴露）。OM 产物 {vision,prefix,flow}_r2.om
+           。陷阱回填 skill #28-29；msprof 顽固导出失败 + sqlite 恢复路径
+           记入 ascend-msprof skill
+      131    - **✅ C2 收尾（2026-09-20，见 summary/2026-09-20_c2-wrapup-
+           nz-weight-tax）——prefix 漂移销案 + NZ 权重税根因 + WCONST 三段
+            → 全模型 263ms = 378 线 0.70×，C 路线达标进 M3**。① prefix 漂
+           移深度扫描（2/4/8/18 = 6.0/10.9/15.6/25.1%）平滑次线性无跳变 +
+            **layer0 k/v 逐位一致、首块后才分岔** → fp16 大 K 累加序差坐
+           实（probe 侧销案，M3 e2e 判）；② flow 分解 ms(d)=0.06+0.975d（
+           成本全在图内每层）；③ **NZ 权重税根因**：GE 对每个 ND Data mm 
+           权重**每执行**插设备侧 ND→FRACTAL_NZ TransData（flow 54% 总时
+           长 ≈ 531µs/层；torch_npu TransData 100ms 同源，TorchAir 靠权重
+           入图逃税）；④ 单算裁决 GEB_OPTEST=wgt：**Const 入图编译期折叠
+           实证（0.3945→0.2945 ms/mm −25%、OM 烤入权重 8.4MB）**，NZ desc
+            直入 310P 编译崩（开放项）；⑤ **GEB_WCONST 三段**（binds 全量
+           库存 + data_inputs 映射，eager 索引两模式恒同——depth2 parity 
+           逐位同验证）：vision 68.06→**55.89** / prefix 187.75→**128.44*
+           * / flow 17.51→**7.90 ms/步** → **全模型 ~431→263.3ms（8.3× 累
+           计），378ms 验收线 0.70×（比 torch_npu 基线快 31%）**。OM _r3.
+           om 三件套 5.2GB（**per-checkpoint**，ADR-002 缓存 key 更新）+ 
+           GEB_LOAD 验证通过。陷阱 #30 回填 skill
+      132 +  - **C3 判定收尾**：⑧ ≤378ms 或接近 → M3 LIBERO 对标；⑨ 文档/
+          +skill 回填（ge-offline-om skill 实战检验）——**已随 C2 收尾达成
+          +（263ms = 0.70× 线 + skill #30 回填），C 路线验收闭环**       
+      133    - **✅ M3 起跑第一动作（2026-09-20，281d703）——真 checkpoint
+            权重接入三段 OM（`GEB_CKPT`）**。复用 `Pi05Weights::from_safe
+           tensors` host 解析管线（LeRobot 前缀归一、[in,out] 物理转置、*
+           *Gemma 1+w scale 折叠**——g1/g2=ones、折叠进 q/k/v/gate/up，pro
+           be 图直接消费该约定）→ bf16→f16 → 既有 `wt()` Const 路径烤入 O
+           M。映射面：vision 全 LN/bias 有值（SigLIP 块 + patch/pos/proj
+           ）；prefix/flow 的 Gemma 投影无 bias（真权重=zeros）；ada-norm
+            条件向量（ascl/ash/mscl/msh/fsc/fsh）与 x0/state/pk/pv 保持合
+           成运行时输入（两路同值对拍不受影响）。**真 OM 三件套 `{vision,
+           prefix,flow}_real.om`（字节数与 _r3 逐位同 = 同拓扑），bench 
+           与合成 r3 打平：vision 55.86 / prefix 124.61 / flow 7.89 ms/步
+           （全模型 ~259ms），GEB_LOAD 加载路径验证通过——真权重零延迟代价
+           **。**真权重 parity**：vision 0.1%（同合成）；prefix 深度曲线 
+           **16.8/59.7/100/100%**（d=2/4/8/18；合成时 6.0→25.1%）——layer0
+            K/V 仍逐位一致、绝对 max_diff 次线性（5.5→36.7）平滑饱和，fp1
+           6 累加序机制被真 Gemma outlier 通道放大，非 bug，e2e 判定；flo
+           w 37.4%（输出 |max|≈1.1 小分母 + 同机制）。checkpoint 加载 61s
+           /进程（全量 mmap+解析，可后置优化为按段懒加载）。⚠ GEB_LOAD 真
+            OM 必须配 GEB_CKPT（eager 参考从 binds 取权重）
+      134    - **M3 剩余**：② 三段 OM 接入真实推理链（prefix x0 = 真嵌入
+           查表 + vision 输出 projector 合流、flow ada 条件 = 真 style 投
+           影 × time embedding、pk/pv = prefix OM 输出直连）→ e2e 延迟 be
+           nch；③ LIBERO 对标（9/10 基线）——同时判定 prefix 100% 漂移的实
+           际影响（GE OM 输出 vs torch_npu golden 对拍）
+      135    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+
+● session summary 新建 + setup.md env 表 + README 状态行：
+
+● Write(syx_docs\dev_logs\summary\2026-09-20_m3-real-weights-into-om.md)
+  ⎿  Wrote 39 lines to
+     syx_docs\dev_logs\summary\2026-09-20_m3-real-weights-into-om.md
+      1 # M3 起跑：真 checkpoint 权重接入三段 OM（GEB_CKPT）
+      3 日期：2026-09-20　子模块 commit：`281d703`（fork/ascend-port）　
+        前置：C2 收官 263.3ms（见 [2026-09-20_c2-wrapup-nz-weight-tax](20
+      4 
+      6 
+      7 **ge_model_probe 合成权重路径换成 LeRobot safetensors 真权重（hos
+        套 `{vision,prefix,flow}_real.om`——bench 与合成 r3 打平（55.86/12
+        4.61/7.89ms，全模型 ~259ms），真权重零延迟代价；prefix 真权重漂移
+        。**
+      9 ## 接入设计
+     … +69 lines (ctrl+o to expand)
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_
+          -LOAD=路径——OM 缓存在 /data/apxinf/om_cache/（**r3 当前版 {visi
+          -on,prefix,flow}_r3.om = WCONST 权重烤入版，5.2GB，per-checkpoi
+          -nt**）/ GEB_OPTEST=... 单算/组合/数值验证矩阵（**wgt = NZ 权重
+          -税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 中间量打印（含 head
+          -）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数 
+          -值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_QKV3=1 + GEB_ROPEF
+          -LAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**（全模型 263ms = 3
+          -78 线 0.70×；WCONST = mm 权重 Const 入图编译期折叠 NZ 转换，OM
+          - 变 per-checkpoint）/ **GEB_ROUNDS+GEB_PER bench 规模参数化—— 
+          -假设检验用 5+3，十几秒出数**） |                              
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_
+          +LOAD=路径——OM 缓存在 /data/apxinf/om_cache/（**当前版 {vision,
+          +prefix,flow}_real.om = 真 checkpoint 权重烤入版**（GEB_CKPT 接
+          +入，bench 与 r3 打平 55.86/124.61/7.89ms；r3 = 合成权重版）/ G
+          +EB_OPTEST=... 单算/组合/数值验证矩阵（**wgt = NZ 权重税裁决** 
+          +：nd/cst/nz 三形态 mm）/ GEB_TRACE 中间量打印（含 head）/ GEB_
+          +DBG=1 层 0 各级观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔 
+          +离实验用）/ **GEB_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + 
+          +GEB_WCONST=1 四件套 = 当前最优组合**（全模型 263ms = 378 线 0.
+          +70×；WCONST = mm 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-
+          +checkpoint）/ **GEB_CKPT=<dir> 真 checkpoint 权重**（Pi05Weigh
+          +ts host 解析 + bf16→f16 + Const 路径，~61s 加载；⚠ GEB_LOAD 真
+          + OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER bench 规模参数化——
+          +假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段必须带 GEB_BENCH
+          +，否则静默 exit(1)） |                                        
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+● Update(syx_docs\README.md)
+  ⎿  Added 1 line, removed 1 line
+      26  - ModelZoo π0.5 参考：`vla/pi05_openpi`（torch_npu + TorchAir，
+          FP16，378ms/300I Duo 单芯）
+      27  - 310P3 无 BF16 / FP8 → 精度策略 FP16（INT8 后置）
+      28  - **成功率结案**（2026-09-17）：0/10 →(empty_camera mask 修复)→
+           4/10 →(跨集 queue reset 修复)→ **9/10 = 官方 lerobot_eval 同日
+          实测 9/10**。零 NPU 单帧对拍 `translate_parity_zero_npu.py`（40
+          s/次）是翻译层标准工具
+      29 -- **阶段 2 状态**（2026-09-20）：M2 完成（真 checkpoint 全链路 
+         -）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判 
+         -定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）
+         -→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `
+         -ge-offline-om`）→ **C1 完成**（ge_builder FFI + 单层 GE 化对拍 
+         -0.00000、1.76× vs eager）→ **C2 三段 OM 全量落地**（bench ~2182
+         -ms 距 378ms 线 5.8×）→ **C2 攻坚第一轮**：busy 87ms vs 墙钟 700
+         -ms 定律、排除 PFA/unknown-shape、eager 竞态修复（vision 0.1%）→
+         - **C2 攻坚第二轮：根因捕获 = SliceD 列切视图的运行时 MemcopyAsy
+         -nc 物化**；三段修复（GEB_QKV3/GEB_ROPEFLAT/GEB_ATTN=manual）→  
+         -全模型 ~431ms（5.06×）→ **C2 收尾（2026-09-20）：prefix 漂移销 
+         -案（fp16 大 K 累加序，M3 e2e 判）+ NZ 权重税根因（每执行 ND→FRA
+         -CTAL_NZ TransData，54% flow 时长；torch_npu 同源税）+ GEB_WCONS
+         -T 权重 Const 入图（编译期折叠，单算 −25% 实证）→ 全模型 2182→26
+         -3.3ms = 378ms 验收线 0.70×（8.3× 累计，比 torch_npu 快 31%），C
+         - 路线达标进 M3**。vision 55.89/0.1%、prefix 128.44/25.1%、flow 
+         -7.90ms/步/1.6%；OM {vision,prefix,flow}_r3.om（per-checkpoint）
+         -。陷阱 #12-30 回填 skill；skill `ascend-msprof`（最小采集纪律 +
+         - 导出失败 sqlite 恢复）                                        
+      29 +- **阶段 2 状态**（2026-09-20）：M2 完成（真 checkpoint 全链路 
+         +）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判 
+         +定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）
+         +→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `
+         +ge-offline-om`）→ **C1 完成**（ge_builder FFI + 单层 GE 化对拍 
+         +0.00000、1.76× vs eager）→ **C2 三段 OM 全量落地**（bench ~2182
+         +ms 距 378ms 线 5.8×）→ **C2 攻坚第一轮**：busy 87ms vs 墙钟 700
+         +ms 定律、排除 PFA/unknown-shape、eager 竞态修复（vision 0.1%）→
+         + **C2 攻坚第二轮：根因捕获 = SliceD 列切视图的运行时 MemcopyAsy
+         +nc 物化**；三段修复（GEB_QKV3/GEB_ROPEFLAT/GEB_ATTN=manual）→  
+         +全模型 ~431ms（5.06×）→ **C2 收尾（2026-09-20）：prefix 漂移销 
+         +案（fp16 大 K 累加序，M3 e2e 判）+ NZ 权重税根因（每执行 ND→FRA
+         +CTAL_NZ TransData，54% flow 时长；torch_npu 同源税）+ GEB_WCONS
+         +T 权重 Const 入图（编译期折叠，单算 −25% 实证）→ 全模型 2182→26
+         +3.3ms = 378ms 验收线 0.70×（8.3× 累计，比 torch_npu 快 31%），C
+         + 路线达标进 M3**。vision 55.89/0.1%、prefix 128.44/25.1%、flow 
+         +7.90ms/步/1.6%；OM {vision,prefix,flow}_r3.om（per-checkpoint）
+         +。陷阱 #12-30 回填 skill；skill `ascend-msprof`（最小采集纪律 +
+         + 导出失败 sqlite 恢复）→ **M3 起跑（2026-09-20，281d703）：真 c
+         +heckpoint 权重接入三段 OM（GEB_CKPT，复用 Pi05Weights host 解析
+         + + bf16→f16 + Const 路径）→ {vision,prefix,flow}_real.om 三件套
+         +，bench 与合成打平（55.86/124.61/7.89ms，全模型 ~259ms）真权重 
+         +零延迟代价；prefix 真权重漂移 16.8→100%（d2-18，layer0 仍逐位一
+         +致、次线性平滑 = outlier 放大累加序机制，e2e 判）**。M3 剩余： 
+         +三段接入真实推理链（真嵌入/style 条件/pk-pv 直连）→ e2e bench +
+         + LIBERO 对标（9/10 基线）                                      
+
+  Thought for 5s (ctrl+o to expand)
+
+● handoff 重写为 M3 剩余步骤版：
+
+● Write(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 5 lines, removed 5 lines
+       1 -# Handoff（2026-09-20 C2 收官 / 压缩用）                       
+       1 +# Handoff（2026-09-20 M3 起跑完成 / 压缩用）                   
+       2  
+       3  ## 状态一句话
+       4  
+       5 -**C2 全部收官：全模型 2182 → 263.3ms（8.3×）= 378ms 验收线 0.70
+         -×，比 torch_npu 基线快 31%，C 路线（GE 原生 OM）达标，进 M3**。
+         -本轮三战果：① prefix 25.1% 漂移销案（深度曲线平滑次线性 + layer
+         -0 k/v 逐位一致 → fp16 大 K 累加序差，probe 侧结案，M3 e2e 判） 
+         -；② **NZ 权重税根因**（GE 对每个 ND Data mm 权重每执行插设备侧 
+         -ND→FRACTAL_NZ TransData，flow 54% 总时长 ≈ 531µs/层；torch_npu 
+         -TransData 100ms 同源）；③ **GEB_WCONST 权重 Const 入图**（编译 
+         -期折叠，单算 wgt 实证 −25%/OM 烤入 8.4MB）三段推广：vision 55.8
+         -9 / prefix 128.44 / flow 7.90ms/步。OM 产物 {vision,prefix,flow
+         -}_r3.om（5.2GB，**per-checkpoint**——缓存 key 须含权重版本，ADR-
+         -002 已更新）。陷阱 #30 回填 skill。                            
+       5 +**M3 第一动作完成：真 checkpoint 权重接入三段 OM（GEB_CKPT，子 
+         +模块 281d703）——{vision,prefix,flow}_real.om 三件套 bench 与合 
+         +成 r3 打平（55.86/124.61/7.89ms，全模型 ~259ms）= 真权重零延迟 
+         +代价，GEB_LOAD 验证通过；prefix 真权重漂移 16.8→100%（d2-18，la
+         +yer0 仍逐位一致、次线性平滑饱和 = outlier 放大 fp16 累加序机制 
+         +，非 bug）**。M3 剩余：② 三段 OM 接入真实推理链（真嵌入 x0 / 真
+         + style 条件 / pk-pv 直连）→ e2e 延迟 bench；③ LIBERO 对标（9/10
+         + 基线）+ prefix 漂移实际影响判定（vs torch_npu golden）。      
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**NZ 权重税根因与修法**（每执行 ND→FRACTAL_NZ TransDa
+         -ta ~63GB/s，[n,k]→[k/16,n/16,16,16] 签名；Const 入图编译期折叠 
+         -实证 0.3945→0.2945 ms/mm、OM 烤权重 8.4MB；GEB_WCONST 设计 = bi
+         -nds 全量库存 + data_inputs 映射 + ins()，eager 索引两模式恒同，
+         -flow depth2 parity 逐位同验证）；**最终数字**（vision 55.89/0.1
+         -%、prefix 128.44/25.1%、flow 7.90/步/1.6%、全模型 263.3ms = 0.7
+         -0× 线，8.3× 累计；OM _r3.om 三件套 5.2GB per-checkpoint，GEB_LO
+         -AD 已验证）；**prefix 漂移销案证据**（depth 2/4/8/18 = 6.0/10.9
+         -/15.6/25.1% 次线性无跳变 + layer0 k/v 0.00000 + 首块后 5.6% = f
+         -p16 大 K down-proj 累加序指纹；WCONST 后 worst 0.237→0.361 同档
+         -微移 rel 不变）；**flow 分解**（ms(d)=0.06+0.975d，成本全图内）
+         -；**wgt 实验三变体**（nd/cst/nz——nz desc 直入 310P TBE 编译崩，
+         -开放项）；GE 自动融合 matmul+add/mul（AutomaticBufferFusionOp）
+         -顺带发现；bench ROUNDS=3 panic 修复（skip 吃光轮次）。丢弃：msp
+         -rof 分析脚本细节、16 个权重位点逐个编辑过程（结论在 summary rou
+         -nd3 + skill #30）。                                            
+       9 +聚焦保留：**GEB_CKPT 接入设计**（复用 Pi05Weights::from_safeten
+         +sors host 解析——LeRobot 前缀归一/[in,out] 转置/Gemma 1+w scale 
+         +折叠（g1/g2=ones、折进 q/k/v/gate/up）；probe 侧 t_f16/lw_f16/l
+         +b_f16（None bias→zeros）；ada 条件向量 ascl/ash/mscl/msh 与 x0/
+         +state/pk/pv 保持合成运行时输入）；**真 OM 结果**（{vision,prefi
+         +x,flow}_real.om 与 _r3 逐位同字节数=同拓扑；bench 55.86/124.61/
+         +7.89ms ≈ r3 打平；GEB_LOAD 全通）；**真权重 parity**（vision 0.
+         +1%；prefix d2/4/8/18 = 16.8/59.7/100/100%，layer0 K/V 逐位一致 
+         +、max_diff 次线性 5.5→36.7 平滑饱和——累加序机制被真 Gemma outli
+         +er 放大，e2e 判；flow 37.4% 小分母）；**运行坑**（GEB_LOAD 真 O
+         +M 必须配 GEB_CKPT；parity ≥20% 无 GEB_BENCH 静默 exit(1)；check
+         +point 加载 61s/进程）。丢弃：16+ 权重位点逐个编辑过程（结论在 s
+         +ummary 2026-09-20_m3-real-weights-into-om + roadmap）。        
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3 起跑（C2 已收官 263.3ms = 378 
+         -线 0.70×，见 summary 2026-09-20_c2-wrapup-nz-weight-tax）**。第
+         -一动作：**真 checkpoint 权重接入三段 OM**——ge_model_probe 的合 
+         -成权重路径（rand_f16/wt()）换成 LeRobot safetensors 真权重加载 
+         -（host 解析 → bf16→f16 → wt() Const 路径），三段对拍口径升级为"
+         -GE OM vs eager aclnn 同真权重"，产出真 checkpoint 的 _real.om。
+         -之后 e2e 延迟 bench + LIBERO 对标（9/10 基线，阶段 1 结论）——同
+         -时判定 prefix 25.1% 漂移的实际影响。关键注意：① OM per-checkpoi
+         -nt（ADR-002 已更新缓存 key 约定）；② M2 期已有 ascend_vla/bf16_
+         -weights 的 host 权重解析管线可复用；③ vision 段 3 视图 + SigLIP
+         - 结构对照 ModelZoo 参考实现核对权重名映射。                    
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3 第二步（真 OM 已就位：{vision,
+         +prefix,flow}_real.om 三件套 bench 55.86/124.61/7.89ms，见 summa
+         +ry 2026-09-20_m3-real-weights-into-om）**。第一动作：**三段 OM 
+         +接入真实推理链做 e2e**——① prefix x0 = 真嵌入组装（token_embeddi
+         +ng 查表（Pi05Weights.vision.token_embedding）+ vision OM 输出过
+         + projector 合流 + state embed，对照 ModelZoo pi05_openpi 的 pre
+         +fix 组装序）；② flow ada 条件真值 = time_mlp(sinusoidal(t)) →  
+         +每层 style 投影（action_layers[i].input_norm/post_attention_nor
+         +m.style [AW,3AW]）→ ascl=1+s0 / ash=s1（openpi `rms(x)·(1+s0)+s
+         +1` 约定，host 变换）；③ pk/pv = prefix OM 的 36 输出直连（18 层
+         + × k/v）；④ 10 步 flow 循环执行换绑定（noise/state 步进，euler 
+         +已在图内）。先在 probe 内组装最小 e2e（vision→prefix→flow 链式 
+         +执行 + 对 torch_npu golden 输出对拍——golden 可用 npu 容器阶段 1
+         + 的 translate_parity 工具产出一帧），之后才上 LIBERO（9/10 基线
+         +，阶段 1 结论）。注意：OM per-checkpoint；msprof 先缩规模；假设
+         +检验最小配置纪律不变。                                         
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_c2-
+         -wrapup-nz-weight-tax.md（新文件：C2 收官——prefix 漂移销案、NZ  
+         -权重税根因、GEB_WCONST 三段 263ms = 378 线 0.70×，C 路线达标进 
+         -M3）                                                           
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-
+         +real-weights-into-om.md（新文件：M3 起跑——GEB_CKPT 真权重接入三
+         +段 OM，_real.om 三件套 bench 打平 r3，prefix 真权重漂移曲线销案
+         +）                                                             
+
+  Thought for 5s (ctrl+o to expand)
+
+● 外层仓提交（两步走 ②）：
+
+● Bash(cd "D:/compass/APXinf" && git status --short | grep -v "^??" && echo ---
+      && git diff --stat | tail -8)
+  ⎿   M apxinf
+      M syx_docs/README.md
+      M syx_docs/dev_logs/handoff.md
+     … +17 lines (ctrl+o to expand)
+
+● Bash(cd "D:/compass/APXinf" && git add apxinf syx_docs/README.md
+      syx_docs/dev_logs/handoff.md syx_docs/plans/npu-port-roadmap.md
+      syx_docs/setup.md syx_docs/dev_logs/…)
+  ⎿  warning: in the working copy of 'syx_docs/README.md', LF will be repla
+     ced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● M3 起跑完成——真 checkpoint 权重接入三段 OM 全链落地，双仓提交（子模块 281d703
+  已推 fork，外层 160ed8c）。
+
+  本轮交付
+
+  接入设计：GEB_CKPT=<dir> → 复用 M2 的 Pi05Weights::from_safetensors host
+  解析管线（LeRobot 前缀归一、[in,out] 转置、Gemma 1+w scale 折叠——probe
+  图直接消费该约定）→ bf16→f16 → 既有 wt() Const 路径烤入 OM。三段 16+
+  权重位点换源，合成路径保留为缺省；ada 条件向量/x0/state/pk/pv
+  保持合成运行时输入（真值接线归下一步）。
+
+  结果
+
+  ┌───────────┬─────────────┬─────────┬──────────────────┐
+  │    段     │ 真 OM bench │ 合成 r3 │ parity（真权重） │
+  ├───────────┼─────────────┼─────────┼──────────────────┤
+  │ vision 27 │ 55.86 ms    │ 55.89   │ 0.1%（同合成）   │
+  ├───────────┼─────────────┼─────────┼──────────────────┤
+  │ prefix 18 │ 124.61 ms   │ 128.44  │ 100%（见下）     │
+  ├───────────┼─────────────┼─────────┼──────────────────┤
+  │ flow /步  │ 7.89 ms     │ 7.90    │ 37.4%            │
+  └───────────┴─────────────┴─────────┴──────────────────┘
+
+  - _real.om 三件套与 _r3 逐位同字节数（= 同拓扑），全模型
+    ~259ms——真权重零延迟代价，GEB_LOAD 路径验证通过
+  - prefix 真权重漂移曲线：d=2/4/8/18 → 16.8/59.7/100/100%（合成时
+    6.0→25.1%）。layer0 K/V 仍逐位一致，绝对 max_diff
+    次线性平滑饱和（5.5→36.7）——C2 销案的 fp16 累加序机制被真 Gemma 权重 outlier
+    通道放大，非 bug；实际影响由 e2e golden 对拍判定
+  - 坑记入 setup：GEB_LOAD 真 OM 必须配 GEB_CKPT；parity ≥20% 段不带 GEB_BENCH
+    会静默 exit(1)（本次扫描时定位）；checkpoint 加载 61s/进程（后置优化项）
+
+  下一步（handoff ② 已备好）
+
+  M3 第二步——三段 OM 接入真实推理链：prefix x0 = 真嵌入组装（token_embedding
+  查表 + projector 合流）、flow ada 条件 = 真 style 投影 × time_mlp（1+s0
+  约定）、pk/pv = prefix OM 36 输出直连 → probe 内最小 e2e + torch_npu golden
+  对拍 → LIBERO（9/10 基线）。
+
+✔ Goal achieved (56m · 1 turn · 52.7k tokens) (ctrl+o to expand)
+
+✻ Sautéed for 56m 10s · done 11:33 AM
+
+❯ 意思是现在还没真接入，那这一轮是做什么没太懂                                  
+
+  Thought for 40s (ctrl+o to expand)
+
+● 对——端到端“真接入”还没有，这轮接入的是权重，不是数据链路。区别在这：
+
+  probe 三个组成部分的状态
+
+  部分: 图结构（27/18/18 层怎么连）
+  之前（r3）: 真模型结构
+  这轮之后: 不变
+  下一步: 不变
+  ────────────────────────────────────────
+  部分: 权重（5.2GB 大头）
+  之前（r3）: rand_f16 合成随机数
+  这轮之后: ✅ 真 checkpoint 权重（烧进 _real.om，per-checkpoint）
+  下一步: 不变
+  ────────────────────────────────────────
+  部分: 输入数据（x0 嵌入 / state / pk·pv / ada 条件 / 图像 patches）
+  之前（r3）: 合成随机数
+  这轮之后: 仍是合成
+  下一步: 真值接线（嵌入查表、style 投影、KV 直连）
+
+  所以现在的 probe 是：“发动机换上了真零件，在台架上用测试信号跑”——能跑、不炸、
+  性能和原来一样，但你塞一张 LIBERO
+  真图片进去它还不认识，因为图像→patches、prompt→token 嵌入→x0、time
+  embedding→ada 条件这些喂图的数据管道还没接。
+
+  这轮单独先做权重的理由
+
+  1. 权重是 OM 变 per-checkpoint 的原因（ADR-002），必须先钉死“真权重烤进 OM
+     编译/运行/性能都没代价”——结论：55.86/124.61/7.89ms 与合成版打平，OM
+     字节数逐位相同（同拓扑）
+  2. 真权重的数值分布和合成完全不同（Gemma 有大 outlier 通道），要先确认 fp16
+     下不溢出不 NaN——结论：vision 0.1%，prefix 漂移曲线平滑饱和（机制同 C2
+     销案的累加序差，被 outlier 放大）
+  3. 分步隔离：如果权重和数据链路一起上、e2e
+     输出错了，分不清是权重映射错、图错还是数据管道错
+
+  一个要诚实说的点
+
+  parity（GE vs eager）是双路吃同一份权重，它验证的是“图算得一致”，不验证“权重名
+  字映射对不对”——比如 fc1/fc2 映射互换，两路会一起错，parity 照样
+  0.1%。映射正确性目前靠的是 Pi05Weights::from_safetensors 是 M2 eager
+  全链共用的加载器（形状校验兜底），最终裁决在下一步的 golden 对拍（同输入下 GE
+  OM 输出 vs torch_npu 输出）。
+
+  下一步才是“真接入”（handoff ② 那四条）
+
+  ① x0 = 真 token 嵌入查表 + vision 输出合流；② ada 条件 = time_mlp + style
+  投影（1+s0 约定）；③ pk/pv = prefix OM 的 36 个 K/V 输出直连 flow；④ 10 步
+  flow 换绑定循环。接完先是 probe 内最小 e2e + torch golden 对拍（顺便裁决
+  prefix 100% 漂移的实际影响），然后才上 LIBERO 跑 9/10 基线。
+
+✻ Crunched for 50s · done 11:37 AM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶   170.4k/1m tokens (17%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 167.9k tokens (16.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 829.2k (82.9%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens

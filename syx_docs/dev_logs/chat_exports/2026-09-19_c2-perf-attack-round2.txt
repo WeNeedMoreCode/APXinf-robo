@@ -1,0 +1,3223 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 全部完成，可以压缩了。
+
+  本轮收尾清单
+
+  提交
+  - 子模块 fadc4c5 → 已推 fork/ascend-port（手工 attention + Const shape + eager
+    竞态修复 + probe 参数化，3 文件 +627 行）
+  - 外层 efc73c0（9 文件：roadmap 攻坚段 + C2 漂移勘误、ADR-002
+    调度空隙修正、skill #19-27、新 skill ascend-msprof、setup
+    工具面、summary、handoff）
+
+  文档全景
+
+  ┌─────────────────┬───────────────────────────────────────────────────────┐
+  │      文档       │                       本轮内容                        │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ summary（新）   │ 三轮 profile 数据、假设排除链、竞态取证、工具面       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ handoff         │ compact 参数 + 下轮首句 + export 标题                 │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ roadmap         │ C2 攻坚第一轮段（busy 87ms vs 墙钟 700ms、flow        │
+  │                 │ 反例、111 输出嫌疑）+ C2 漂移条目勘误                 │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ ADR-002         │ 胶水 kernel 定性被调度空隙发现取代；验证点更新        │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ ge-offline-om   │ 陷阱 #19-27（d2h 非流序/闭包释放踩内存/Const          │
+  │ skill           │ shape/PFA host launcher/AttentionScore 死路/headsplit │
+  │                 │  错排/动态 desc 输出/SoftmaxV2/单流无效）             │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ ascend-msprof   │ 最小采集纪律 + msprof 产物读取/分析套路               │
+  │ skill（新）     │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ setup.md        │ probe 全 env 面 + 选项直通 + msprof 纪律              │
+  └─────────────────┴───────────────────────────────────────────────────────┘
+
+  两条硬收获（已进文档）：① vision 全深对拍 0.1%（C2 的 104% 漂移销案，fp32
+  oracle 待办撤销）；② 停顿问题收敛到单一嫌疑（111 图输出），下轮 1 分钟最小 A/B
+  可裁决。
+
+  压缩参数（贴 /compact）
+
+  聚焦保留：**性能 profile 定律**（busy 87ms vs 墙钟 700ms；空隙 81 次/迭代
+  EVENT→~20ms→MemcopyAsync；算子账本 TransData 17-21/mm 19/LN 14.7/Gelu
+  9.5/Softmax 6.3/bmm 1.1ms）；**假设排除链**（PFA host 回调→换手工 attention 仍
+  700ms；unknown-shape Const 折叠 OM 221→16MB 仍 700ms；flow 反例 2683 unknown
+  标记+PFA 却 70.9ms）；**未决头号嫌疑 111 图输出**（LN aux ×108 vs flow 1
+  输出；下轮第一动作 GEB_DEPTH=2+GEB_ROUNDS=5+GEB_PER=3+GEB_NO_AUX=1 最小
+  A/B）；**eager 竞态 bug**（d2h 非流序+闭包 drop 内存复用；vision 全深 0.1%
+  销案）；**新工具面**（GEB_ATTN=manual/headsplit/GEB_OPT_/GEB_INIT_OPT_/geb_add
+  _const_i32/GEB_DBG/GEB_NO_AUX/GEB_ROUNDS+GEB_PER）；**坑**（单流无效且数值崩、
+  AttentionScore 无 kernel、SoftmaxV2 half_to_float、直接 Reshape 头序错排、bmm
+  输出动态 desc、BiasAdd 注册表存在未接线）。丢弃：profile
+  逐条分析命令、竞态排查中间过程（结论在 skill #19-27）。
+
+✔ Goal achieved (2h · 2 turns · 182.6k tokens) (ctrl+o to expand)
+
+✻ Baked for 3m 32s · done 1:03 AM
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_c2-perf-a 
+ttack-round1                                                                    
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-19_c2-perf-attack-round1.txt
+
+❯ /compact 聚焦保留：**性能 profile 定律**（busy 87ms vs 墙钟 700ms；空隙 81    
+次/迭代 EVENT→~20ms→MemcopyAsync；算子账本：TransData 17-21/Trans 融合 mm 19/LN 
+14.7/Gelu 9.5/Softmax 6.3/**bmm 1.1ms(20µs/次)**）；**假设排除链**（PFA host    
+回调 InnerPFA 27 次/迭代但换手工 attention 仍 700；unknown-shape Const 折叠 OM  
+221→16MB 仍 700；**flow 反例**：2683 unknown 标记 + PFA + Data shape 却         
+70.9ms）；**未决头号嫌疑：111 图输出**（LN aux ×108，flow 只有 1                
+输出；GEB_NO_AUX 隔离实验全深卡死——**下轮第一动作 GEB_DEPTH=2 + GEB_ROUNDS=5    
+GEB_PER=3 + GEB_NO_AUX=1 最小 A/B，1 分钟出数**）；**eager 竞态 bug 取证**（d2h 
+非流序 + 闭包 drop 内存复用；C2 的 104%/30% 漂移是假的，vision 全深 0.1%        
+销案）；**新工具面**（GEB_ATTN=manual 手工 attention 0.1%                       
+对拍、headsplit/headmerge、GEB_OPT_/GEB_INIT_OPT_ 选项直通、geb_add_const_i32、 
+GEB_DBG/GEB_NO_AUX/GEB_ROUNDS/GEB_PER）；**坑**（enableSingleStream             
+无效且数值崩；AttentionScore 310P 无 kernel；SoftmaxV2 half_to_float=true       
+输出全 0；[768,1152]→[48,256,72] 直接 Reshape 是头/序错排；bmm 输出绑图输出     
+desc 动态；BiasAdd 在注册表存在未接线）；ascend-msprof                          
+skill（最小采集纪律）。丢弃：三轮 profile                                       
+逐条分析命令、竞态排查中间过程（结论在 skill #19-25 与 summary）。              
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\decisions\002-ge-native-om-route.md (31 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read syx_docs\README.md (30 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (158 lines)
+  ⎿  Read .claude\skills\ge-offline-om\SKILL.md (133 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 C2 性能攻坚第二轮**                       
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU C 路线 C2 性能攻坚第二轮
+
+  Thought for 36s (ctrl+o to expand)
+
+● 收到，继续 C2 性能攻坚第二轮——第一动作是 111 图输出假设的最小 A/B
+  裁决。先看空闲芯（保持同芯对照纪律）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'npu-smi info | head -40')
+  ⎿  +---------------------------------------------------------------------
+     -----------------------------------+
+     | npu-smi 26.0.rc1                                 Version: 26.0.rc1
+     … +59 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● chip 6 空闲（上一轮同芯，保持对照）。先快速确认 probe 的 env
+  门控逻辑，避免跑错配置：
+
+  Thought for 11s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● GEB_BENCH 门控 bench、GEB_NO_AUX 跳 LN aux 绑定（数值会爆，只看时间）。跑 A
+  基线（depth 2 + manual + 最小 bench）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [out-dims] 0: size=3145728 dims=[768, 2048]
+     [out-dims] 1: size=3072 dims=[768, 1]
+     [out-dims] 2: size=3072 dims=[768, 1]
+     … +12 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● A 基线：46.38 ms，11 输出（主 + 10 aux），对拍 0.1% ✓。跑 B
+  对照（GEB_NO_AUX=1，预期 1 输出）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [malloc-probe] after-eager: ok
+     [mem] after-eager: binds total = 71.5 MB
+     [out-dims] 0: size=3145728 dims=[768, 2048]
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 39s (ctrl+o to expand)
+
+● 反转结果——假设被反方向击毙：
+
+  ┌──────────────────────────────┬──────────┬────────┐
+  │ 配置（vision depth2 manual） │   时间   │ 输出数 │
+  ├──────────────────────────────┼──────────┼────────┤
+  │ A：绑 LN aux                 │ 46.4 ms  │ 11     │
+  ├──────────────────────────────┼──────────┼────────┤
+  │ B：GEB_NO_AUX（死端）        │ 710.5 ms │ 1      │
+  └──────────────────────────────┴──────────┴────────┘
+
+  aux 不是成本，反而在阻止某种病态。且注意：depth2+aux 才 46ms（~23ms/层，与全深
+  700ms 的每层摊销一致——停顿随层数线性缩放成立）；而 no-aux 是
+  ~355ms/层的完全不同档位，710ms 还恰好撞上全深数字——怀疑 no-aux 图掉进了与全深
+  700ms 同一个病态执行模式（死端 mean/rstd → 编译器换 LN 动态变体 → host
+  参与运行时？）。
+
+  先看 bench 路径本身确认 parity 失败不影响计时，再取证：
+
+  Thought for 18s, read 1 file (ctrl+o to expand)
+
+● bench 路径干净（warmup 3 + rounds×per，median；parity 漂移不影响计时）——710ms
+  是 no-aux 图的真实每执行耗时。取证第一步：把两个 depth-2 OM
+  落盘对比（编译产物差异 vs 运行时行为差异，一招分辨）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     er.py:279: UserWarning: resource_tracker: There appear to be 30 leaked
+      semaphore objects to clean up at shutdown
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+  Thought for 7s (ctrl+o to expand)
+
+● OM 尺寸几乎一致（1.41MB vs 1.35MB）——不是图结构爆炸。查 kernel 名与 unknown
+  标记差异：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cd /data/apxinf/om_cache && for f in
+      vision_d2_aux.om vision_d2_n…)
+  ⎿  == vision_d2_aux.om ==
+     477
+         190 te_index
+     … +28 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 两个 OM 结构几乎一致（同 layernormv3 家族，仅 tiling hash 不同；unknown 标记
+  477 vs 437 都不高）——15× 差异在运行时而非编译产物。决定性仪器：msprof
+  双图对照（最小对）。读 skill 拿采集命令：
+
+  Thought for 16s, read 1 file (ctrl+o to expand)
+
+● msprof 双图对照。先采病态侧（noaux，710ms），最小规模（3 rounds × 1 per）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [INFO] Query all data in PROF_000001_20260919171505774_00202804QPDHDAK
+     A done.
+     [INFO] Profiling finished.
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 采正常侧（aux，46ms）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [INFO] Query all data in PROF_000001_20260919171603790_00204083PEEPCKI
+     N done.
+     [INFO] Profiling finished.
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 双 profile 齐。先看 op_statistic 对照（kernel 本身慢 vs
+  空隙主导，一张表分辨）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'for d in d2_noaux d2_aux; do f=$(ls
+      /data/apxinf/prof/$d/PROF_*/m…)
+  ⎿  Error: Exit code 1
+     ls: cannot access '/data/apxinf/prof/d2_noaux/PROF_*/mindstudio_profiler_ou
+     tput/op_statistic_*.csv': No such file or directory
+     ===== d2_noaux =====
+     Traceback (most recent call last):
+       File "<string>", line 3, in <module>
+     FileNotFoundError: [Errno 2] No such file or directory: ''
+     ls: cannot access '/data/apxinf/prof/d2_aux/PROF_*/mindstudio_profiler_outp
+     ut/op_statistic_*.csv': No such file or directory
+     ===== d2_aux =====
+     Traceback (most recent call last):
+       File "<string>", line 3, in <module>
+     … +1 line (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 看目录结构（可能是静默导出失败或结构不同）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/prof/ && find
+      /data/apxinf/prof/d2_noaux -maxdept…)
+  ⎿  d2_aux
+     d2_noaux
+     vision
+     … +50 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 导出静默失败（skill 已知失败模式）——但两次都失败不寻常。查旧 profile 是否有
+  output 目录 + 分析日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/prof/vision_ma/PROF_*/ 2>/dev/null |
+      head -8; ech…)
+  ⎿  device_6
+     host
+     mindstudio_profiler_log
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 旧 profile 有 output、新的没有——但 sqlite raw 数据在（skill
+  已知可救路径）。直接查 sqlite：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'for d in d2_noaux d2_aux; do echo "== $d =="; ls -la
+      /data/apxinf…)
+  ⎿  == d2_noaux ==
+     total 276
+     drwxr-x--- 2 root root  4096 Sep 19 17:15 .
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119
+      'p=/data/apxinf/prof/d2_noaux/PROF_000001_20260919171505774_002028…)
+  ⎿  == runtime ==
+     ['HostTask']
+     == ge_info ==
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 -c "
+      import sqlite3…)
+  ⎿  ['model_id', 'op_name', 'stream_id', 'task_id', 'block_num', 'mix_bloc
+     k_num', 'op_state', 'task_type', 'op_type', 'index_id', 'thread_id', '
+     timestamp', 'batch_id', 'tensor_num', 'input_formats', 'input_data_typ
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● TaskInfo 只有 timestamp 无时长——分析阶段根本没跑全（"cost time = 8
+  ms"）。怀疑磁盘满了（上轮 profile 已 ~3GB 未清）。查：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'df -h /data | tail -1; du -sh /data/apxinf/prof
+      2>/dev/null')
+  ⎿  /dev/sdd        1.8T  529G  1.2T  32% /data
+     2.9G       /data/apxinf/prof
+  Thought for 3s (ctrl+o to expand)
+
+● 磁盘充足（1.2T 空闲）。看分析日志里那 1 条 error：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -iE "error|fail|exception"
+      /data/apxinf/prof/d2_noaux/PROF_*…)
+  ⎿  2026-09-19 17:15:34 [ERROR] [203988] [203988] [context.cpp:81] The num
+     ber of end_info in /data/apxinf/prof/d2_noaux/PROF_000001_202609191715
+     05774_00202804QPDHDAKA/host/../host is invalid, file num is: 0.
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● error 定位到 end_info file num is 0——上轮成功用的是 --application= 挂 wrapper
+  脚本的形式。找上轮的 wrapper：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/*.sh 2>/dev/null; grep -l msprof
+      /data/apxinf/*.s…)
+  ⎿  /data/apxinf/download_weights.sh
+     /data/apxinf/env_setup.sh
+     /data/apxinf/fix_deps2.sh
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 上轮成功产物 host 下有 end_info，新采集缺这个——profiling
+  会话没正确终结。换上轮验证过的 --application= + wrapper 形式重采：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /data/apxinf/prof_run_d2.sh << "EOF"
+      #!/bin/bash…)
+  ⎿  wrapper-ok
+     [INFO] Query all data in PROF_000001_20260919171912342_00205344IAOEKID
+     Q done.
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/prof/d2_noaux2/PROF_*/host/
+      2>/dev/null | grep -c…)
+  ⎿  0
+
+  Thought for 6s (ctrl+o to expand)
+
+● wrapper 形式也没救回来。对比上轮成功采集的配置（collection log 会回显 msprof
+  启动参数）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'echo "=== round1 OK ==="; head -30
+      /data/apxinf/prof/vision_ma/PR…)
+  ⎿  === round1 OK ===
+     2026-09-19 16:02:54 [INFO] [ms_multi_process.py:76] - CpuUsageAnalysis
+      process data finished, execute time is 0.005 s
+     … +61 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 配置一致。对比 device 侧数据量（device 数据缺失=采集本身失败而非导出失败）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'echo "=== vision_ma (OK) ==="; du -sh
+      /data/apxinf/prof/vision_ma…)
+  ⎿  === vision_ma (OK) ===
+     369M       /data/apxinf/prof/vision_ma/PROF_000001_20260919155902899_0017
+     9203
+     GDPMBJJR/device_6
+     … +19 lines (ctrl+o to expand)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 决定性差异：device 数据 369MB（上轮）vs
+  372KB（现在）——采集就没采到，不是导出问题。但 sqlite TaskInfo 有 153
+  行，先看它含什么（timestamp 单列也能做 task 间 gap 分析）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 -c "
+      import sqlite3…)
+  ⎿  total 153
+     [('TransData', 37), ('MatMulV2', 24), ('Add', 24), ('BroadcastTo', 14)
+     , ('TileD', 10), ('LayerNormV3', 10), ('Transpose', 8), ('MemSet', 6),
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● TaskInfo 是残片（10 条 LN vs 应有 30，span 0.22s vs 全程 40s+）——device
+  采集被截断。查 device 侧日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'tail -15
+      /data/apxinf/prof/d2_noaux2/PROF_*/mindstudio_profiler_l…)
+  ⎿  2026-09-19 17:19:41 [INFO] [ms_multi_process.py:76] - HCCLOperatorPars
+     er process data finished, execute time is 0.005 s
+     2026-09-19 17:19:41 [INFO] [ms_multi_process.py:76] - ParallelParser p
+     … +31 lines (ctrl+o to expand)
+
+  Thought for 19s (ctrl+o to expand)
+
+● device 数据量其实与 task 数成比例——采集在 bench 开始前就停了（表末尾是 eager
+  parity 任务，GE bench 执行没进表）。但现有残片已覆盖 2 次 GE 执行，足够做 LN
+  邻域的 gap 分析（timestamp 单列，同流相邻 delta ≈ kernel
+  时长+gap）。先榨干残片：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  ===== d2_noaux: 102 GE tasks =====
+     374306.316211  d=      0.0us  TransData        trans_TransData_0
+     374306.316238  d=     26.3us  TransData        trans_TransData_1
+     … +316 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● 重大信息量（虽然 timestamp 是提交时间不是执行时间——16µs 间隔塞不下 6.6MB
+  TransData，坐实是 launch 序列）。但两条硬结论：① depth-2 
+  图一次执行的任务提交只要 ~2.4ms；② 采到的窗口里没有 46ms/710ms 的踪影——大头在
+  profile 残片之外。
+
+  好在上轮 vision_ma（全深 manual + aux = 700ms
+  病例本体）的完整导出还在。直接挖它——找 81 个停顿的精确上下文：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls
+      /data/apxinf/prof/vision_ma/PROF_*/mindstudio_profiler_output/…)
+  ⎿  api_statistic_20260919160822.csv
+     fusion_op_20260919160822.csv
+     msprof_20260919160742.json
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+● task_time 有真实时长。写个分析脚本挖停顿解剖（busy/gap +
+  每个空隙的前后任务签名）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/gap_an.py << "PYEOF"
+      import csv, glob, sys…)
+  ⎿  Error: Exit code 1
+     total tasks: 526188
+     total span: 212.0s
+     Traceback (most recent call last):
+       File "/tmp/gap_an.py", line 20, in <module>
+         gaps.append((s-ce, prev_kn, kn, prev_kt, kt)); busy+=ce-cs; cs,ce=s,e
+     NameError: name 'prev_kn' is not defined
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/gap_an.py << "PYEOF"
+      import csv, glob…)
+  ⎿  busy: 32.81s / span 212.0s  fill=15.5%
+     gaps>500us: 24723  total 178.47s
+     --- gap signature (before -> after @stream), by total ---
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 28s (ctrl+o to expand)
+
+● 抓到了。真实解剖（303 次执行，212s）：
+
+  - busy 仅 32.8s，fill 15.5%
+  - 空隙签名压倒性单一：→ MemcopyAsync @s370（我们传给 executeAsync 
+    的流），24624 个空隙 ≈ 82 次/执行，合计 176s——98.8% 的空隙都终结在这
+  - 每次 MemcopyAsync 前等 4.5~12.4ms（host 准备/提交延迟）
+
+  即：每执行 82 次、运行时在我们的执行流上插入 MemcopyAsync，每次前有 ~7ms host 
+  停顿 = 580ms/exec。现在要问：拷的是什么？op_summary 有 shape 列，直接看：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc.py << "PYEOF"
+      import csv, glob…)
+  ⎿  cols: ['Op Name', 'OP Type', 'Task Type', 'Input Shapes', 'Input Data
+     Types', 'Output Shapes', 'Output Data Types']
+     total Memcopy rows: 0
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc2.py << "PYEOF"
+      import csv, glob…)
+  ⎿  [('AI_CORE', 350088), ('AI_VECTOR_CORE', 24928)]
+
+  Thought for 6s (ctrl+o to expand)
+
+● op_summary 根本不含 other 型。回到 task_time 挖 MemcopyAsync 的 kernel
+  名变体（编码方向/大小）与 NOTIFY 配对流：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc3.py << "PYEOF"
+      import csv, glob…)
+  ⎿  --- other-type kernel names ---
+     n= 24956 tot=   9.33s avg=   373.7us  MemcopyAsync
+     --- other-type streams --- [('370', 24956)]
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 1m 0s (ctrl+o to expand)
+
+● 全在 s370、单一名字。注意两个数字：82.4 次/执行（= 55 LN + 27 SoftmaxV2？）但
+  avg 374µs 是大拷贝（~4MB 量级，不是小 shape 张量）。看分布再定性质：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc4.py << "PYEOF"
+      import csv, glob…)
+  ⎿  n=24956  p10=369us p50=381us p90=384us p99=407us max=472us
+       0-100us: 325
+       200-300us: 7
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● p50=381µs、p90=384µs——单一均匀群体（同一种拷贝 × 24631
+  次）。且重大线索：AI_VECTOR_CORE 任务数 24928/303 = 82.3/执行，与 MemcopyAsync
+  82.4/执行 1:1！AIV 上的算子正是 LN(55)+SoftmaxV2(27)。验证时序相邻性：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc5.py << "PYEOF"
+      import csv, glob…)
+  ⎿  AIV op types: [('te', 16720), ('SoftmaxV2', 8208)]
+     MemcopyAsync -> next@s370: [('te', 24518), ('MemcopyAsync', 322), ('N/
+     A', 115), ('END', 1)]
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 邻接粒度太粗（te_ 前缀吃掉一切）。取完整 kernel 名：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/mc6.py << "PYEOF"
+      import csv, glob…)
+  ⎿  --- MemcopyAsync -> FULL next name ---
+     n= 24518  te_transpose_e8fc4e99e639e6f9b2e37b4cdd4587540
+     n=   322  MemcopyAsync
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 铁证：每个 MemcopyAsync 的下一个 kernel 都是同一个 
+  te_transpose_e8fc（headsplit 转置 kernel，81 次/执行 = 27 层 × 
+  3）——每次转置前都有一次运行时 MemcopyAsync + ~5.5ms host 停顿。81 × 5.5ms ≈
+  450ms，就是空隙大头。查代码里 TransposeD 的 perm 怎么给的：
+
+  Thought for 16s, searched for 1 pattern (ctrl+o to expand)
+
+● perm 是 attr 不是张量输入——staging 的不是 perm。这就是 PFA host
+  回调同款病（round 1：InnerPFA GetWorkspaceSize host tiling + MemcopyAsync
+  staging），现在 Manual 模式下换成了 Transpose 触发。看 host 侧 API 谁在吃
+  5.5ms：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/api.py << "PYEOF"
+      import csv, glob…)
+  ⎿  ['Device_id', 'Level', 'API Name', 'Time(us)', 'Count', 'Avg(us)', 'Mi
+     n(us)', 'Max(us)', 'Variance']
+     43
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/api2.py << "PYEOF"
+      import csv, glob…)
+  ⎿  Error: Exit code 1
+       File "/tmp/api2.py", line 6
+         print(f"{float(r[\"Time(us)\"])/1e6:8.3f}s n={int(r[\"Count\"]):6d} 
+     avg={float(r[\"Avg(us)\"]):9.1f}us max={float(r[\"Max(us)\"]):9.1f}us  
+     {r[\"API Name\"][:50]}")
+                                                                                
+                                                                               
+                    ^
+     SyntaxError: f-string expression part cannot include a backslash
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/api2.py << "PYEOF"
+      import csv, glob…)
+  ⎿   209.178s n=   304 avg= 688086.2us max= 740691.3us  aclmdlExecuteAsync
+      209.098s n=   304 avg= 687822.8us max= 740351.0us  ModelExecute
+        1.464s n=165643 avg=      8.8us max=   3544.4us  launch
+     … +23 lines (ctrl+o to expand)
+  Thought for 24s (ctrl+o to expand)
+
+● 决定性：aclmdlExecuteAsync avg 688ms 全程占满 host——host 在 ExecuteAsync
+  内部以走走停停方式提交（每个转置前停 5.5ms），而 tiling 类 API
+  总量极小（不是它们）。查 plog 里 MemcpyAsync 的 size 线索：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ls -la
+      /root/ascend/log/ 2>/dev/…)
+  ⎿  total 20
+     drwxr-x--- 5 root root 4096 Sep 17 08:38 .
+     drwxr-x--- 4 root root 4096 Sep 17 11:22 ..
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ls
+      /root/ascend/log/run/plog/ |…)
+  ⎿  plog-175280_20260919154958799.log
+     plog-175759_20260919155026375.log
+     plog-176281_20260919155227846.log
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "grep -oE
+      \"[Mm]emcpy[^\"]*size[=…)
+  ⎿  Error: Exit code 2
+     bash: -c: line 1: unexpected EOF while looking for matching `"'
+
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust grep -ciE memcpy
+      /root/ascend/log/run/plo…)
+  ⎿  0
+
+  Thought for 1m 12s (ctrl+o to expand)
+
+● 机制收敛了。汇总所有数字——同一条线索贯穿两种模式：
+
+  - Manual：81 拷贝/执行 = 27 层 × 3（q/k/v headsplit 转置前各一次）
+  - PFA：round 1 的 InnerPFA staging 也是 27 × 3 = 81
+  - 共同因子 = 每层 3 个 q/k/v 张量的运行时物化拷贝（SliceD 列切分是视图 → 下游
+    kernel 要连续物理布局 → 运行时插 D2D 物化，host 侧每次 ~5.5ms）
+  - flow 没有列切分 qkv 结构 → 70.9ms 反例 ✓；depth2 拟合 ✓（6 停顿 × 5.5ms +
+    busy ≈ 46ms ✓）
+
+  看 vision manual 分支的确切代码结构，设计修复实验：
+
+  Thought for 29s, read 1 file (ctrl+o to expand)
+
+● 结构清楚了。设计单变量修复实验 GEB_QKV3：用 3 个独立 matmul（wq/wk/wv
+  独立权重输入）替代 融合 qkv mm → SliceD×3，消除切片视图。先看 helper
+  签名与输入绑定方式：
+
+  Thought for 20s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 机制明确，动手做单变量修复实验 GEB_QKV3（q/k/v 独立投影，消除 SliceD
+  视图）。三处编辑：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines
+      923      // ~20ms/层停顿，见 C2 性能攻坚 profile 取证）
+      924      let attn_manual = std::env::var("GEB_ATTN").map(|v| v == "
+           manual").unwrap_or(false);
+      925      let vscale = if attn_manual { 1.0f32 / (V_HD as f32).sqrt(
+           ) } else { 1.0 };
+      926 +    // GEB_QKV3：q/k/v 独立投影（3×mm + 独立权重输入），替代融
+          +合 qkv mm +                                                   
+      927 +    // SliceD×3。msprof 取证（C2 攻坚第二轮）：切片视图下游（T
+          +ransposeD/                                                    
+      928 +    // PFA）每层触发 3 次运行时 MemcopyAsync 物化（~1.77MB/次 
+          +）+ 每次前                                                    
+      929 +    // ~4.5-12ms host 停顿 = vision ~450ms 空隙的主源（81 次/ 
+          +执行）                                                        
+      930 +    let qkv3 = std::env::var("GEB_QKV3").is_ok();             
+      931      let mut seed = 0xC0DEu32;
+      932      let mut s = Seg::new("ge_vision");
+      933  
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines
+      1018                  bias.clone()
+      1019              };
+      1020              s.data(ctx, &format!("{}qkvb", p), &[1, qkvw], &b
+            ias_s);
+      1021 +            if qkv3 {                                        
+      1022 +                // 独立权重/bias 输入（host 切一次，免运行时 
+           +物化）；                                                     
+      1023 +                // wq_s/bias_s 已含 manual attention 的 vscal
+           +e 折叠                                                       
+      1024 +                s.data_buf(&format!("{}qw", p), &[vqd, VW], w
+           +buf_t(ctx, &wq_s, VW, vqd));                                 
+      1025 +                s.data_buf(&format!("{}kw", p), &[vqd, VW], w
+           +buf_t(ctx, &wk, VW, vqd));                                   
+      1026 +                s.data_buf(&format!("{}vw", p), &[vqd, VW], w
+           +buf_t(ctx, &wv, VW, vqd));                                   
+      1027 +                s.data(ctx, &format!("{}qb", p), &[1, vqd], &
+           +bias_s[..vqd as usize]);                                     
+      1028 +                s.data(ctx, &format!("{}kb", p), &[1, vqd], &
+           +bias_s[vqd as usize..2 * vqd as usize]);                     
+      1029 +                s.data(ctx, &format!("{}vb", p), &[1, vqd], &
+           +bias_s[2 * vqd as usize..]);                                 
+      1030 +            }                                                
+      1031              let bq = upload(ctx, &bias[0..vqd as usize]);
+      1032              let bk = upload(ctx, &bias[vqd as usize..2 * vqd 
+            as usize]);
+      1033              let bv = upload(ctx, &bias[2 * vqd as usize..]);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 16 lines, removed 5 lines
+      1063          // attention（v3 方案：rank-2 列切 → Reshape rank-3 
+            桥）。
+      1064          // manual：[b*h,s,d] 桥 + bmm/softmax/bmm（全静态）；
+            pfa：batch PFA
+      1065          let ln1 = s.addln(&format!("{}ln1", p), &cur, &format
+            !("{}n1w", p), &format!("{}n1b", p), "nsh", &[t, VW]);
+      1066 -        let qkv = s.mm(&format!("{}qkv", p), &ln1, &[t, VW], 
+           -&format!("{}qkvwt", p), &[qkvw, VW], &[t, qkvw]);            
+      1067 -        let qkvb = s.bias(&format!("{}qkvb", p), &qkv, &[t, q
+           -kvw], &format!("{}qkvb", p));                                
+      1068 -        let q2 = s.slice2(&format!("{}q2", p), &qkvb, &[t, qk
+           -vw], 0, vqd);                                                
+      1069 -        let k2 = s.slice2(&format!("{}k2", p), &qkvb, &[t, qk
+           -vw], vqd, vqd);                                              
+      1070 -        let v2 = s.slice2(&format!("{}v2", p), &qkvb, &[t, qk
+           -vw], vqd * 2, vqd);                                          
+      1066 +        let (q2, k2, v2) = if qkv3 {                         
+      1067 +            let qm = s.mm(&format!("{}qm", p), &ln1, &[t, VW]
+           +, &format!("{}qw", p), &[vqd, VW], &[t, vqd]);               
+      1068 +            let km = s.mm(&format!("{}km", p), &ln1, &[t, VW]
+           +, &format!("{}kw", p), &[vqd, VW], &[t, vqd]);               
+      1069 +            let vm = s.mm(&format!("{}vm", p), &ln1, &[t, VW]
+           +, &format!("{}vw", p), &[vqd, VW], &[t, vqd]);               
+      1070 +            let qb = s.bias(&format!("{}qb_", p), &qm, &[t, v
+           +qd], &format!("{}qb", p));                                   
+      1071 +            let kb = s.bias(&format!("{}kb_", p), &km, &[t, v
+           +qd], &format!("{}kb", p));                                   
+      1072 +            let vb = s.bias(&format!("{}vb_", p), &vm, &[t, v
+           +qd], &format!("{}vb", p));                                   
+      1073 +            (qb, kb, vb)                                     
+      1074 +        } else {                                             
+      1075 +            let qkv = s.mm(&format!("{}qkv", p), &ln1, &[t, V
+           +W], &format!("{}qkvwt", p), &[qkvw, VW], &[t, qkvw]);        
+      1076 +            let qkvb = s.bias(&format!("{}qkvb", p), &qkv, &[
+           +t, qkvw], &format!("{}qkvb", p));                            
+      1077 +            let q2 = s.slice2(&format!("{}q2", p), &qkvb, &[t
+           +, qkvw], 0, vqd);                                            
+      1078 +            let k2 = s.slice2(&format!("{}k2", p), &qkvb, &[t
+           +, qkvw], vqd, vqd);                                          
+      1079 +            let v2 = s.slice2(&format!("{}v2", p), &qkvb, &[t
+           +, qkvw], vqd * 2, vqd);                                      
+      1080 +            (q2, k2, v2)                                     
+      1081 +        };                                                   
+      1082          let attn = if attn_manual {
+      1083              // 头主序桥（headsplit：Reshape[3,256,16,72]→Tran
+            sposeD(0,2,1,3)
+      1084              // →Reshape[48,256,72]）——直接 Reshape 是错排
+
+  Thought for 11s (ctrl+o to expand)
+
+● 检查 eager 参考是否按 index 消费层内输入（新增 6 输入会挪位）：
+
+  Thought for 23s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● eager 闭包按 12 项/层的固定 index 读权重（w[4]=outwt 等）——qkv3 模式下层数据变
+  16 项且要跳过无人消费的 qkvwt/qkvb 注册（防 GE 丢弃未用输入导致 dataset
+  错位）。重新组织：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 15 lines, removed 11 lines
+       999              } else {
+      1000                  wq.clone()
+      1001              };
+      1002 -            let mut fused = Vec::with_capacity((VW * qkvw) as
+           - usize);                                                     
+      1003 -            for r in 0..VW as usize {                        
+      1004 -                let base = r * vqd as usize;                 
+      1005 -                fused.extend_from_slice(&wq_s[base..base + vq
+           -d as usize]);                                                
+      1006 -                fused.extend_from_slice(&wk[base..base + vqd 
+           -as usize]);                                                  
+      1007 -                fused.extend_from_slice(&wv[base..base + vqd 
+           -as usize]);                                                  
+      1008 -            }                                                
+      1009 -            let b = wbuf_t(ctx, &fused, VW, qkvw);           
+      1010 -            s.data_buf(&format!("{}qkvwt", p), &[qkvw, VW], b
+           -);                                                           
+      1002              let bias = rand_f16(qkvw as usize, &mut seed, 120
+            00.0);
+      1003              let bias_s: Vec<f16> = if attn_manual {
+      1004                  bias.iter()
+     ...
+      1008              } else {
+      1009                  bias.clone()
+      1010              };
+      1020 -            s.data(ctx, &format!("{}qkvb", p), &[1, qkvw], &b
+           -ias_s);                                                      
+      1011              if qkv3 {
+      1012                  // 独立权重/bias 输入（host 切一次，免运行时
+            物化）；
+      1023 -                // wq_s/bias_s 已含 manual attention 的 vscal
+           -e 折叠                                                       
+      1013 +                // wq_s/bias_s 已含 manual attention 的 vscal
+           +e 折叠。                                                     
+      1014 +                // qkv3 下不注册融合 qkvwt/qkvb（图无消费者，
+           +GE 可能将其                                                  
+      1015 +                // 从模型输入中消除 → dataset 错位）——层内输 
+           +入位次                                                       
+      1016 +                // 2..8，eager 闭包按 qkv3 偏移读            
+      1017                  s.data_buf(&format!("{}qw", p), &[vqd, VW], w
+            buf_t(ctx, &wq_s, VW, vqd));
+      1018                  s.data_buf(&format!("{}kw", p), &[vqd, VW], w
+            buf_t(ctx, &wk, VW, vqd));
+      1019                  s.data_buf(&format!("{}vw", p), &[vqd, VW], w
+            buf_t(ctx, &wv, VW, vqd));
+      1020                  s.data(ctx, &format!("{}qb", p), &[1, vqd], &
+            bias_s[..vqd as usize]);
+      1021                  s.data(ctx, &format!("{}kb", p), &[1, vqd], &
+            bias_s[vqd as usize..2 * vqd as usize]);
+      1022                  s.data(ctx, &format!("{}vb", p), &[1, vqd], &
+            bias_s[2 * vqd as usize..]);
+      1023 +            } else {                                         
+      1024 +                let mut fused = Vec::with_capacity((VW * qkvw
+           +) as usize);                                                 
+      1025 +                for r in 0..VW as usize {                    
+      1026 +                    let base = r * vqd as usize;             
+      1027 +                    fused.extend_from_slice(&wq_s[base..base 
+           ++ vqd as usize]);                                            
+      1028 +                    fused.extend_from_slice(&wk[base..base + 
+           +vqd as usize]);                                              
+      1029 +                    fused.extend_from_slice(&wv[base..base + 
+           +vqd as usize]);                                              
+      1030 +                }                                            
+      1031 +                let b = wbuf_t(ctx, &fused, VW, qkvw);       
+      1032 +                s.data_buf(&format!("{}qkvwt", p), &[qkvw, VW
+           +], b);                                                       
+      1033 +                s.data(ctx, &format!("{}qkvb", p), &[1, qkvw]
+           +, &bias_s);                                                  
+      1034              }
+      1035              let bq = upload(ctx, &bias[0..vqd as usize]);
+      1036              let bk = upload(ctx, &bias[vqd as usize..2 * vqd 
+            as usize]);
+
+  Thought for 9s (ctrl+o to expand)
+
+● 现在改 eager 闭包的层内 index（qkv3 下层内 16 项、outwt 从 4 挪到 8）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 1 line
+      1172          mx("emb", &h);
+      1173          let zeros = &b[4];
+      1174          for li in 0..depth {
+      1175 -            let w = &b[layer_bases[li]..layer_bases[li] + 12]
+           -;                                                            
+      1175 +            // qkv3 层内输入布局：n1w,n1b,qw,kw,vw,qb,kb,vb,o
+           +utwt,outb,                                                   
+      1176 +            // n2w,n2b,fc1wt,fc1b,fc2wt,fc2b（16 项）；默认 1
+           +2 项                                                         
+      1177 +            let w = &b[layer_bases[li]..layer_bases[li] + if 
+           +qkv3 { 16 } else { 12 }];                                    
+      1178 +            let (ow, ob, f1w, f1b, f2w, f2b) = if qkv3 { (8, 
+           +9, 12, 13, 14, 15) } else { (4, 5, 8, 9, 10, 11) };          
+      1179              let (wq, wk, wv, bq, bk, bv) = &eager_qkv[li];
+      1180              let (n1w_h, n1b_h, n2w_h, n2b_h) = &eager_norms[l
+            i];
+      1181              let normed = host_ln(ctx, stream, &h, n1w_h, n1b_
+            h, t, VW);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 6 lines, removed 6 lines
+      1189              let attn = aops::prompt_flash_attention_bsh_batch
+            _fp16(
+      1190                  ctx, stream, &q, &k, &v, VIEWS, VPV, V_HEADS,
+             V_HEADS, V_HD, None).unwrap();
+      1191              mx(&format!("l{li} attn"), &attn);
+      1192 -            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           -tn, [t, vqd], &w[4], vqd, VW).unwrap();                      
+      1193 -            let proj = aops::bias_add_fp16(ctx, stream, &proj
+           -, &w[5], t, VW).unwrap();                                    
+      1192 +            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           +tn, [t, vqd], &w[ow], vqd, VW).unwrap();                     
+      1193 +            let proj = aops::bias_add_fp16(ctx, stream, &proj
+           +, &w[ob], t, VW).unwrap();                                   
+      1194              let res1 = aops::add_fp16(ctx, stream, &proj, &h,
+             &[t, VW]).unwrap();
+      1195              mx(&format!("l{li} res1"), &res1);
+      1196              let norm2 = host_ln(ctx, stream, &res1, n2w_h, n2
+            b_h, t, VW);
+      1197              mx(&format!("l{li} ln2"), &norm2);
+      1198 -            let act = aops::matmul_b_t_fp16(ctx, stream, &nor
+           -m2, [t, VW], &w[8], VW, V_INTER).unwrap();                   
+      1199 -            let act = aops::bias_add_fp16(ctx, stream, &act, 
+           -&w[9], t, V_INTER).unwrap();                                 
+      1198 +            let act = aops::matmul_b_t_fp16(ctx, stream, &nor
+           +m2, [t, VW], &w[f1w], VW, V_INTER).unwrap();                 
+      1199 +            let act = aops::bias_add_fp16(ctx, stream, &act, 
+           +&w[f1b], t, V_INTER).unwrap();                               
+      1200              mx(&format!("l{li} fc1b"), &act);
+      1201              let act = aops::gelu_fp16(ctx, stream, &act, &[t,
+             V_INTER], false).unwrap();
+      1202              mx(&format!("l{li} act"), &act);
+      1203 -            let out = aops::matmul_b_t_fp16(ctx, stream, &act
+           -, [t, V_INTER], &w[10], V_INTER, VW).unwrap();               
+      1204 -            let out = aops::bias_add_fp16(ctx, stream, &out, 
+           -&w[11], t, VW).unwrap();                                     
+      1203 +            let out = aops::matmul_b_t_fp16(ctx, stream, &act
+           +, [t, V_INTER], &w[f2w], V_INTER, VW).unwrap();              
+      1204 +            let out = aops::bias_add_fp16(ctx, stream, &out, 
+           +&w[f2b], t, VW).unwrap();                                    
+      1205              h = aops::add_fp16(ctx, stream, &out, &res1, &[t,
+             VW]).unwrap();
+      1206              mx(&format!("l{li} out"), &h);
+      1207          }
+
+  Thought for 2s (ctrl+o to expand)
+
+● 检查闭包捕获与段头注释里 LN1 后消费链的一致性（还有段输入序号注释要同步）：
+  Thought for 10s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● dbg 块引用了 qkvb——qkv3 分支下不存在，会编译错。给两个分支都产出一个 dbg
+  句柄：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 2 lines
+      1074              let qb = s.bias(&format!("{}qb_", p), &qm, &[t, v
+            qd], &format!("{}qb", p));
+      1075              let kb = s.bias(&format!("{}kb_", p), &km, &[t, v
+            qd], &format!("{}kb", p));
+      1076              let vb = s.bias(&format!("{}vb_", p), &vm, &[t, v
+            qd], &format!("{}vb", p));
+      1077 -            (qb, kb, vb)                                     
+      1077 +            let qdbg = qb.clone();                           
+      1078 +            (q2, k2, v2, qdbg)                               
+      1079          } else {
+      1080              let qkv = s.mm(&format!("{}qkv", p), &ln1, &[t, V
+            W], &format!("{}qkvwt", p), &[qkvw, VW], &[t, qkvw]);
+      1081              let qkvb = s.bias(&format!("{}qkvb", p), &qkv, &[
+            t, qkvw], &format!("{}qkvb", p));
+      1082              let q2 = s.slice2(&format!("{}q2", p), &qkvb, &[t
+            , qkvw], 0, vqd);
+      1083              let k2 = s.slice2(&format!("{}k2", p), &qkvb, &[t
+            , qkvw], vqd, vqd);
+      1084              let v2 = s.slice2(&format!("{}v2", p), &qkvb, &[t
+            , qkvw], vqd * 2, vqd);
+      1084 -            (q2, k2, v2)                                     
+      1085 +            let qdbg = qkvb.clone();                         
+      1086 +            (q2, k2, v2, qdbg)                               
+      1087          };
+      1088          let attn = if attn_manual {
+      1089              // 头主序桥（headsplit：Reshape[3,256,16,72]→Tran
+            sposeD(0,2,1,3)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1067          // attention（v3 方案：rank-2 列切 → Reshape rank-3 
+            桥）。
+      1068          // manual：[b*h,s,d] 桥 + bmm/softmax/bmm（全静态）；
+            pfa：batch PFA
+      1069          let ln1 = s.addln(&format!("{}ln1", p), &cur, &format
+            !("{}n1w", p), &format!("{}n1b", p), "nsh", &[t, VW]);
+      1070 -        let (q2, k2, v2) = if qkv3 {                         
+      1070 +        let (q2, k2, v2, _qdbg) = if qkv3 {                  
+      1071              let qm = s.mm(&format!("{}qm", p), &ln1, &[t, VW]
+            , &format!("{}qw", p), &[vqd, VW], &[t, vqd]);
+      1072              let km = s.mm(&format!("{}km", p), &ln1, &[t, VW]
+            , &format!("{}kw", p), &[vqd, VW], &[t, vqd]);
+      1073              let vm = s.mm(&format!("{}vm", p), &ln1, &[t, VW]
+            , &format!("{}vw", p), &[vqd, VW], &[t, vqd]);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1120              // ⚠ attn（bmm/PFA 输出）及其直接下游（proj mm）
+            绑图输出时 desc
+      1121              // 动态（[-1,-1,-1] / [-1,1152]，size ~1e18 → mal
+            loc 崩）——
+      1122              // 动态 desc 只传一层；res1 起恢复静态
+      1123 -            for st in [&ln1, &qkvb, &res1, &ln2, &fc1b, &act,
+           - &fc2b, &cur] {                                              
+      1123 +            for st in [&ln1, &_qdbg, &res1, &ln2, &fc1b, &act
+           +, &fc2b, &cur] {                                             
+      1124                  dbg_outs.push(st.clone());
+      1125              }
+      1126          }
+
+  Thought for 4s (ctrl+o to expand)
+
+● 更新段头注释与文件头 env 文档：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      933  
+      934      // ---- 段级输入（注册序 = eager 的 index 约定）----
+      935      // 0 patches / 1 patch_wt / 2 patch_b / 3 pos_rep / 4 zero
+           s /
+      936 -    // 5 shp_qkv3 / 6 shp_flat2 / 每层 12 项 / 尾 4 项(pnw,pnb
+          -,projwt,projb)                                                
+      936 +    // 5 shp_qkv3 / 6 shp_flat2 / 每层 12 项（GEB_QKV3: 16 项 
+          +）/ 尾 4 项(pnw,pnb,projwt,projb)                             
+      937      s.data(ctx, "patches", &[t, V_PATCH_W], &rand_f16((t * V_P
+           ATCH_W) as usize, &mut seed, 300.0));
+      938      {
+      939          let host = rand_f16((V_PATCH_W * VW) as usize, &mut se
+           ed, 30000.0);
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 1 line
+      33  //!   GEB_LOAD=...（缓存加载替代编译）
+      34  //! 环境变量：GEB_SEG（默认 prefix）/ GEB_DEPTH（层深覆盖，冒烟
+          用）/
+      35  //!   GEB_TOKENS（prefix token 数，默认 64 → P=832，16 倍数纪律
+          ）/
+      36 -//!   GEB_BENCH / GEB_SAVE / GEB_LOAD                          
+      36 +//!   GEB_BENCH / GEB_SAVE / GEB_LOAD / GEB_ATTN=manual（手工 a
+         +ttention）/                                                    
+      37 +//!   GEB_QKV3=1（q/k/v 独立投影，消 SliceD 视图运行时物化）   
+      38  use half::f16;
+      39  
+      40  use apxinf_ascend::ge_builder::{self, Dtype, GeGraph};
+
+  Thought for 4s (ctrl+o to expand)
+
+● 三处编辑完成。同步服务器 + 编译 + 跑裁决实验：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  For more information about this error, try `rustc --explain E0425`.
+     warning: `apxinf-model` (example "ge_model_probe") generated 4 warning
+     s
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  error[E0425]: cannot find value `q2` in this scope
+         --> crates/apxinf-model/examples/ge_model_probe.rs:1079:14
+          |
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● qkv3 分支变量名笔误（qb/kb/vb vs q2/k2/v2）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1076              let kb = s.bias(&format!("{}kb_", p), &km, &[t, v
+            qd], &format!("{}kb", p));
+      1077              let vb = s.bias(&format!("{}vb_", p), &vm, &[t, v
+            qd], &format!("{}vb", p));
+      1078              let qdbg = qb.clone();
+      1079 -            (q2, k2, v2, qdbg)                               
+      1079 +            (qb, kb, vb, qdbg)                               
+      1080          } else {
+      1081              let qkv = s.mm(&format!("{}qkv", p), &ln1, &[t, V
+            W], &format!("{}qkvwt", p), &[qkvw, VW], &[t, qkvw]);
+      1082              let qkvb = s.bias(&format!("{}qkvb", p), &qkv, &[
+            t, qkvw], &format!("{}qkvb", p));
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  warning: `apxinf-model` (example "ge_model_probe") generated 28 warnin
+     gs (run `cargo fix --example "ge_model_probe"` to apply 1 suggestion)
+         Finished `release` profile [optimized] target(s) in 20.90s
+  ⎿  (timeout 7m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 编译过。跑裁决：depth2 + manual + GEB_QKV3=1：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [out-dims] 10: size=3072 dims=[768, 1]
+     parity[vision out0] max_diff=0.00024 (ref |max|=0.307, rel=0.1%)
+     vision_PARITY_OK n_in=41 worst=0.00024 rel=0.1%
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 🎯 突破
+
+  ┌───────────────────────────┬─────────────────┬──────┐
+  │       vision depth2       │      时间       │ 对拍 │
+  ├───────────────────────────┼─────────────────┼──────┤
+  │ 基线（融合 qkv + SliceD） │ 46.38 ms        │ 0.1% │
+  ├───────────────────────────┼─────────────────┼──────┤
+  │ GEB_QKV3（独立投影）      │ 5.44 ms（8.5×） │ 0.1% │
+  └───────────────────────────┴─────────────────┴──────┘
+
+  切片视图运行时物化 = 根因，坐实。立即全深度验证（manual + qkv3，先最小轮数）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  parity[vision out0] max_diff=0.00024 (ref |max|=0.320, rel=0.1%)
+     vision_PARITY_OK n_in=441 worst=0.00024 rel=0.1%
+     vision GE OM: 67.9439 ms (median/3, rounds=5)
+     GE_VISION_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 22s (ctrl+o to expand)
+
+● 全深度 vision：700ms → 67.94 ms（10.3×），对拍 0.1% 保持
+
+  三段里 vision 销案。现在主嫌疑转到 prefix（750ms，同病——line 1327 也有融合 
+  qkv）。看 prefix 的层结构（含 GQA 广播和每层 k/v 输出）：
+
+  Thought for 22s, read 1 file (ctrl+o to expand)
+● 看 prefix 层输入注册顺序（g1 位置）与 eager 索引使用：
+
+  Thought for 16s, read 1 file (ctrl+o to expand)
+
+● prefix 的 eager 索引结构清楚了（w[0]=g1 不动，w[3..9] 后移 4）。实施 prefix
+  qkv3——先找函数头加 env 读取：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 3 lines
+      1238      let tokens = envi("GEB_TOKENS", 64);
+      1239      let p = VT + tokens; // prefix 长度（16 倍数纪律）
+      1240      let mut seed = 0xBEEFu32;
+      1241 +    // GEB_QKV3：q/k/v 独立投影（同 vision 段——SliceD 列切视 
+           +图的运行时                                                   
+      1242 +    // MemcopyAsync 物化是 prefix 750ms 的主源，取证见 vision
+           + 段注记）                                                    
+      1243 +    let qkv3 = std::env::var("GEB_QKV3").is_ok();            
+      1244      let mut s = Seg::new("ge_prefix");
+      1245  
+      1246      // ---- 段级输入 ----
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 21 lines, removed 3 lines
+      1293                  fused.extend_from_slice(&wk[rb..rb + KVD as u
+            size]);
+      1294                  fused.extend_from_slice(&wv[rb..rb + KVD as u
+            size]);
+      1295              }
+      1296 -            let b = wbuf_t(ctx, &fused, PW, QKVW);           
+      1297 -            s.data_buf(&format!("{}qkvwt", tag), &[QKVW, PW],
+           - b);                                                         
+      1296              let bias = rand_f16(QKVW as usize, &mut seed, 400
+            0.0);
+      1299 -            s.data(ctx, &format!("{}qkvb", tag), &[1, QKVW], 
+           -&bias);                                                      
+      1297 +            if qkv3 {                                        
+      1298 +                // qkv3 层内输入位次 1..7（g1 之后）；eager  
+           +按 qkv3 偏移读                                               
+      1299 +                s.data_buf(&format!("{}qw", tag), &[QD, PW], 
+           +wbuf_t(ctx, &wq, PW, QD));                                   
+      1300 +                s.data_buf(&format!("{}kw", tag), &[KVD, PW],
+           + wbuf_t(ctx, &wk, PW, KVD));                                 
+      1301 +                s.data_buf(&format!("{}vw", tag), &[KVD, PW],
+           + wbuf_t(ctx, &wv, PW, KVD));                                 
+      1302 +                s.data(ctx, &format!("{}qb", tag), &[1, QD], 
+           +&bias[..QD as usize]);                                       
+      1303 +                s.data(ctx, &format!("{}kb", tag), &[1, KVD],
+           + &bias[QD as usize..(QD + KVD) as usize]);                   
+      1304 +                s.data(ctx, &format!("{}vb", tag), &[1, KVD],
+           + &bias[(QD + KVD) as usize..]);                              
+      1305 +            } else {                                         
+      1306 +                let mut fused = Vec::with_capacity((PW * QKVW
+           +) as usize);                                                 
+      1307 +                for r in 0..PW as usize {                    
+      1308 +                    let rb = r * QD as usize;                
+      1309 +                    fused.extend_from_slice(&wq[rb..rb + QD a
+           +s usize]);                                                   
+      1310 +                    let rb = r * KVD as usize;               
+      1311 +                    fused.extend_from_slice(&wk[rb..rb + KVD 
+           +as usize]);                                                  
+      1312 +                    fused.extend_from_slice(&wv[rb..rb + KVD 
+           +as usize]);                                                  
+      1313 +                }                                            
+      1314 +                let b = wbuf_t(ctx, &fused, PW, QKVW);       
+      1315 +                s.data_buf(&format!("{}qkvwt", tag), &[QKVW, 
+           +PW], b);                                                     
+      1316 +                s.data(ctx, &format!("{}qkvb", tag), &[1, QKV
+           +W], &bias);                                                  
+      1317 +            }                                                
+      1318              let bq = upload(ctx, &bias[0..QD as usize]);
+      1319              let bk = upload(ctx, &bias[QD as usize..(QD + KVD
+            ) as usize]);
+      1320              let bv = upload(ctx, &bias[(QD + KVD) as usize..]
+            );
+
+  Thought for 18s (ctrl+o to expand)
+
+● 清理残留的旧 fused 循环（我的 old_string 从 let b 开始，前面的循环漏在外面）：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Removed 8 lines
+      1285              let wq = rand_f16((PW * QD) as usize, &mut seed, 
+            8000.0);
+      1286              let wk = rand_f16((PW * KVD) as usize, &mut seed,
+             8000.0);
+      1287              let wv = rand_f16((PW * KVD) as usize, &mut seed,
+             8000.0);
+      1288 -            let mut fused = Vec::with_capacity((PW * QKVW) as
+           - usize);                                                     
+      1289 -            for r in 0..PW as usize {                        
+      1290 -                let rb = r * QD as usize;                    
+      1291 -                fused.extend_from_slice(&wq[rb..rb + QD as us
+           -ize]);                                                       
+      1292 -                let rb = r * KVD as usize;                   
+      1293 -                fused.extend_from_slice(&wk[rb..rb + KVD as u
+           -size]);                                                      
+      1294 -                fused.extend_from_slice(&wv[rb..rb + KVD as u
+           -size]);                                                      
+      1295 -            }                                                
+      1288              let bias = rand_f16(QKVW as usize, &mut seed, 400
+            0.0);
+      1289              if qkv3 {
+      1290                  // qkv3 层内输入位次 1..7（g1 之后）；eager 
+            按 qkv3 偏移读
+
+  Thought for 13s (ctrl+o to expand)
+
+● 改 prefix 图段（qkv3 分支）+ eager 索引：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 17 lines, removed 6 lines
+      1340          s.data(ctx, &format!("{}downb", tag), &[1, PW], &rand
+            _f16(PW as usize, &mut seed, 4000.0));
+      1341  
+      1342          let norm1 = s.addrms(&format!("{}n1", tag), &cur, "ze
+            ros", &format!("{}g1", tag), &[p, PW]);
+      1343 -        let qkv = s.mm(&format!("{}qkv", tag), &norm1, &[p, P
+           -W], &format!("{}qkvwt", tag), &[QKVW, PW], &[p, QKVW]);      
+      1344 -        let qkvb = s.bias(&format!("{}qkvb", tag), &qkv, &[p,
+           - QKVW], &format!("{}qkvb", tag));                            
+      1345 -        // rank-2 列切 + rope（rank-2 版）+ Reshape rank-3 桥
+           -。                                                           
+      1343 +        // rank-2 切分 + rope（rank-2 版）+ Reshape rank-3 桥
+           +。                                                           
+      1344          // ⚠ 图输出绑 rank-2（rope 的 ad / slice 的 v）——Resh
+            ape 输出绑图
+      1345          // 输出时 desc 是动态 [-1,-1,-1]（shape 张量驱动），s
+            ize 无效
+      1348 -        let q2 = s.slice2(&format!("{}q", tag), &qkvb, &[p, Q
+           -KVW], 0, QD);                                                
+      1349 -        let k2 = s.slice2(&format!("{}k", tag), &qkvb, &[p, Q
+           -KVW], QD, KVD);                                              
+      1350 -        let v2 = s.slice2(&format!("{}v", tag), &qkvb, &[p, Q
+           -KVW], QD + KVD, KVD);                                        
+      1346 +        let (q2, k2, v2) = if qkv3 {                         
+      1347 +            let qm = s.mm(&format!("{}qm", tag), &norm1, &[p,
+           + PW], &format!("{}qw", tag), &[QD, PW], &[p, QD]);           
+      1348 +            let km = s.mm(&format!("{}km", tag), &norm1, &[p,
+           + PW], &format!("{}kw", tag), &[KVD, PW], &[p, KVD]);         
+      1349 +            let vm = s.mm(&format!("{}vm", tag), &norm1, &[p,
+           + PW], &format!("{}vw", tag), &[KVD, PW], &[p, KVD]);         
+      1350 +            let qb = s.bias(&format!("{}qb_", tag), &qm, &[p,
+           + QD], &format!("{}qb", tag));                                
+      1351 +            let kb = s.bias(&format!("{}kb_", tag), &km, &[p,
+           + KVD], &format!("{}kb", tag));                               
+      1352 +            let vb = s.bias(&format!("{}vb_", tag), &vm, &[p,
+           + KVD], &format!("{}vb", tag));                               
+      1353 +            (qb, kb, vb)                                     
+      1354 +        } else {                                             
+      1355 +            let qkv = s.mm(&format!("{}qkv", tag), &norm1, &[
+           +p, PW], &format!("{}qkvwt", tag), &[QKVW, PW], &[p, QKVW]);  
+      1356 +            let qkvb = s.bias(&format!("{}qkvb", tag), &qkv, 
+           +&[p, QKVW], &format!("{}qkvb", tag));                        
+      1357 +            let q2 = s.slice2(&format!("{}q", tag), &qkvb, &[
+           +p, QKVW], 0, QD);                                            
+      1358 +            let k2 = s.slice2(&format!("{}k", tag), &qkvb, &[
+           +p, QKVW], QD, KVD);                                          
+      1359 +            let v2 = s.slice2(&format!("{}v", tag), &qkvb, &[
+           +p, QKVW], QD + KVD, KVD);                                    
+      1360 +            (q2, k2, v2)                                     
+      1361 +        };                                                   
+      1362          let (kr2, kr3) = s.rope2(&format!("{}kr", tag), &k2, 
+            &[p, KVD], "kcos2", "ksin2", "shp_k3");
+      1363          let v3 = s.reshape(&format!("{}v3", tag), &v2, &[p, K
+            VD], "shp_v3", &[1, p, KVD]);
+      1364          kv_outs.push(kr2.clone());
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 1 line
+      1393          let mut h: Option<DeviceBuffer> = None;
+      1394          let mut outs = Vec::with_capacity(kv_count);
+      1395          for li in 0..depth {
+      1396 -            let w = &b[layer_bases2[li]..layer_bases2[li] + 1
+           -0];                                                          
+      1396 +            // qkv3 层内输入布局：g1,qw,kw,vw,qb,kb,vb,outwt,
+           +outb,g2,                                                     
+      1397 +            // gatewt,upwt,downwt,downb（14 项）；默认 10 项 
+      1398 +            let w = &b[layer_bases2[li]..layer_bases2[li] + i
+           +f qkv3 { 14 } else { 10 }];                                  
+      1399 +            let (ow, ob, g2, gw, uw, dw, db) = if qkv3 { (7, 
+           +8, 9, 10, 11, 12, 13) } else { (3, 4, 5, 6, 7, 8, 9) };      
+      1400              let hb: &DeviceBuffer = h.as_ref().unwrap_or(&b[0
+            ]);
+      1401              let (wq, wk, wv, bq, bk, bv) = &eager_qkv[li];
+      1402              let normed = aops::add_rms_norm_fp16(ctx, stream,
+             hb, zeros, &w[0], &[p, PW], RMS_EPS).unwrap().0;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines, removed 7 lines
+      1417                  ctx, stream, &qr, &kr, &v, p, HEADS, KV_HEADS
+            , HD, None).unwrap();
+      1418              outs.push(kr);
+      1419              outs.push(v);
+      1420 -            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           -tn, [p, QD], &w[3], QD, PW).unwrap();                        
+      1421 -            let biased = aops::bias_add_fp16(ctx, stream, &pr
+           -oj, &w[4], p, PW).unwrap();                                  
+      1420 +            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           +tn, [p, QD], &w[ow], QD, PW).unwrap();                       
+      1421 +            let biased = aops::bias_add_fp16(ctx, stream, &pr
+           +oj, &w[ob], p, PW).unwrap();                                 
+      1422              let res = aops::add_fp16(ctx, stream, &biased, hb
+            , &[p, PW]).unwrap();
+      1423 -            let norm2 = aops::add_rms_norm_fp16(ctx, stream, 
+           -&res, zeros, &w[5], &[p, PW], RMS_EPS).unwrap().0;           
+      1424 -            let gate = aops::matmul_b_t_fp16(ctx, stream, &no
+           -rm2, [p, PW], &w[6], PW, INTER).unwrap();                    
+      1425 -            let up = aops::matmul_b_t_fp16(ctx, stream, &norm
+           -2, [p, PW], &w[7], PW, INTER).unwrap();                      
+      1423 +            let norm2 = aops::add_rms_norm_fp16(ctx, stream, 
+           +&res, zeros, &w[g2], &[p, PW], RMS_EPS).unwrap().0;          
+      1424 +            let gate = aops::matmul_b_t_fp16(ctx, stream, &no
+           +rm2, [p, PW], &w[gw], PW, INTER).unwrap();                   
+      1425 +            let up = aops::matmul_b_t_fp16(ctx, stream, &norm
+           +2, [p, PW], &w[uw], PW, INTER).unwrap();                     
+      1426              let g = aops::gelu_fp16(ctx, stream, &gate, &[p, 
+            INTER], true).unwrap();
+      1427              let act = aops::mul_fp16(ctx, stream, &g, &up, &[
+            p, INTER]).unwrap();
+      1428 -            let down = aops::matmul_b_t_fp16(ctx, stream, &ac
+           -t, [p, INTER], &w[8], INTER, PW).unwrap();                   
+      1429 -            let downb = aops::bias_add_fp16(ctx, stream, &dow
+           -n, &w[9], p, PW).unwrap();                                   
+      1428 +            let down = aops::matmul_b_t_fp16(ctx, stream, &ac
+           +t, [p, INTER], &w[dw], INTER, PW).unwrap();                  
+      1429 +            let downb = aops::bias_add_fp16(ctx, stream, &dow
+           +n, &w[db], p, PW).unwrap();                                  
+      1430              h = Some(aops::add_fp16(ctx, stream, &downb, &res
+            , &[p, PW]).unwrap());
+      1431          }
+      1432          // 中间量 drop 前 kernel 必须落定（同 vision 段注记）
+
+  Thought for 12s (ctrl+o to expand)
+
+● prefix 改完。编译 + depth-2 双跑（baseline vs qkv3）：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  warning: unused variable: `stream`
+     warning: unused import: `Backend as _`
+     warning: unused import: `apxinf_core::Backend as _`
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  prefix_PARITY_OK n_in=32 worst=0.13208 rel=8.5%
+     prefix GE OM: 64.9324 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 10s (ctrl+o to expand)
+
+● prefix depth2：64.9 → 34.3ms（1.9×），对拍同（8.5% 两侧一致）。全深度验证 +
+  flow 段对照（flow 也有融合 qkv，看是否同受益）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  prefix_PARITY_OK n_in=264 worst=0.44940 rel=30.3%
+     prefix GE OM: 549.8792 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 全深 prefix：750 → 549.9ms（1.37×）——还有大头。prefix 剩余独有嫌疑：PFA host 
+  launcher（round 1 已知 InnerPFA 走 host 回调）+ rope。下一个杠杆：prefix
+  也换手工 GQA attention。看 attn_manual_gqa helper 与 prefix 的 PFA 调用点：
+
+  Thought for 40s, read 1 file (ctrl+o to expand)
+
+● 实现 prefix manual attention（GEB_ATTN=manual 分支，含 pscale
+  折叠）。改权重块、图段、段级 shape 常量：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines
+      1241      // GEB_QKV3：q/k/v 独立投影（同 vision 段——SliceD 列切视
+            图的运行时
+      1242      // MemcopyAsync 物化是 prefix 750ms 的主源，取证见 vision
+             段注记）
+      1243      let qkv3 = std::env::var("GEB_QKV3").is_ok();
+      1244 +    // GEB_ATTN=manual：手工 GQA attention（bmm+softmax+bmm +
+           + k/v TileD 广播）                                            
+      1245 +    // 替代 PFA——PFA 是 transformer-API 型算子，静态 OM 内走 
+           +host launcher                                                
+      1246 +    // （每次执行 host tiling + staging）。scale 由 pscale 折
+           +进 q 权重/bias                                               
+      1247 +    let attn_manual = std::env::var("GEB_ATTN").map(|v| v == 
+           +"manual").unwrap_or(false);                                  
+      1248 +    let pscale = if attn_manual { 1.0f32 / (HD as f32).sqrt()
+           + } else { 1.0 };                                             
+      1249      let mut s = Seg::new("ge_prefix");
+      1250  
+      1251      // ---- 段级输入 ----
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines
+      1274      s.const_i32("shp_q3", &[1, p as i32, QD as i32]);
+      1275      s.const_i32("shp_k3", &[1, p as i32, KVD as i32]);
+      1276      s.const_i32("shp_v3", &[1, p as i32, KVD as i32]);
+      1277 +    // 手工 GQA attention 的头主序桥 shape（headsplit/headmer
+           +ge 用，views=1）                                             
+      1278 +    s.const_i32("shp_mq4", &[1, p as i32, HEADS as i32, HD as
+           + i32]);                                                      
+      1279 +    s.const_i32("shp_mq3", &[HEADS as i32, p as i32, HD as i3
+           +2]);                                                         
+      1280 +    s.const_i32("shp_ma4", &[1, HEADS as i32, p as i32, HD as
+           + i32]);                                                      
+      1281 +    s.const_i32("shp_mflat", &[p as i32, QD as i32]);        
+      1282  
+      1283      // ---- 层循环（eager qkv 独立投影，同 vision 段注记）---
+            -
+      1284      let mut eager_qkv: Vec<(DeviceBuffer, DeviceBuffer, Devic
+            eBuffer, DeviceBuffer, DeviceBuffer, DeviceBuffer)> = Vec::ne
+            w();
+
+● Weight 块加 pscale 折叠：
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 19 lines, removed 6 lines
+      1296              let wk = rand_f16((PW * KVD) as usize, &mut seed,
+             8000.0);
+      1297              let wv = rand_f16((PW * KVD) as usize, &mut seed,
+             8000.0);
+      1298              let bias = rand_f16(QKVW as usize, &mut seed, 400
+            0.0);
+      1299 +            // manual attention：q 块（权重+bias）预乘 1/√hd 
+           +（图内无 scale                                               
+      1300 +            // 算子）；eager 侧保持原值（PFA scale_value 承担
+           +）                                                           
+      1301 +            let wq_s: Vec<f16> = if attn_manual {            
+      1302 +                wq.iter().map(|v| f16::from_f32(v.to_f32() * 
+           +pscale)).collect()                                           
+      1303 +            } else {                                         
+      1304 +                wq.clone()                                   
+      1305 +            };                                               
+      1306 +            let mut bias_s = bias.clone();                   
+      1307 +            if attn_manual {                                 
+      1308 +                for v in bias_s[..QD as usize].iter_mut() {  
+      1309 +                    *v = f16::from_f32(v.to_f32() * pscale); 
+      1310 +                }                                            
+      1311 +            }                                                
+      1312              if qkv3 {
+      1313                  // qkv3 层内输入位次 1..7（g1 之后）；eager 
+            按 qkv3 偏移读
+      1301 -                s.data_buf(&format!("{}qw", tag), &[QD, PW], 
+           -wbuf_t(ctx, &wq, PW, QD));                                   
+      1314 +                s.data_buf(&format!("{}qw", tag), &[QD, PW], 
+           +wbuf_t(ctx, &wq_s, PW, QD));                                 
+      1315                  s.data_buf(&format!("{}kw", tag), &[KVD, PW],
+             wbuf_t(ctx, &wk, PW, KVD));
+      1316                  s.data_buf(&format!("{}vw", tag), &[KVD, PW],
+             wbuf_t(ctx, &wv, PW, KVD));
+      1304 -                s.data(ctx, &format!("{}qb", tag), &[1, QD], 
+           -&bias[..QD as usize]);                                       
+      1305 -                s.data(ctx, &format!("{}kb", tag), &[1, KVD],
+           - &bias[QD as usize..(QD + KVD) as usize]);                   
+      1306 -                s.data(ctx, &format!("{}vb", tag), &[1, KVD],
+           - &bias[(QD + KVD) as usize..]);                              
+      1317 +                s.data(ctx, &format!("{}qb", tag), &[1, QD], 
+           +&bias_s[..QD as usize]);                                     
+      1318 +                s.data(ctx, &format!("{}kb", tag), &[1, KVD],
+           + &bias_s[QD as usize..(QD + KVD) as usize]);                 
+      1319 +                s.data(ctx, &format!("{}vb", tag), &[1, KVD],
+           + &bias_s[(QD + KVD) as usize..]);                            
+      1320              } else {
+      1321                  let mut fused = Vec::with_capacity((PW * QKVW
+            ) as usize);
+      1322                  for r in 0..PW as usize {
+      1323                      let rb = r * QD as usize;
+      1311 -                    fused.extend_from_slice(&wq[rb..rb + QD a
+           -s usize]);                                                   
+      1324 +                    fused.extend_from_slice(&wq_s[rb..rb + QD
+           + as usize]);                                                 
+      1325                      let rb = r * KVD as usize;
+      1326                      fused.extend_from_slice(&wk[rb..rb + KVD 
+            as usize]);
+      1327                      fused.extend_from_slice(&wv[rb..rb + KVD 
+            as usize]);
+      1328                  }
+      1329                  let b = wbuf_t(ctx, &fused, PW, QKVW);
+      1330                  s.data_buf(&format!("{}qkvwt", tag), &[QKVW, 
+            PW], b);
+      1318 -                s.data(ctx, &format!("{}qkvb", tag), &[1, QKV
+           -W], &bias);                                                  
+      1331 +                s.data(ctx, &format!("{}qkvb", tag), &[1, QKV
+           +W], &bias_s);                                                
+      1332              }
+      1333              let bq = upload(ctx, &bias[0..QD as usize]);
+      1334              let bk = upload(ctx, &bias[QD as usize..(QD + KVD
+            ) as usize]);
+
+● 图段：PFA 分支换手工 GQA：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines, removed 3 lines
+      1389          if last {
+      1390              break; // 末层无 PFA/tail（compute_tail=false）
+      1391          }
+      1392 -        let (_, qr3) = s.rope2(&format!("{}qr", tag), &q2, &[
+           -p, QD], "qcos2", "qsin2", "shp_q3");                         
+      1393 -        let pfa = s.pfa(&format!("{}pfa", tag), &qr3, &kr3, &
+           -v3, &[1, p, QD], &[1, p, KVD], HEADS, KV_HEADS, HD);         
+      1394 -        let sq = s.squeeze(&format!("{}sq", tag), &pfa, &[1, 
+           -p, QD], &[p, QD]);                                           
+      1392 +        let (qr2, qr3) = s.rope2(&format!("{}qr", tag), &q2, 
+           +&[p, QD], "qcos2", "qsin2", "shp_q3");                       
+      1393 +        let sq = if attn_manual {                            
+      1394 +            // 头主序桥 + GQA 手工链（k/v 单头 TileD 广播；kr
+           +3/v3 rank-3 直用）                                           
+      1395 +            let q3 = s.headsplit(&format!("{}qh", tag), &qr2,
+           + p, 1, p, HEADS, HD, "shp_mq4", "shp_mq3");                  
+      1396 +            let attn = s.attn_manual_gqa(&format!("{}attn", t
+           +ag), &q3, &kr3, &v3, HEADS, p, p, HD);                       
+      1397 +            s.headmerge(&format!("{}am", tag), &attn, 1, p, H
+           +EADS, HD, "shp_ma4", "shp_mflat")                            
+      1398 +        } else {                                             
+      1399 +            let pfa = s.pfa(&format!("{}pfa", tag), &qr3, &kr
+           +3, &v3, &[1, p, QD], &[1, p, KVD], HEADS, KV_HEADS, HD);     
+      1400 +            s.squeeze(&format!("{}sq", tag), &pfa, &[1, p, QD
+           +], &[p, QD])                                                 
+      1401 +        };                                                   
+      1402          let proj = s.mm(&format!("{}proj", tag), &sq, &[p, QD
+            ], &format!("{}outwt", tag), &[PW, QD], &[p, PW]);
+      1403          let projb = s.bias(&format!("{}projb", tag), &proj, &
+            [p, PW], &format!("{}outb", tag));
+      1404          let res = s.add2(&format!("{}res", tag), &projb, &cur
+            , &[p, PW]);
+
+  Thought for 5s (ctrl+o to expand)
+
+● 编译 + prefix manual+qkv3 双深度跑：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  BUILD_RC=0
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  prefix_PARITY_OK n_in=40 worst=0.13208 rel=8.5%
+     prefix GE OM: 34.9427 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 18s (ctrl+o to expand)
+
+● depth2 下 manual 与 PFA 同分（34.9 vs 34.3）——prefix 在 depth2
+  是算力瓶颈（MLP：INTER=16384 → ~8.4ms/层 × 2 = 17ms ✓ 正好对上）。全深度下 PFA
+  launcher 的 17 次调用才见分晓。跑全深 manual+qkv3：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  prefix_PARITY_OK n_in=264 worst=0.44940 rel=30.3%
+     prefix GE OM: 538.3471 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 51s (ctrl+o to expand)
+
+● prefix 全深 manual+qkv3：538ms——PFA launcher 在 prefix
+  也不是大头（−2%）。算力账：MLP matmul ~145ms，还有 ~390ms
+  去向不明（嫌疑：大张量 TransData，[832,16384]×2B=27MB/个）。需要 op 账本——重试
+  msprof（假设：上轮失败因 bench 太短，device 数据没刷出来；这次拉长到 100
+  次执行）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6 -e
+      GEB_SEG=prefix -e G…)
+  ⎿  [INFO] Query all data in PROF_000001_20260919174928654_00225272CMQCAIE
+     N done.
+     [INFO] Profiling finished.
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 导出还是没出。对比工作/失败 profile 的 host 目录结构差异，找 end_info
+  的生成条件：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'echo "=== WORKING (vision_ma) host ==="; ls -la
+      /data/apxinf/prof…)
+  ⎿  === WORKING (vision_ma) host ===
+
+     4096 .
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● pfx_mq 这次 host/end_info 有了（与成功 profile 一致）！可能刚才 ls
+  时机太早。重查：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/prof/pfx_mq/PROF_*/ 2>/dev/null; ls
+      /data/apxinf/…)
+  ⎿  device_6
+     host
+     mindstudio_profiler_log
+     40M        /data/apxinf/prof/pfx_mq
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -iE "error|fail|exception|invalid"
+      /data/apxinf/prof/pfx_mq/…)
+  ⎿  ===
+     2026-09-19 17:52:15 [INFO] [231256] [231291] [host_trace_worker.cpp:10
+     3] Dump cann trace data done, threadId = 225272
+     … +10 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'echo "=== vision_ma device data ==="; ls
+      /data/apxinf/prof/vision…)
+  ⎿  === vision_ma device data ===
+     aicore.data.6.slice_0
+     aicore.data.6.slice_0.done
+     … +144 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 数据其实都在（aicore/hwts slices + all_file.complete + end_info）——只挂了最后
+  CSV 导出。直接查 device 侧 sqlite（hwts-rec.db / trace.db）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/prof/pfx_mq/PROF_*/device_6/sqlite/
+      2>/dev/null;…)
+  ⎿  hwts-rec.db
+     step_trace.db
+     time.db
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● HwtsBatch 有完整 device 时间线（108871 行，start/end/is_ai_core）+ HwtsIter
+  迭代窗。且 host ge_info.TaskInfo 有 op 名和 task_id——可以 JOIN。查 TaskInfo
+  完整度：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)  ⎿  TaskInfo rows: 1567
+     [('TransData', 510), ('MatMulV2', 243), ('Add', 190), ('TileD', 122),
+     ('Mul', 122), ('BroadcastTo', 87), ('InplaceAddRmsNorm', 35), ('Automa
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● TaskInfo 572 个 task（含名字）——与 HwtsBatch JOIN 出完整账本：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/join.py << "PYEOF"
+      import sqlite3, glob, statistics…)
+  ⎿  Error: Exit code 1
+       File "/tmp/join.py", line 22
+         print(f"{\"op_type\":28s} {\"n/exec\":>7s} {\"ms/exec\":>9s} 
+     {\"avg_us\":>8s}")
+                                                                                
+           ^
+     SyntaxError: f-string expression part cannot include a backslash
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/join.py << "PYEOF"
+      import sqlite3, glob, statistics…)
+  ⎿  distinct iters: 104  named tasks: 572  timed tasks: 0
+     op_type                       n/exec   ms/exec   avg_us
+     TOTAL(named)                             0.000
+
+  Thought for 2s (ctrl+o to expand)
+
+● JOIN 空了——查 HwtsBatch 原始行的形态：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  (62, 2, 0, 1, 143818133602474.0, 143818133602757.0, 0)
+     (62, 3, 0, 1, 143818133602760.0, 143818133604052.0, 0)
+     (62, 4, 0, 1, 143818133604055.0, 143818133604165.0, 0)
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● is_ai_core 全 0（列语义不同）——去掉过滤重跑：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'cat > /tmp/join.py << "PYEOF"
+      import sqlite3, glob, statistics…)
+  ⎿  named tasks: 572  timed tasks: 89
+     op_type                       n/exec   ms/exec   avg_us
+     Mul                               10     0.121     12.1
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● task_id 是每迭代重置的流内序号——改按 (stream_id, task_id)
+  对齐单迭代。查两侧的流/任务分布：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  TaskInfo streams: [(368, 572, 1, 574), (71, 60, 2, 61), (373, 57, 2, 5
+     8), (370, 57, 2, 58), (364, 57, 2, 58), (362, 57, 2, 58), (360, 57, 2,
+      58), (357, 57, 2, 58)]
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 31s (ctrl+o to expand)
+
+● 查上轮成功的 vision_ma 的 HwtsIter model_id（pfx_mq 是 2147483648 =
+  哨兵值，疑似导出失败的直接原因）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  vision_ma [(2147483648, 304)]
+     vision [(2147483648, 304)]
+     vision_mc [(2147483648, 304)]
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -oE "\[INFO\] \[[a-z_]+\.py:[0-9]+\] - [A-Za-z
+      ]+" /data/apx…)
+  ⎿        2 - NpuOpMemCalculator process data finished
+           1 - StaticOpMemParser process data finished
+           1 - start to process the file
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  HwtsBatch stream 368 rows: (87,)
+     matched named tasks: 995
+     op_type                            n   ms/exec   avg_us
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 侧流只看到 7.27ms 设备时间——538ms 大头又是空隙不是算力。直接对 HwtsBatch
+  全体做 busy union + 空隙形态：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  iter 20: span 21.123s
+     iter 21: span 21.222s
+     iter 22: span 21.185s
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 时间戳单位/迭代窗语义混乱。看 HwtsBatch start_time 的分布直方图定位 bench
+  相位：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 << "PYEOF"
+      import sqlite3, glob…)
+  ⎿  min,max: 143818133602474.0 143820289248614.0 span(s): 2.15564614
+     t+  0s:  50333 tasks
+     t+  1s:  50609 tasks
+     t+  2s:   7929 tasks
+
+  Thought for 24s (ctrl+o to expand)
+
+● HwtsBatch 只覆盖侧流（主链 s368 的 572
+  任务/执行几乎没进表）——主线时序在没导出的 aicore.data 里。放弃修
+  msprof，转图结构排除法。头号嫌疑：rope2 的 GatherV2D 索引/表是否也是 Data 
+  输入触发的 staging。读 rope2 实现：
+
+  Thought for 33s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+● 又一个切片病灶
+
+  rope2 内部就是 slice2×2 + ConcatD（lo/hi 半宽列切视图喂 ConcatD）——每 rope 2
+  个 staging × 每 layer 2 个 rope = 72 × 5.5ms ≈ 396ms = 恰好对上缺失的 ~390ms！
+
+  看 flow 怎么做 rope（文件头说有 GatherV2D 行交换版——flow
+  无此病可能正因如此）：
+
+  Thought for 53s, searched for 1 pattern (ctrl+o to expand)
+
+● GatherV2D 在 310P 只支持 axis=0（列交换不可用，这就是当初用 slice+ConcatD
+  的原因）——但行 gather 换视图可行：[p,wd] → Reshape [2p, half] → GatherV2D 
+  相邻行交换（Const 索引）→ mul/mul/add → Reshape back，eager
+  侧本来就是这套数学（表已注册为段输入）。实现 rope2_flat：
+
+  Thought for 3s, read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 23 lines
+      574          (kr, kr3)
+      575      }
+      576  
+      577 +    /// flat 版 rope（无列切）：[t, wd] → Reshape[t*2, half] →
+      578 +    /// GatherV2D(相邻行 swap，idx 为 Const) → mul+mul+add → R
+          +eshape back。                                                 
+      579 +    /// 表 = 段级 flat cos/sin 输入（eager flat 版同款布局）。
+          +替代                                                          
+      580 +    /// rope2 的 slice2×2+ConcatD——列切视图触发运行时 MemcopyA
+          +sync 物化                                                     
+      581 +    /// （同 qkv 切分病；GatherV2D 310P 仅 axis=0，故换 flat  
+          +视图做行交换）                                                
+      582 +    fn rope2_flat(                                            
+      583 +        &mut self, tag: &str, x: &str, dims: &[i64; 2], cos_f:
+          + &str, sin_f: &str,                                           
+      584 +        idx_c: &str, shp_flat: &str, shp_back: &str, shp3: &st
+          +r,                                                            
+      585 +    ) -> (String, String) {                                   
+      586 +        let (t, wd) = (dims[0], dims[1]);                     
+      587 +        let half = wd / 2;                                    
+      588 +        let rows = t * 2;                                     
+      589 +        let fdims = [rows, half];                             
+      590 +        let xf = self.reshape(&format!("{tag}_xf"), x, dims, s
+          +hp_flat, &fdims);                                             
+      591 +        let sw = self.gather_rows(&format!("{tag}_sw"), &xf, &
+          +fdims, idx_c);                                                
+      592 +        let m1 = self.mul2(&format!("{tag}_m1"), &xf, cos_f, &
+          +fdims);                                                       
+      593 +        let m2 = self.mul2(&format!("{tag}_m2"), &sw, sin_f, &
+          +fdims);                                                       
+      594 +        let ad = self.add2(&format!("{tag}_ad"), &m1, &m2, &fd
+          +ims);                                                         
+      595 +        let kr = self.reshape(&format!("{tag}_bk"), &ad, &fdim
+          +s, shp_back, dims);                                           
+      596 +        let kr3 = self.reshape(&format!("{tag}_3"), &kr, dims,
+          + shp3, &[1, t, wd]);                                          
+      597 +        (kr, kr3)                                             
+      598 +    }                                                         
+      599 +                                                              
+      600      /// ada-norm：y = rms(x)·scale + shift = AddRmsNorm(x, zer
+           os, gamma=scale)
+      601      /// + TileD(shift_row) + Add（BroadcastToD 310P 编译崩，换
+            TileD）
+      602      fn ada(&mut self, name: &str, x: &str, zeros: &str, scale:
+            &str, shift: &str, dims: &[i64]) -> String {
+
+  Thought for 8s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 8 lines
+      1302      s.const_i32("shp_mq3", &[HEADS as i32, p as i32, HD as i3
+            2]);
+      1303      s.const_i32("shp_ma4", &[1, HEADS as i32, p as i32, HD as
+             i32]);
+      1304      s.const_i32("shp_mflat", &[p as i32, QD as i32]);
+      1305 +    // GEB_ROPEFLAT：flat 版 rope（换视图行交换，免列切视图物
+           +化）。                                                       
+      1306 +    // swap 索引做 Const（编译期折叠；Data indices 会让输出 d
+           +esc unknown）                                                
+      1307 +    let ropeflat = std::env::var("GEB_ROPEFLAT").is_ok();    
+      1308 +    s.const_i32("qswap_c", &qi);                             
+      1309 +    s.const_i32("kswap_c", &ki);                             
+      1310 +    s.const_i32("shp_qflat", &[qf.0 as i32, qf.1 as i32]);   
+      1311 +    s.const_i32("shp_kflat", &[kf.0 as i32, kf.1 as i32]);   
+      1312 +    s.const_i32("shp_kb2", &[p as i32, KVD as i32]);         
+      1313  
+      1314      // ---- 层循环（eager qkv 独立投影，同 vision 段注记）---
+            -
+      1315      let mut eager_qkv: Vec<(DeviceBuffer, DeviceBuffer, Devic
+            eBuffer, DeviceBuffer, DeviceBuffer, DeviceBuffer)> = Vec::ne
+            w();
+
+  Thought for 3s (ctrl+o to expand)
+
+● 改 prefix 两个 rope 调用点：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines, removed 1 line
+      1413              let v2 = s.slice2(&format!("{}v", tag), &qkvb, &[
+            p, QKVW], QD + KVD, KVD);
+      1414              (q2, k2, v2)
+      1415          };
+      1416 -        let (kr2, kr3) = s.rope2(&format!("{}kr", tag), &k2, 
+           -&[p, KVD], "kcos2", "ksin2", "shp_k3");                      
+      1416 +        let (kr2, kr3) = if ropeflat {                       
+      1417 +            s.rope2_flat(&format!("{}kr", tag), &k2, &[p, KVD
+           +], "kcos", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3
+           +")                                                           
+      1418 +        } else {                                             
+      1419 +            s.rope2(&format!("{}kr", tag), &k2, &[p, KVD], "k
+           +cos2", "ksin2", "shp_k3")                                    
+      1420 +        };                                                   
+      1421          let v3 = s.reshape(&format!("{}v3", tag), &v2, &[p, K
+            VD], "shp_v3", &[1, p, KVD]);
+      1422          kv_outs.push(kr2.clone());
+      1423          kv_outs.push(v2.clone());
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines, removed 1 line
+      1424          if last {
+      1425              break; // 末层无 PFA/tail（compute_tail=false）
+      1426          }
+      1427 -        let (qr2, qr3) = s.rope2(&format!("{}qr", tag), &q2, 
+           -&[p, QD], "qcos2", "qsin2", "shp_q3");                       
+      1427 +        let (qr2, qr3) = if ropeflat {                       
+      1428 +            s.rope2_flat(&format!("{}qr", tag), &q2, &[p, QD]
+           +, "qcos", "qsin", "qswap_c", "shp_qflat", "shp_mflat", "shp_q
+           +3")                                                          
+      1429 +        } else {                                             
+      1430 +            s.rope2(&format!("{}qr", tag), &q2, &[p, QD], "qc
+           +os2", "qsin2", "shp_q3")                                     
+      1431 +        };                                                   
+      1432          let sq = if attn_manual {
+      1433              // 头主序桥 + GQA 手工链（k/v 单头 TileD 广播；kr
+            3/v3 rank-3 直用）
+      1434              let q3 = s.headsplit(&format!("{}qh", tag), &qr2,
+             p, 1, p, HEADS, HD, "shp_mq4", "shp_mq3");
+
+  Thought for 14s (ctrl+o to expand)
+
+● flat 视图必须过头主序（表是 [p·H·2, HD/2] 不是 [p·2,
+  QD/2]）——修正方法签名让调用方传 flat dims：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 9 lines, removed 11 lines
+      580      /// rope2 的 slice2×2+ConcatD——列切视图触发运行时 MemcopyA
+           sync 物化
+      581      /// （同 qkv 切分病；GatherV2D 310P 仅 axis=0，故换 flat 
+           视图做行交换）
+      582      fn rope2_flat(
+      583 -        &mut self, tag: &str, x: &str, dims: &[i64; 2], cos_f:
+          - &str, sin_f: &str,                                           
+      584 -        idx_c: &str, shp_flat: &str, shp_back: &str, shp3: &st
+          -r,                                                            
+      583 +        &mut self, tag: &str, x: &str, dims: &[i64; 2], fdims:
+          + &[i64; 2],                                                   
+      584 +        cos_f: &str, sin_f: &str, idx_c: &str, shp_flat: &str,
+          + shp_back: &str,                                              
+      585 +        shp3: &str,                                           
+      586      ) -> (String, String) {
+      587          let (t, wd) = (dims[0], dims[1]);
+      587 -        let half = wd / 2;                                    
+      588 -        let rows = t * 2;                                     
+      589 -        let fdims = [rows, half];                             
+      590 -        let xf = self.reshape(&format!("{tag}_xf"), x, dims, s
+          -hp_flat, &fdims);                                             
+      591 -        let sw = self.gather_rows(&format!("{tag}_sw"), &xf, &
+          -fdims, idx_c);                                                
+      592 -        let m1 = self.mul2(&format!("{tag}_m1"), &xf, cos_f, &
+          -fdims);                                                       
+      593 -        let m2 = self.mul2(&format!("{tag}_m2"), &sw, sin_f, &
+          -fdims);                                                       
+      594 -        let ad = self.add2(&format!("{tag}_ad"), &m1, &m2, &fd
+          -ims);                                                         
+      595 -        let kr = self.reshape(&format!("{tag}_bk"), &ad, &fdim
+          -s, shp_back, dims);                                           
+      588 +        let xf = self.reshape(&format!("{tag}_xf"), x, dims, s
+          +hp_flat, fdims);                                              
+      589 +        let sw = self.gather_rows(&format!("{tag}_sw"), &xf, f
+          +dims, idx_c);                                                 
+      590 +        let m1 = self.mul2(&format!("{tag}_m1"), &xf, cos_f, f
+          +dims);                                                        
+      591 +        let m2 = self.mul2(&format!("{tag}_m2"), &sw, sin_f, f
+          +dims);                                                        
+      592 +        let ad = self.add2(&format!("{tag}_ad"), &m1, &m2, fdi
+          +ms);                                                          
+      593 +        let kr = self.reshape(&format!("{tag}_bk"), &ad, fdims
+          +, shp_back, dims);                                            
+      594          let kr3 = self.reshape(&format!("{tag}_3"), &kr, dims,
+            shp3, &[1, t, wd]);
+      595          (kr, kr3)
+      596      }
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 1 line
+      1412              (q2, k2, v2)
+      1413          };
+      1414          let (kr2, kr3) = if ropeflat {
+      1415 -            s.rope2_flat(&format!("{}kr", tag), &k2, &[p, KVD
+           -], "kcos", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3
+           -")                                                           
+      1415 +            let kf2 = [kf.0, kf.1];                          
+      1416 +            s.rope2_flat(&format!("{}kr", tag), &k2, &[p, KVD
+           +], &kf2, "kcos", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "
+           +shp_k3")                                                     
+      1417          } else {
+      1418              s.rope2(&format!("{}kr", tag), &k2, &[p, KVD], "k
+            cos2", "ksin2", "shp_k3")
+      1419          };
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 1 line
+      1424              break; // 末层无 PFA/tail（compute_tail=false）
+      1425          }
+      1426          let (qr2, qr3) = if ropeflat {
+      1427 -            s.rope2_flat(&format!("{}qr", tag), &q2, &[p, QD]
+           -, "qcos", "qsin", "qswap_c", "shp_qflat", "shp_mflat", "shp_q
+           -3")                                                          
+      1427 +            let qf2 = [qf.0, qf.1];                          
+      1428 +            s.rope2_flat(&format!("{}qr", tag), &q2, &[p, QD]
+           +, &qf2, "qcos", "qsin", "qswap_c", "shp_qflat", "shp_mflat", 
+           +"shp_q3")                                                    
+      1429          } else {
+      1430              s.rope2(&format!("{}qr", tag), &q2, &[p, QD], "qc
+            os2", "qsin2", "shp_q3")
+      1431          };
+
+  Thought for 15s (ctrl+o to expand)
+
+● 编译 + 测 prefix 三件套（manual+qkv3+ropeflat）depth2 → 全深：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  RC=0
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  prefix_PARITY_OK n_in=264 worst=0.36053 rel=25.1%
+     prefix GE OM: 188.0980 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 12s (ctrl+o to expand)
+
+● prefix：750 → 538 → 188.1 ms（4×）
+
+  ┌─────────┬──────┬───────┬──────────────────────┐
+  │   段    │ 修前 │ 修后  │       修复组合       │
+  ├─────────┼──────┼───────┼──────────────────────┤
+  │ vision  │ 723  │ 67.9  │ manual+qkv3          │
+  ├─────────┼──────┼───────┼──────────────────────┤
+  │ prefix  │ 750  │ 188.1 │ manual+qkv3+ropeflat │
+  ├─────────┼──────┼───────┼──────────────────────┤
+  │ flow×10 │ 709  │ ?     │ 待做                 │
+  └─────────┴──────┴───────┴──────────────────────┘
+
+  全模型估算 68+188+709 = 965ms——flow 成最后大头（也有 rope2 + 融合 qkv 切片 +
+  PFA）。看 flow 层结构套同款修复：
+
+  Thought for 12s, read 1 file (ctrl+o to expand)
+
+● flow 层结构与 prefix 同构（融合 qkv 切片 + rope2 切片 + PFA cross + ConcatD
+  吃切片视图）。读 flow 的权重注册与 eager 索引结构：
+
+  Thought for 38s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● flow 结构齐了，套用三件套。逐处编辑：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines
+      1522      let tokens = envi("GEB_TOKENS", 64);
+      1523      let p = VT + tokens;
+      1524      let mut seed = 0xF00Du32;
+      1525 +    // 同 vision/prefix 段三件套（取证见各段注记）：q/k/v 独 
+           +立投影 /                                                     
+      1526 +    // flat rope（免列切物化）/ 手工 cross-GQA attention（免 
+           +PFA host                                                     
+      1527 +    // launcher）。scale 折进 q 权重/bias                    
+      1528 +    let qkv3 = std::env::var("GEB_QKV3").is_ok();            
+      1529 +    let ropeflat = std::env::var("GEB_ROPEFLAT").is_ok();    
+      1530 +    let attn_manual = std::env::var("GEB_ATTN").map(|v| v == 
+           +"manual").unwrap_or(false);                                  
+      1531 +    let fscale = if attn_manual { 1.0f32 / (HD as f32).sqrt()
+           + } else { 1.0 };                                             
+      1532      let mut s = Seg::new("ge_flow");
+      1533  
+      1534      // ---- 段级输入（注册序，两遍式：先全部注册再建图——层 i 
+            的 next
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines
+      1559      s.const_i32("shp_k3", &[1, HOR as i32, KVD as i32]);
+      1560      s.const_i32("shp_v3", &[1, HOR as i32, KVD as i32]);
+      1561      s.const_i32("shp_kall", &[1, (p + HOR) as i32, KVD as i32
+            ]);
+      1562 +    // ropeflat / manual cross-attention 常量（swap 索引 Cons
+           +t 折叠）                                                     
+      1563 +    s.const_i32("qswap_c", &qi);                             
+      1564 +    s.const_i32("kswap_c", &ki);                             
+      1565 +    s.const_i32("shp_qflat", &[qf.0 as i32, qf.1 as i32]);   
+      1566 +    s.const_i32("shp_kflat", &[kf.0 as i32, kf.1 as i32]);   
+      1567 +    s.const_i32("shp_fbq", &[HOR as i32, QD as i32]);        
+      1568 +    s.const_i32("shp_fbk", &[HOR as i32, KVD as i32]);       
+      1569 +    s.const_i32("shp_fq4", &[1, HOR as i32, HEADS as i32, HD 
+           +as i32]);                                                    
+      1570 +    s.const_i32("shp_fq3", &[HEADS as i32, HOR as i32, HD as 
+           +i32]);                                                       
+      1571 +    s.const_i32("shp_fa4", &[1, HEADS as i32, HOR as i32, HD 
+           +as i32]);                                                    
+      1572      {
+      1573          let host = rand_f16((ADIM * AW) as usize, &mut seed, 
+            8000.0);
+      1574          let b = wbuf_t(ctx, &host, ADIM, AW);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)  ⎿  Added 33 lines, removed 11 lines
+      1593              let wq = rand_f16((AW * QD) as usize, &mut seed, 
+            8000.0);
+      1594              let wk = rand_f16((AW * KVD) as usize, &mut seed,
+             8000.0);
+      1595              let wv = rand_f16((AW * KVD) as usize, &mut seed,
+             8000.0);
+      1596 -            let mut fused = Vec::with_capacity((AW * QKVW) as
+           - usize);                                                     
+      1597 -            for r in 0..AW as usize {                        
+      1598 -                let rb = r * QD as usize;                    
+      1599 -                fused.extend_from_slice(&wq[rb..rb + QD as us
+           -ize]);                                                       
+      1600 -                let rb = r * KVD as usize;                   
+      1601 -                fused.extend_from_slice(&wk[rb..rb + KVD as u
+           -size]);                                                      
+      1602 -                fused.extend_from_slice(&wv[rb..rb + KVD as u
+           -size]);                                                      
+      1603 -            }                                                
+      1604 -            let b = wbuf_t(ctx, &fused, AW, QKVW);           
+      1605 -            s.data_buf(&format!("{}qkvwt", tag), &[QKVW, AW],
+           - b);                                                         
+      1596              let bias = rand_f16(QKVW as usize, &mut seed, 400
+            0.0);
+      1607 -            s.data(ctx, &format!("{}qkvb", tag), &[1, QKVW], 
+           -&bias);                                                      
+      1597 +            // manual attention：q 块（权重+bias）预乘 1/√hd 
+           +；eager 保持原值                                             
+      1598 +            let wq_s: Vec<f16> = if attn_manual {            
+      1599 +                wq.iter().map(|v| f16::from_f32(v.to_f32() * 
+           +fscale)).collect()                                           
+      1600 +            } else {                                         
+      1601 +                wq.clone()                                   
+      1602 +            };                                               
+      1603 +            let mut bias_s = bias.clone();                   
+      1604 +            if attn_manual {                                 
+      1605 +                for v in bias_s[..QD as usize].iter_mut() {  
+      1606 +                    *v = f16::from_f32(v.to_f32() * fscale); 
+      1607 +                }                                            
+      1608 +            }                                                
+      1609 +            if qkv3 {                                        
+      1610 +                // qkv3 层内输入位次 2..8（ascl/ash 之后）；e
+           +ager 按 qkv3 偏移读                                          
+      1611 +                s.data_buf(&format!("{}qw", tag), &[QD, AW], 
+           +wbuf_t(ctx, &wq_s, AW, QD));                                 
+      1612 +                s.data_buf(&format!("{}kw", tag), &[KVD, AW],
+           + wbuf_t(ctx, &wk, AW, KVD));                                 
+      1613 +                s.data_buf(&format!("{}vw", tag), &[KVD, AW],
+           + wbuf_t(ctx, &wv, AW, KVD));                                 
+      1614 +                s.data(ctx, &format!("{}qb", tag), &[1, QD], 
+           +&bias_s[..QD as usize]);                                     
+      1615 +                s.data(ctx, &format!("{}kb", tag), &[1, KVD],
+           + &bias_s[QD as usize..(QD + KVD) as usize]);                 
+      1616 +                s.data(ctx, &format!("{}vb", tag), &[1, KVD],
+           + &bias_s[(QD + KVD) as usize..]);                            
+      1617 +            } else {                                         
+      1618 +                let mut fused = Vec::with_capacity((AW * QKVW
+           +) as usize);                                                 
+      1619 +                for r in 0..AW as usize {                    
+      1620 +                    let rb = r * QD as usize;                
+      1621 +                    fused.extend_from_slice(&wq_s[rb..rb + QD
+           + as usize]);                                                 
+      1622 +                    let rb = r * KVD as usize;               
+      1623 +                    fused.extend_from_slice(&wk[rb..rb + KVD 
+           +as usize]);                                                  
+      1624 +                    fused.extend_from_slice(&wv[rb..rb + KVD 
+           +as usize]);                                                  
+      1625 +                }                                            
+      1626 +                let b = wbuf_t(ctx, &fused, AW, QKVW);       
+      1627 +                s.data_buf(&format!("{}qkvwt", tag), &[QKVW, 
+           +AW], b);                                                     
+      1628 +                s.data(ctx, &format!("{}qkvb", tag), &[1, QKV
+           +W], &bias_s);                                                
+      1629 +            }                                                
+      1630              let bq = upload(ctx, &bias[0..QD as usize]);
+      1631              let bk = upload(ctx, &bias[QD as usize..(QD + KVD
+            ) as usize]);
+      1632              let bv = upload(ctx, &bias[(QD + KVD) as usize..]
+            );
+
+  Thought for 14s (ctrl+o to expand)
+
+● flow 图段三处替换：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 28 lines, removed 7 lines
+      1685      for i in 0..depth {
+      1686          let tag = format!("l{i}_");
+      1687          // attention（normed 已是本层 ada-norm 输出；q1/r1 验
+            证链）
+      1688 -        let qkv = s.mm(&format!("{}qkv", tag), &normed, &[HOR
+           -, AW], &format!("{}qkvwt", tag), &[QKVW, AW], &[HOR, QKVW]); 
+      1689 -        let qkvb = s.bias(&format!("{}qkvb", tag), &qkv, &[HO
+           -R, QKVW], &format!("{}qkvb", tag));                          
+      1690 -        let q2 = s.slice2(&format!("{}q", tag), &qkvb, &[HOR,
+           - QKVW], 0, QD);                                              
+      1691 -        let k2 = s.slice2(&format!("{}k", tag), &qkvb, &[HOR,
+           - QKVW], QD, KVD);                                            
+      1692 -        let v2 = s.slice2(&format!("{}v", tag), &qkvb, &[HOR,
+           - QKVW], QD + KVD, KVD);                                      
+      1693 -        let (kr2, _) = s.rope2(&format!("{}kr", tag), &k2, &[
+           -HOR, KVD], "kcos2", "ksin2", "shp_k3");                      
+      1694 -        let (_, qr3) = s.rope2(&format!("{}qr", tag), &q2, &[
+           -HOR, QD], "qcos2", "qsin2", "shp_q3");                       
+      1688 +        let (q2, k2, v2) = if qkv3 {                         
+      1689 +            let qm = s.mm(&format!("{}qm", tag), &normed, &[H
+           +OR, AW], &format!("{}qw", tag), &[QD, AW], &[HOR, QD]);      
+      1690 +            let km = s.mm(&format!("{}km", tag), &normed, &[H
+           +OR, AW], &format!("{}kw", tag), &[KVD, AW], &[HOR, KVD]);    
+      1691 +            let vm = s.mm(&format!("{}vm", tag), &normed, &[H
+           +OR, AW], &format!("{}vw", tag), &[KVD, AW], &[HOR, KVD]);    
+      1692 +            let qb = s.bias(&format!("{}qb_", tag), &qm, &[HO
+           +R, QD], &format!("{}qb", tag));                              
+      1693 +            let kb = s.bias(&format!("{}kb_", tag), &km, &[HO
+           +R, KVD], &format!("{}kb", tag));                             
+      1694 +            let vb = s.bias(&format!("{}vb_", tag), &vm, &[HO
+           +R, KVD], &format!("{}vb", tag));                             
+      1695 +            (qb, kb, vb)                                     
+      1696 +        } else {                                             
+      1697 +            let qkv = s.mm(&format!("{}qkv", tag), &normed, &
+           +[HOR, AW], &format!("{}qkvwt", tag), &[QKVW, AW], &[HOR, QKVW
+           +]);                                                          
+      1698 +            let qkvb = s.bias(&format!("{}qkvb", tag), &qkv, 
+           +&[HOR, QKVW], &format!("{}qkvb", tag));                      
+      1699 +            let q2 = s.slice2(&format!("{}q", tag), &qkvb, &[
+           +HOR, QKVW], 0, QD);                                          
+      1700 +            let k2 = s.slice2(&format!("{}k", tag), &qkvb, &[
+           +HOR, QKVW], QD, KVD);                                        
+      1701 +            let v2 = s.slice2(&format!("{}v", tag), &qkvb, &[
+           +HOR, QKVW], QD + KVD, KVD);                                  
+      1702 +            (q2, k2, v2)                                     
+      1703 +        };                                                   
+      1704 +        let kf2 = [kf.0, kf.1];                              
+      1705 +        let (kr2, _) = if ropeflat {                         
+      1706 +            s.rope2_flat(&format!("{}kr", tag), &k2, &[HOR, K
+           +VD], &kf2, "kcos", "ksin", "kswap_c", "shp_kflat", "shp_fbk",
+           + "shp_k3")                                                   
+      1707 +        } else {                                             
+      1708 +            s.rope2(&format!("{}kr", tag), &k2, &[HOR, KVD], 
+           +"kcos2", "ksin2", "shp_k3")                                  
+      1709 +        };                                                   
+      1710 +        let qf2 = [qf.0, qf.1];                              
+      1711 +        let (qr2, qr3) = if ropeflat {                       
+      1712 +            s.rope2_flat(&format!("{}qr", tag), &q2, &[HOR, Q
+           +D], &qf2, "qcos", "qsin", "qswap_c", "shp_qflat", "shp_fbq", 
+           +"shp_q3")                                                    
+      1713 +        } else {                                             
+      1714 +            s.rope2(&format!("{}qr", tag), &q2, &[HOR, QD], "
+           +qcos2", "qsin2", "shp_q3")                                   
+      1715 +        };                                                   
+      1716          // prefix cat（rank-2 ConcatD axis=0）+ Reshape rank-
+            3 桥
+      1717          let kcat = format!("{}kcat", tag);
+      1718          s.g.add_op(&kcat, "ConcatD").unwrap();
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 9 lines, removed 2 lines
+      1738          s.wire(&vcat, "x1", &v2);
+      1739          let vall = s.reg_out(&vcat, "y");
+      1740          let vall3 = s.reshape(&format!("{}vall3", tag), &vall
+            , &[total, KVD], "shp_kall", &[1, total, KVD]);
+      1741 -        let pfa = s.pfa(&format!("{}pfa", tag), &qr3, &kall3,
+           - &vall3, &[1, HOR, QD], &[1, total, KVD], HEADS, KV_HEADS, HD
+           -);                                                           
+      1742 -        let sq = s.squeeze(&format!("{}sq", tag), &pfa, &[1, 
+           -HOR, QD], &[HOR, QD]);                                       
+      1741 +        let sq = if attn_manual {                            
+      1742 +            // 手工 cross-GQA：q 头主序化（headsplit），k/v  
+           +已是 rank-3 单头                                             
+      1743 +            let q3 = s.headsplit(&format!("{}qh", tag), &qr2,
+           + HOR, 1, HOR, HEADS, HD, "shp_fq4", "shp_fq3");              
+      1744 +            let attn = s.attn_manual_gqa(&format!("{}attn", t
+           +ag), &q3, &kall3, &vall3, HEADS, HOR, total, HD);            
+      1745 +            s.headmerge(&format!("{}am", tag), &attn, 1, HOR,
+           + HEADS, HD, "shp_fa4", "shp_fbq")                            
+      1746 +        } else {                                             
+      1747 +            let pfa = s.pfa(&format!("{}pfa", tag), &qr3, &ka
+           +ll3, &vall3, &[1, HOR, QD], &[1, total, KVD], HEADS, KV_HEADS
+           +, HD);                                                       
+      1748 +            s.squeeze(&format!("{}sq", tag), &pfa, &[1, HOR, 
+           +QD], &[HOR, QD])                                             
+      1749 +        };                                                   
+      1750          let proj = s.mm(&format!("{}proj", tag), &sq, &[HOR, 
+            QD], &format!("{}outwt", tag), &[AW, QD], &[HOR, AW]);
+      1751          let projb = s.bias(&format!("{}projb", tag), &proj, &
+            [HOR, AW], &format!("{}outb", tag));
+      1752          let res = s.add2(&format!("{}res", tag), &projb, &nor
+            med, &[HOR, AW]);
+
+● flow eager 的层内偏移修正：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 1 line
+      1792          let mut normed = aops::bias_add_fp16(ctx, stream, &ai
+            n, &b[17], HOR, AW).unwrap();
+      1793          normed = ada(&normed, &b[layer_bases2[0]], &b[layer_b
+            ases2[0] + 1]);
+      1794          for li in 0..depth {
+      1795 -            let w = &b[layer_bases2[li]..layer_bases2[li] + 1
+           -2];                                                          
+      1795 +            // qkv3 层内输入布局：ascl,ash,qw,kw,vw,qb,kb,vb,
+           +outwt,outb,                                                  
+      1796 +            // mscl,msh,gatewt,upwt,downwt,downb（16 项）；默
+           +认 12 项                                                     
+      1797 +            let w = &b[layer_bases2[li]..layer_bases2[li] + i
+           +f qkv3 { 16 } else { 12 }];                                  
+      1798 +            let (ow, ob, msc, msh, gw, uw, dw, db) = if qkv3 
+           +{ (8, 9, 10, 11, 12, 13, 14, 15) } else { (4, 5, 6, 7, 8, 9, 
+           +10, 11) };                                                   
+      1799              let (pk, pv) = (&b[18 + 2 * li], &b[19 + 2 * li])
+            ;
+      1800              let (wq, wk, wv, bq, bk, bv) = &eager_qkv[li];
+      1801              let q = aops::bias_add_fp16(ctx, stream,
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines, removed 7 lines
+      1810              let vall = aops::cat_fp16(ctx, stream, &[pv, &v],
+             &[vec![p, KVD], vec![HOR, KVD]], 0, &[total, KVD]).unwrap();
+      1811              let attn = aops::prompt_flash_attention_cross_bsh
+            _fp16(
+      1812                  ctx, stream, &qr, &kall, &vall, HOR, total, H
+            EADS, KV_HEADS, HD, None).unwrap();
+      1813 -            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           -tn, [HOR, QD], &w[4], QD, AW).unwrap();                      
+      1814 -            let proj = aops::bias_add_fp16(ctx, stream, &proj
+           -, &w[5], HOR, AW).unwrap();                                  
+      1813 +            let proj = aops::matmul_b_t_fp16(ctx, stream, &at
+           +tn, [HOR, QD], &w[ow], QD, AW).unwrap();                     
+      1814 +            let proj = aops::bias_add_fp16(ctx, stream, &proj
+           +, &w[ob], HOR, AW).unwrap();                                 
+      1815              let res = aops::add_fp16(ctx, stream, &proj, &nor
+            med, &[HOR, AW]).unwrap();
+      1816 -            let mnorm = ada(&res, &w[6], &w[7]);             
+      1817 -            let gate = aops::matmul_b_t_fp16(ctx, stream, &mn
+           -orm, [HOR, AW], &w[8], AW, AINTER).unwrap();                 
+      1818 -            let up = aops::matmul_b_t_fp16(ctx, stream, &mnor
+           -m, [HOR, AW], &w[9], AW, AINTER).unwrap();                   
+      1816 +            let mnorm = ada(&res, &w[msc], &w[msh]);         
+      1817 +            let gate = aops::matmul_b_t_fp16(ctx, stream, &mn
+           +orm, [HOR, AW], &w[gw], AW, AINTER).unwrap();                
+      1818 +            let up = aops::matmul_b_t_fp16(ctx, stream, &mnor
+           +m, [HOR, AW], &w[uw], AW, AINTER).unwrap();                  
+      1819              let g = aops::gelu_fp16(ctx, stream, &gate, &[HOR
+            , AINTER], true).unwrap();
+      1820              let act = aops::mul_fp16(ctx, stream, &g, &up, &[
+            HOR, AINTER]).unwrap();
+      1821 -            let down = aops::matmul_b_t_fp16(ctx, stream, &ac
+           -t, [HOR, AINTER], &w[10], AINTER, AW).unwrap();              
+      1822 -            let down = aops::bias_add_fp16(ctx, stream, &down
+           -, &w[11], HOR, AW).unwrap();                                 
+      1821 +            let down = aops::matmul_b_t_fp16(ctx, stream, &ac
+           +t, [HOR, AINTER], &w[dw], AINTER, AW).unwrap();              
+      1822 +            let down = aops::bias_add_fp16(ctx, stream, &down
+           +, &w[db], HOR, AW).unwrap();                                 
+      1823              let hidden = aops::add_fp16(ctx, stream, &down, &
+            res, &[HOR, AW]).unwrap();
+      1824              let n = b.len();
+      1825              let (ns, nh) = if li + 1 < depth {
+
+  Thought for 2s (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      1580          s.data(ctx, &format!("pk{i}"), &[p, KVD], &rand_f16((
+            p * KVD) as usize, &mut seed, 100.0));
+      1581          s.data(ctx, &format!("pv{i}"), &[p, KVD], &rand_f16((
+            p * KVD) as usize, &mut seed, 100.0));
+      1582      }
+      1583 -    // 层权重 12 项：ascl ash qkvwt qkvb outwt outb mscl msh 
+           -gatewt upwt downwt downb                                     
+      1584 -    //（eager qkv 独立投影，同 vision 段注记）               
+      1583 +    // 层权重 12 项（GEB_QKV3: 16 项）：ascl ash [qkvwt qkvb 
+           +| qw kw vw qb                                                
+      1584 +    // kb vb] outwt outb mscl msh gatewt upwt downwt downb（e
+           +ager qkv 独立投影）                                          
+      1585      let mut eager_qkv: Vec<(DeviceBuffer, DeviceBuffer, Devic
+            eBuffer, DeviceBuffer, DeviceBuffer, DeviceBuffer)> = Vec::ne
+            w();
+      1586      let mut layer_bases = Vec::with_capacity(depth);
+      1587      for i in 0..depth {
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  RC=0
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 23s (ctrl+o to expand)
+
+● TBE 编译崩。二分定位——先跑 qkv3+ropeflat（不换 attention）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● qkv3 或 ropeflat 的问题。继续二分——只开 qkv3：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     er.py:279: UserWarning: resource_tracker: There appear to be 30 leaked
+      semaphore objects to clean up at shutdown
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 两个都崩？先验基线（无任何 flag）是否还能编，并抓完整报错：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 30s (ctrl+o to expand)
+
+● 基线也崩——flow 编译农场本身坏了（与我的改动无关；prefix/vision
+  刚才还能编）。查容器资源与 TBE 残留进程：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "free -g | head -2;
+      ps aux | grep…)
+  ⎿                 total        used        free      shared  buff/cache
+      available
+     Mem:             502          22         139           0         343
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● overlay 97% 满（61G 剩余）。查 plog 里的 TBE 具体报错：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ls -t
+      /root/ascend/log/debug/plo…)
+  ⎿  plog-242659_20260919180857206.log
+     plog-242660_20260919180857206.log
+     plog-242661_20260919180857206.log
+     FILE=/root/ascend/log/debug/plog/plog-242659_20260919180857206.log
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  RC=134
+     bash: line 1: 243181 Aborted                 (core dumped) GEB_SEG=flo
+     w GEB_DEPTH=1 GEB_BENCH=1 GEB_ROUNDS=3 GEB_PER=1 ./target/release/exam
+     ples/ge_model_probe > /tmp/flow_err.log 2>&1
+  ⎿  (timeout 8m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "tail -40
+      /tmp/flow_err.log"')
+  ⎿  [geb]   in[15] size=425984 dims=832,256
+     [geb]   in[16] size=2048 dims=1024
+     [geb]   in[17] size=2048 dims=1024
+     … +37 lines (ctrl+o to expand)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 真因不是 TBE——是 eager 索引陈旧
+
+  panic 在 eager 参考：[832,256] 读到 [2560,1024] 的 buffer。注册序实际是
+  ainwt=12/ainb=13/pk 从 14 起（段头注释是对的），但 eager 硬编码
+  b[16]/b[17]/b[18+2li]——那是 round-1 把 shape 张量从 data_i32 改成 const_i32
+  之前的布局（4 个输入槽消失了，flow 之后没重跑过所以没暴露）。修正：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 6 lines, removed 2 lines
+      1788              let n = aops::add_rms_norm_fp16(ctx, stream, x, z
+            eros, scl, &[HOR, AW], RMS_EPS).unwrap().0;
+      1789              aops::bias_add_fp16(ctx, stream, &n, sh, HOR, AW)
+            .unwrap()
+      1790          };
+      1791 -        let ain = aops::matmul_b_t_fp16(ctx, stream, &b[0], [
+           -HOR, ADIM], &b[16], ADIM, AW).unwrap();                      
+      1792 -        let mut normed = aops::bias_add_fp16(ctx, stream, &ai
+           -n, &b[17], HOR, AW).unwrap();                                
+      1791 +        // ⚠ 段级索引按当前注册序：0 state / 1 zeros / 2..7 f
+           +lat rope /                                                   
+      1792 +        // 8..11 rank-2 表 / 12 ainwt / 13 ainb / 14.. pk_i,p
+           +v_i 交替 /                                                   
+      1793 +        // 16.. 层权重（const_i32 改造前 shape 占 4 槽，旧索 
+           +引 16/17/18                                                  
+      1794 +        // 已失效——[832,256] 读到 qkvwt 的 size 断言 panic 取
+           +证）                                                         
+      1795 +        let ain = aops::matmul_b_t_fp16(ctx, stream, &b[0], [
+           +HOR, ADIM], &b[12], ADIM, AW).unwrap();                      
+      1796 +        let mut normed = aops::bias_add_fp16(ctx, stream, &ai
+           +n, &b[13], HOR, AW).unwrap();                                
+      1797          normed = ada(&normed, &b[layer_bases2[0]], &b[layer_b
+            ases2[0] + 1]);
+      1798          for li in 0..depth {
+      1799              // qkv3 层内输入布局：ascl,ash,qw,kw,vw,qb,kb,vb,
+            outwt,outb,
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1800              // mscl,msh,gatewt,upwt,downwt,downb（16 项）；默
+            认 12 项
+      1801              let w = &b[layer_bases2[li]..layer_bases2[li] + i
+            f qkv3 { 16 } else { 12 }];
+      1802              let (ow, ob, msc, msh, gw, uw, dw, db) = if qkv3 
+            { (8, 9, 10, 11, 12, 13, 14, 15) } else { (4, 5, 6, 7, 8, 9, 
+            10, 11) };
+      1803 -            let (pk, pv) = (&b[18 + 2 * li], &b[19 + 2 * li])
+           -;                                                            
+      1803 +            let (pk, pv) = (&b[14 + 2 * li], &b[15 + 2 * li])
+           +;                                                            
+      1804              let (wq, wk, wv, bq, bk, bv) = &eager_qkv[li];
+      1805              let q = aops::bias_add_fp16(ctx, stream,
+      1806                  &aops::matmul_b_t_fp16(ctx, stream, &normed, 
+            [HOR, AW], wq, AW, QD).unwrap(), bq, HOR, QD).unwrap();
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-ascend apxinf-model | ssh
+      -i /c/sshkeys/id_ed25519 -o UserKnownHostsFi…)
+  ⎿  0
+     BUILT
+     flow_PARITY_OK n_in=344 worst=0.01514 rel=1.6%
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 21s (ctrl+o to expand)
+
+● 🎉 flow：70.9 → 17.58 ms/步（4×），对拍 1.6% 不变
+
+  全模型估算：67.9 + 188.1 + 17.6×10 ≈ 432ms（本轮起点 2182ms，5.1×；距 378ms
+  验收线 14%）
+
+  顺带修掉了 flow eager 的陈旧索引 bug（round-1 const_i32 改造的遗留，flow
+  一直没重跑所以没暴露——[832,256] 读到 qkvwt 的 size
+  断言）。跑三段全量确认（ROUNDS=30 PER=10 + OM 落盘）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -e ASCEND_RT_VISIBLE_DEVICES=6
+      apxinf_rust bash -c "s…)
+  ⎿  vision_PARITY_OK n_in=441 worst=0.00024 rel=0.1%
+     OM saved: /data/apxinf/om_cache/vision_r2.om
+     vision GE OM: 68.0600 ms (median/10, rounds=30)
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 全量确认（median/10×30 轮）：
+
+  ┌─────────┬──────┬───────────────┬─────────────────┐
+  │   段    │ 修前 │     修后      │      对拍       │
+  ├─────────┼──────┼───────────────┼─────────────────┤
+  │ vision  │ 723  │ 68.06         │ 0.1%            │
+  ├─────────┼──────┼───────────────┼─────────────────┤
+  │ prefix  │ 750  │ 187.75        │ 25.1%（遗留项） │
+  ├─────────┼──────┼───────────────┼─────────────────┤
+  │ flow/步 │ 70.9 │ 17.51         │ 1.6%            │
+  ├─────────┼──────┼───────────────┼─────────────────┤
+  │ 全模型  │ 2182 │ ~431（5.06×） │ 距 378 线 14%   │
+  └─────────┴──────┴───────────────┴─────────────────┘
+
+  prefix 的 25.1% 漂移有个规律：vision(INTER=4304)=0.1% / flow(4096)=1.6% /
+  prefix(16384)=25%——随 MLP 宽度单调，符合大 K 下 fp16 累加序差异（GE tiling vs
+  eager split-k），记录为开放项。清理实验 profile + 写文档：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'rm -rf /data/apxinf/prof/d2_noaux
+      /data/apxinf/prof/d2_noaux2 /da…)
+  ⎿  2.9G       /data/apxinf/prof
+     446M       /data/apxinf/om_cache
+
+● Write(syx_docs\dev_logs\summary\2026-09-19_c2-perf-attack-round2.md)
+  ⎿  Wrote 75 lines to
+     syx_docs\dev_logs\summary\2026-09-19_c2-perf-attack-round2.md
+       1 # C2 性能攻坚第二轮：切片视图运行时物化——根因捕获与三段修复（5.0
+       2 
+       3 日期：2026-09-19（第二轮，接 summary/2026-09-19_c2-perf-attack-r
+       4 
+       6 
+       7 **~600ms 空隙的根因 = SliceD 列切视图触发运行时 MemcopyAsync 物
+       8 ~380µs 拷贝 + 前置 ~4.5-12ms host 停顿）。三段同病：vision 融合 
+         qkv 切 q/k/v（81 次/
+         三个图组织修复
+         182ms → ~431ms（5.06×）**，
+     … +102 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 回填 ge-offline-om skill 陷阱表（#28 切片物化、#29 索引漂移）：
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 2 lines
+      102  | 25 | BatchMatMulV2/PFA 输出绑图输出 → desc 动态 [-1,-1,-1]（
+           size ~1e18 → malloc 207001）；其直接下游 mm 输出也被感染 [-1,n
+           ] | 这些算子的输出 desc 动态推导，动态性只传一层 | 图输出只绑
+           静态 desc 节点（Add/mm 尾部等）；调试需观察 attention 输出时绑
+           其下游第二层之后的节点 |
+      103  | 26 | SoftmaxV2 `half_to_float=true` 输出读数全 0 | 输出侧 dt
+           ype 行为异常（fp16 缓冲读 fp32 之类，机制未深究） | `half_to_f
+           loat=false`（fp16 内算，数值验证过）；输入幅度控制在 q·k 点积
+           不溢出 fp16（LN·W 后真实量级安全） |
+      104  | 27 | `ge.enableSingleStream=true` 无效（仍 58 流）且改变融合
+           选择 → 数值崩（d1 98.2%） | init 级选项被静默忽略 + 融合集变化
+            | 弃用；多流停顿问题另有根因（见 roadmap C2 攻坚段） |
+      105 +| 28 | 静态 OM 执行墙钟远大于 kernel 总时（fill ~15%）；执行流
+          +上每层多次 MemcopyAsync（每次 ~380µs、前置 4.5-12ms host 停顿 
+          +），下个 kernel 固定为切片的消费者（TransposeD/PFA/ConcatD）；
+          +换算子/换 attention/Const shape 都不动 | **SliceD 列切视图（st
+          +ride≠连续）的下游 kernel 要连续物理布局 → GE 运行时每次执行插 
+          +D2D 物化拷贝，拷贝走 host 慢路径**（aclmdlExecuteAsync 内走走 
+          +停顿提交）。msprof task_time 邻接分析可定位（MemcopyAsync 的 n
+          +ext kernel 恒定即指纹）。⚠ 动态路径（unknown 拆分）反而不付此 
+          +税——切片被物化成 kernel | 图组织上消灭列切视图：① qkv 融合+切 
+          +分 → 3 个独立 mm + 独立权重输入；② rope 的 lo/hi 半宽切+Concat
+          +D → flat 视图行交换（Reshape[p,wd]→[p·h·2,d/2] → GatherV2D Con
+          +st 索引 swap → mul/mul/add → Reshape back）。实测 vision 723→6
+          +8 / prefix 750→188 / flow 70.9→17.5 ms |                      
+      106 +| 29 | 改动输入注册集（如 shape 张量 Data→Const 后输入槽消失）
+          +后 eager 参考硬编码索引 panic（buffer size 断言，如 [832,256] 
+          +读到 [2560,1024]），且可能伪装成 TBE task_distribute 编译崩 | 
+          +输入序号整体漂移，索引未同步；段内 const_i32 不占输入槽 | eage
+          +r 的段级/层内索引与注册序耦合，改注册集必须同步索引（用段头注 
+          +释记录当前注册序）；先看 panic 的 shape 与实际 buffer 对应哪个
+          +输入定位错位量 |                                              
+      107  
+      108  ## 环境与自检
+      109  
+
+● ascend-msprof skill 补导出失败恢复路径：
+
+● Update(.claude\skills\ascend-msprof\SKILL.md)
+  ⎿  Added 4 lines
+      61  ## 采集失败模式
+      62  
+      63  - **导出静默失败**：msprof 退出码 0、日志说 "Profiling finished
+          "，但 mindstudio_profiler_output 目录为空/缺失——重跑一次通常就
+          好；raw 数据在 `PROF_*/host/sqlite/*.db`（TaskInfo 表等）可救。
+      64 +- **顽固导出失败（2026-09-19 实测一轮）**：重跑/加长 bench/换 -
+         +-application=wrapper 形式都无效；device 数据（aicore/hwts slice
+         +s + all_file.complete + end_info）与 host sqlite 俱在、分析日志
+         +无 error、与成功采集的 pipeline 日志逐段相同，仅最后 CSV 导出阶
+         +段不产出。未定位根因。**恢复路径**：                           
+      65 +  - `host/sqlite/ge_info.db` 的 **TaskInfo**（op_name/op_type/s
+         +tream_id/task_id/timestamp）——⚠ timestamp 是 host 提交时刻非设 
+         +备执行时刻（同流相邻 10-20µs 即 launch 序列）；且常被截断（只覆
+         +盖前 2-3 次执行）。                                            
+      66 +  - `device_6/sqlite/hwts-rec.db` 的 **HwtsBatch**（stream_id/t
+         +ask_id/start_time/end_time，设备侧真实时长）——⚠ **主执行流的任 
+         +务不在其中**（在未导出的 aicore.data 二进制里），只有侧流/分片 
+         +任务；task_id 是流内序号非全局。                               
+      67 +  - 两者按 `(stream_id, task_id)` JOIN 可恢复侧流算子账本；主链
+         +时序仍不可得。                                                 
+      68  - 采集期间 npu-smi 看 AICore 占比没意义（采样时刻），以产物为准
+          。
+      69  - 共享芯片上 profile 数字有抖动，对照实验用同芯。
+      70  
+
+  Thought for 3s (ctrl+o to expand)
+
+● roadmap 追加第二轮段：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line
+      127    - **C2 全量**：⑤ 三段 OM（vision+embed 27 层 / prefix 18 层 
+           / flow 18 层——flow 10 步用单 OM 执行 10 次，noise 走外部输入每
+           步换绑定）；⑥ OM 缓存按 (shape 签名, 引擎版本) 落盘/加载（首编
+           可能分钟级，必须缓存）；⑦ 全深度 bench → 验收线判定
+      128    - **✅ C2 三段 OM 全量落地（2026-09-19，f0787fa）——编译/运行
+           /缓存全通，bench 不达标**。`ge_model_probe`（apxinf-model 例程
+           ，~1900 行）：三段静态 OM（vision 27 层 LayerNormV4+batch PFA 
+           / prefix 18 层全序+每层 k/v 输出（末层无 tail，compute_tail 语
+           义）/ flow 18 层单步 OM——styles、prefix k/v、euler 常数全为外
+           部输入），eager 参考对拍 + GEB_SAVE/GEB_LOAD OM 缓存（/data/ap
+           xinf/om_cache/{vision,prefix,flow}.om）。**对拍**：flow 全深 *
+           *1.6%** ✓；vision/prefix 编译运行通但全深漂移（104%/30%——当时
+           归因 GE 静态 tiling vs eager 运行时 tiling 变体差；**⚠ 次日证
+           伪：实为 eager 参考竞态，修复后 vision 全深 0.1%，见下轮攻坚段
+           与 skill #19/#20**；单算子/组件级全部逐位验证）。**bench @P=83
+           2：vision 723ms / prefix 750ms / flow 70.9ms/步 → 全模型 ~2182
+           ms，距 378ms 验收线 5.8×——不达标**，慢源待 msprof op 级定位（
+           嫌疑：TileD/SliceD/Reshape 拷贝类 kernel 低效、LN 辅输出）。**
+           C2 新取证（skill 陷阱 #12-18）**：BroadcastToD 310P kernel 编
+           译崩→TileD；DYNAMIC_INPUT 端口工厂不预建（GetDynamicInputNum=0
+           ）→符号直链 AddDynamicInputDesc（端口名 x0/x1 从 0 起）；Resha
+           pe 输出绑图输出→desc 动态 [-1]（size 无效、malloc 207001）→图
+           输出只绑静态 desc 节点；AddLayerNorm 在 [768,1152] kernel 级 1
+           00× 放大（eager/GE 一致）→LayerNormV4；LayerNormV4 的 mean/rst
+           d 死端会让 y 爆（与 AddRmsNorm 相反）→绑图输出；Reshape→SliceD
+            / mm(rank-3)→下游 组合崩→全链 rank-2+Reshape 桥。**顺带取证**
+           ：生产 eager 的 qkv/gate_up take_rows 切分在交织布局下数学错误
+           （flat 切分 ≠ 列切分；此前全部 smoke 只查有限从未暴露——Rust ea
+           ger 从未做数值金标准对拍），GE 侧 SliceD 通道切分才是对的；修
+           复决策后置（eager 将降级回退路径）。ge_builder FFI 增强：geb_d
+           yn_inputs/geb_dyn_probe/geb_link_idx。**下一步（C3 前）**：msp
+           rof 三段 OM 的 task 分布定位慢 kernel（对照 C1 单层 10.28ms 的
+           构成差）；oracle 对拍；ARPE/bias 入图优化。
+      129    - **⚙ C2 性能攻坚第一轮（2026-09-19，见 summary/2026-09-19_c
+           2-perf-attack-round1）——定位完成、未提速、对拍销案**。三轮 msp
+           rof（ascend-msprof skill）定律：vision OM ~700ms 中**设备 busy
+            仅 ~87ms，~600ms 是 81 次/迭代的毫秒级空隙**（形态 `EVENT → ~
+           20ms → MemcopyAsync`，跨流同步后 host 轮询延迟量级）；bmm 20µs
+           /次 vs PFA 323µs。**排除两大嫌疑**：① PFA host 回调（InnerPFA 
+           每次执行 host tiling）——换手工 attention（BatchMatMulV2+Softma
+           xV2+headsplit，对拍 0.1%）仍 700ms；② unknown-shape 动态拆分——
+           Const 折叠 shape（OM 221MB→16MB）仍 700ms，且 **flow 带 2683 
+           个 unknown 标记 + PFA + Data shape 却 70.9ms（反例实锤）**。**
+           头号嫌疑（未决）：111 图输出**（LN aux ×108 + 主输出）vs flow 
+           的 1 输出——GEB_NO_AUX 全深隔离实验进程卡死无结论，**下一动作：
+           GEB_DEPTH=2 + GEB_ROUNDS=5 最小 A/B（分钟级）**。**重大修复：e
+           ager 参考竞态**（同步 d2h 不等 compute 流 + 闭包中间量 drop 内
+           存复用踩烂，skill #19/#20）——**C2 记录的 vision 104%/prefix 30
+           % 漂移销案，vision 全深 27 层对拍 0.1% 稳定，fp32 oracle 待办
+           撤销**。新工具：GEB_ATTN=manual / GEB_OPT_* / GEB_INIT_OPT_* /
+            geb_add_const_i32 / GEB_DBG / GEB_NO_AUX / GEB_ROUNDS+GEB_PER
+           （最小验证纪律）；BiasAdd 在 310P 注册表存在（未接线，bias 链
+           单 kernel 替代候选）。陷阱回填 skill #19-27。
+      130 +  - **✅ C2 性能攻坚第二轮（2026-09-19，见 summary/2026-09-19_
+          +c2-perf-attack-round2）——根因捕获：切片视图运行时物化，三段修 
+          +复 5.06×**。第一动作最小 A/B 反向击毙 111 输出假设（noaux 更糟
+          + 710ms：死端 mean/rstd 换 LN 动态变体）；上轮 vision_ma profil
+          +e 重挖出铁证：**82.4 次 MemcopyAsync/执行全在执行流上、每次前 
+          +4.5-12ms host 停顿、下个 kernel 恒为切片消费者（te_transpose）
+          +**——根因 = SliceD 列切视图触发运行时 D2D 物化（host 慢路径）。
+          +PFA 模式同数（27×3=81）反证共同因子是 q/k/v 切片而非 attention
+          + 实现；flow 反例解释（unknown 动态路径把切片物化成 kernel，不 
+          +付此税）。**三个图组织修复**（全 env 门控）：GEB_QKV3=1（qkv 3
+          +×mm 独立权重输入）、GEB_ROPEFLAT=1（rope 换 flat 视图行交换，G
+          +atherV2D Const 索引）、GEB_ATTN=manual（三段统一手工/GQA/cross
+          + attention，scale 折权重）。**全量确认（median/10×30）：vision
+          + 723→68.06（0.1%）/ prefix 750→187.75（25.1% ⚠ 随 MLP 宽度单调
+          +，假设大 K fp16 累加序差，M3 判）/ flow 70.9→17.51/步（1.6%）→
+          + 全模型 2182→~431ms（5.06×），距 378ms 线 14%**。顺带修 flow e
+          +ager 段级索引陈旧 bug（const_i32 化后槽位漂移，const 改造后 fl
+          +ow 未重跑所以一直没暴露）。OM 产物 {vision,prefix,flow}_r2.om 
+          +。陷阱回填 skill #28-29；msprof 顽固导出失败 + sqlite 恢复路径
+          +记入 ascend-msprof skill                                      
+      131    - **C3 判定收尾**：⑧ ≤378ms 或接近 → M3 LIBERO 对标；⑨ 文档/
+           skill 回填（ge-offline-om skill 实战检验）
+      132    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      133      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+  ⎿  2 skills available
+
+● README 状态行、ADR-002、setup.md env 表同步：
+
+● Update(syx_docs\README.md)
+  ⎿  Added 1 line, removed 1 line
+      26  - ModelZoo π0.5 参考：`vla/pi05_openpi`（torch_npu + TorchAir，
+          FP16，378ms/300I Duo 单芯）
+      27  - 310P3 无 BF16 / FP8 → 精度策略 FP16（INT8 后置）
+      28  - **成功率结案**（2026-09-17）：0/10 →(empty_camera mask 修复)→
+           4/10 →(跨集 queue reset 修复)→ **9/10 = 官方 lerobot_eval 同日
+          实测 9/10**。零 NPU 单帧对拍 `translate_parity_zero_npu.py`（40
+          s/次）是翻译层标准工具
+      29 -- **阶段 2 状态**（2026-09-19）：M2 完成（真 checkpoint 全链路 
+         -）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判 
+         -定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）
+         -→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `
+         -ge-offline-om`）→ **C1 完成**（ge_builder FFI + 单层 GE 化对拍 
+         -0.00000、1.76× vs eager）→ **C2 三段 OM 全量落地**（bench ~2182
+         -ms 距 378ms 线 5.8×）→ **C2 性能攻坚第一轮**：msprof 定律 busy 
+         -87ms vs 墙钟 700ms（~600ms 为 81 次/迭代 EVENT→~20ms→MemcopyAsy
+         -nc 空隙）；排除 PFA host 回调与 unknown-shape 拆分（flow 反例）
+         -，头号嫌疑 111 图输出未决；**顺带修复 eager 参考竞态——vision 全
+         -深对拍 0.1%，C2 的 104%/30% 漂移销案**。陷阱 #12-27 回填 skill 
+         -；新 skill `ascend-msprof`（最小采集纪律）                     
+      29 +- **阶段 2 状态**（2026-09-19）：M2 完成（真 checkpoint 全链路 
+         +）→ 性能阶段 906.9→679.8ms（rope 平铺 + scratch 池）→ 验收线判 
+         +定：ACLGraph matmul task ~475µs 调度税为架构级（decisions/002）
+         +→ **GE 原生 OM POC 完成**（零调度税 + 大 m tiling −18%，skill `
+         +ge-offline-om`）→ **C1 完成**（ge_builder FFI + 单层 GE 化对拍 
+         +0.00000、1.76× vs eager）→ **C2 三段 OM 全量落地**（bench ~2182
+         +ms 距 378ms 线 5.8×）→ **C2 攻坚第一轮**：busy 87ms vs 墙钟 700
+         +ms 定律、排除 PFA/unknown-shape、eager 竞态修复（vision 0.1%）→
+         + **C2 攻坚第二轮：根因捕获 = SliceD 列切视图的运行时 MemcopyAsy
+         +nc 物化（每视图 ~5.5ms host 停顿）**；三段修复（GEB_QKV3 独立投
+         +影 / GEB_ROPEFLAT flat 行交换 / GEB_ATTN=manual）→ **全模型 218
+         +2→~431ms（5.06×），距 378ms 验收线 14%**（vision 68.06/0.1%、pr
+         +efix 187.75/25.1%⚠、flow 17.51/步/1.6%）。陷阱 #12-29 回填 skil
+         +l；skill `ascend-msprof`（最小采集纪律 + 导出失败 sqlite 恢复）
+
+● Update(syx_docs\decisions\002-ge-native-om-route.md)
+  ⎿  Added 3 lines, removed 1 line
+      27  
+      28  **执行进展（C2）**：三段 OM 全量落地（2026-09-19，f0787fa）——编
+          译/运行/缓存全通，flow 全深对拍 1.6%；**但全模型 bench ~2182ms
+          ，距 378ms 验收线 5.8×**。慢源定性为第一版图组织的拷贝类胶水 ke
+          rnel（TileD/SliceD/Reshape 桥，为绕过编译陷阱引入；eager 路径等
+          价物是广播/零拷贝），核心算子链结论未被推翻——msprof op 级定位 +
+           逐热点替换是决策的下一个验证点：**若胶水可消除则路线成立，若 G
+          E 图内无广播/零拷贝等价入口则需重谈**（备选回退 ACLGraph 679.8m
+          s 或接受溢价）。
+      29  
+      30 -**执行进展（C2 攻坚第一轮，2026-09-19）**：msprof 三轮定律修正 
+         -了上述定性——**胶水 kernel 不是主因**：vision OM ~700ms 中设备 b
+         -usy 仅 ~87ms（胶水贡献 ~30ms），**~600ms 是 81 次/迭代的 EVENT→
+         -~20ms→MemcopyAsync 空隙**（host 参与的运行时调度路径）。排除 PF
+         -A host 回调（手工 attention 替换后仍 700ms）与 unknown-shape 拆
+         -分（Const 折叠 OM 221→16MB 仍 700ms；flow 带 unknown 标记 + PFA
+         - 仅 70.9ms 反例）。头号嫌疑收敛到**图输出数量**（vision 111 个 
+         -LN aux 输出 vs flow 1 个），最小 A/B 验证待下轮。核心算子链进一
+         -步强化：bmm 20µs/次（PFA 323µs 的 1/16）、手工 attention 全深对
+         -拍 0.1%。**决策含义不变但验证点更新：若图输出/调度空隙可消除则 
+         -路线成立（busy 87ms ≈ 验收线内），否则需评估 310P 静态 OM 执行 
+         -器的调度机制上限。**                                           
+      30 +**执行进展（C2 攻坚第一轮，2026-09-19）**：msprof 三轮定律修正 
+         +了上述定性——**胶水 kernel 不是主因**：vision OM ~700ms 中设备 b
+         +usy 仅 ~87ms（胶水贡献 ~30ms），**~600ms 是 81 次/迭代的 EVENT→
+         +~20ms→MemcopyAsync 空隙**（host 参与的运行时调度路径）。排除 PF
+         +A host 回调（手工 attention 替换后仍 700ms）与 unknown-shape 拆
+         +分（Const 折叠 OM 221→16MB 仍 700ms；flow 带 unknown 标记 + PFA
+         + 仅 70.9ms 反例）。头号嫌疑收敛到**图输出数量**（vision 111 个 
+         +LN aux 输出 vs flow 1 个），最小 A/B 验证待下轮。核心算子链进一
+         +步强化：bmm 20µs/次（PFA 323µs 的 1/16）、手工 attention 全深对
+         +拍 0.1%。                                                      
+      31 +                                                               
+      32 +**执行进展（C2 攻坚第二轮，2026-09-19）——空隙根因捕获并修复，路
+         +线判定材料齐**：第一动作最小 A/B **反向击毙 111 输出假设**（去 
+         +掉 LN aux 反而 710ms：死端 mean/rstd 逼编译器换 LN 动态变体）；
+         +上轮 profile 邻接分析出铁证（82 次 MemcopyAsync/执行、每次前 4.
+         +5-12ms host 停顿、下个 kernel 恒为切片消费者）→ **根因 = SliceD
+         + 列切视图触发运行时 D2D 物化（host 慢路径）**。三个图组织修复（
+         +qkv 独立投影 / flat rope 行交换 / 手工 attention，全 env 门控）
+         +：**全模型 2182→~431ms（5.06×），vision 68.06（0.1%）/ prefix 1
+         +87.75（25.1%⚠）/ flow 17.51/步（1.6%），距 378ms 验收线 14%**。
+         +**决策结论：C 路线的调度上限疑虑解除（空隙是图组织问题非执行器 
+         +架构问题）；剩余差距主要是 prefix MLP 算力（INTER=16384 busy ~1
+         +45ms）与 flow 每层 ~1ms 非算力开销；prefix 漂移随 MLP 宽度单调 
+         +（fp16 大 K 累加序假设）待 M3 e2e 判定。**                     
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_
+          -LOAD=路径——OM 缓存在 /data/apxinf/om_cache/ / GEB_OPTEST=btd\|
+          -rsh\|sld\|gat\|cat\|aln\|gln\|tld\|p1-p7\|v1-v5\|r1\|q1\|lnv4*
+          -\|asc*\|ma*\|bc4 单算/组合/数值验证矩阵 / GEB_TRACE 中间量打印
+          -（含 head）/ GEB_ATTN=manual 手工 attention / GEB_DBG=1 层 0  
+          -各级观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ 
+          -**GEB_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒 
+          -出数**） |                                                    
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=路径 GEB_
+          +LOAD=路径——OM 缓存在 /data/apxinf/om_cache/（r2 修复版 {vision
+          +,prefix,flow}_r2.om）/ GEB_OPTEST=... 单算/组合/数值验证矩阵 /
+          + GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GE
+          +B_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=ma
+          +nual + GEB_QKV3=1 + GEB_ROPEFLAT=1 三件套 = 攻坚第二轮修复组合
+          +**（切片视图物化根因，全模型 ~431ms；见 summary round2）/ **GE
+          +B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          +*） |                                                         
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 3s (ctrl+o to expand)
+
+● 双仓提交。先子模块：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git diff --stat)
+  ⎿   M crates/apxinf-model/examples/ge_model_probe.rs
+     warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     … +3 lines (ctrl+o to expand)
+
+● Bash(git add crates/apxinf-model/examples/ge_model_probe.rs && git commit -m
+      "C2 perf attack round 2: kill slice-view runtime materialization (5.06x)…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port 230e24a] C2 perf attack round 2: kill slice-view runtime
+     … +4 lines (ctrl+o to expand)
+
+● Bash(cd /d/compass/APXinf && git add apxinf && git status --short | head -12)
+  ⎿   M .claude/skills/ascend-msprof/SKILL.md
+      M .claude/skills/ge-offline-om/SKILL.md
+     M  apxinf
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(git add .claude/skills/ascend-msprof/SKILL.md
+      .claude/skills/ge-offline-om/SKILL.md syx_docs/README.md
+      syx_docs/decisions/002-ge-native-om-route.md syx_docs/pla…)
+  ⎿  warning: in the working copy of '.claude/skills/ascend-msprof/SKILL.md
+     ', LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of '.claude/skills/ge-offline-om/SKILL.md
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 第二轮收官。提交完成：子模块 230e24a（已推 fork/ascend-port）+ 外层 01f1802（8
+  文件）。
+
+  C2 性能攻坚第二轮——结果
+
+  根因捕获：~600ms/段空隙 = SliceD 列切视图触发运行时 MemcopyAsync 
+  物化（每视图一次 ~380µs 拷贝 + 前置 ~4.5-12ms host 停顿）。证据链：
+
+  1. 第一动作 A/B 反向击毙 111 输出假设（去 aux 反而 710ms——死端 mean/rstd
+     逼编译器换 LN 动态变体）
+  2. 上轮 vision_ma profile 重挖：82.4 拷贝/执行全在执行流上、下个 kernel 
+     恒为切片消费者（te_transpose）；PFA 模式同数（27×3=81）→ 共同因子是 q/k/v
+     切片，非 attention 实现
+  3. flow 反例解释：动态路径把切片物化成 kernel，不付此税
+
+  三个修复（全 env 门控）→ 全量确认：
+
+  ┌─────────────────┬───────────────────────────────┬───────────────────────┐
+  │      修复       │             内容              │         效果          │
+  ├─────────────────┼───────────────────────────────┼───────────────────────┤
+  │ GEB_QKV3=1      │ 融合 qkv+SliceD×3 → 3 独立 mm │ vision                │
+  │                 │  + 独立权重输入               │ 723→68.06（0.1%）     │
+  ├─────────────────┼───────────────────────────────┼───────────────────────┤
+  │                 │ rope 的 lo/hi 列切+ConcatD →  │                       │
+  │ GEB_ROPEFLAT=1  │ flat 视图行交换（GatherV2D    │ prefix 550→187.75     │
+  │                 │ Const 索引）                  │                       │
+  ├─────────────────┼───────────────────────────────┼───────────────────────┤
+  │                 │ 扩展到                        │ flow                  │
+  │ GEB_ATTN=manual │ prefix/flow（GQA/cross，scale │ 70.9→17.51/步（1.6%） │
+  │                 │  折权重）                     │                       │
+  └─────────────────┴───────────────────────────────┴───────────────────────┘
+
+  全模型 2182 → ~431ms（5.06×），距 378ms 验收线 14%。ADR-002
+  结论：调度上限疑虑解除（空隙是图组织问题，非执行器架构问题）；剩余差距主要是
+  prefix MLP 算力（busy ~145ms）+ flow 每层 ~1ms 非算力开销。
+
+  顺带：修掉 flow eager 陈旧索引 bug（const_i32 化后槽位漂移，伪装成 TBE
+  崩溃）；msprof 顽固导出失败的 sqlite 恢复路径已记入 skill。
+
+  遗留：prefix 25.1% 漂移随 MLP 宽度单调（vision 0.1%/flow 1.6%/prefix 25%
+  @INTER=16384，假设大 K fp16 累加序差）——M3 e2e 判定；下一步可选 flow
+  尾巴（~1ms/层）或直接判定会谈进 M3。
+
+✔ Goal achieved (1h · 1 turn · 133.7k tokens) (ctrl+o to expand)
+
+✻ Crunched for 1h 11m 58s · done 2:18 AM
+
+※ recap: 昇腾 NPU C2 性能攻坚已完成：切片物化根因修复后全模型 2182→431ms（5.06×），文档与双仓提交完毕。下一步是 flow 每层 ~1ms 尾巴优化，或判定会谈决定进 M3。
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   263.8k/1m tokens (26%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 261.3k tokens (26.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 735.8k (73.6%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ 文档全量更新了吗，准备压缩一下了                                              
+
+  Thought for 28s (ctrl+o to expand)
+
+● 差最后一件：handoff.md。先读再改：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 6 lines, removed 5 lines
+       1 -# Handoff（2026-09-19 C2 性能攻坚第一轮收尾 / 压缩用）         
+       1 +# Handoff（2026-09-19 C2 性能攻坚第二轮收尾 / 压缩用）         
+       2  
+       3  ## 状态一句话
+       4  
+       5 -三轮 msprof 定律：vision OM ~700ms 中 **busy 仅 ~87ms，~600ms  
+         -是 81 次/迭代的毫秒级空隙**（`EVENT → ~20ms → MemcopyAsync`）。
+         -已排除 PFA host 回调（换手工 attention 仍 700ms）与 unknown-sha
+         -pe 拆分（Const 折叠 OM 221→16MB 仍 700ms；flow 带 unknown 标记 
+         -却 70.9ms 反例）。**头号嫌疑：111 图输出（LN aux）vs flow 的 1 
+         -输出**——GEB_NO_AUX 全深隔离实验进程卡死无结论。顺带修复 eager  
+         -参考竞态（d2h 非流序 + 中间量提前释放），**vision 全深对拍 0.1%
+         - 稳定，C2 的 104%/30% 漂移销案**。本轮代码/文档已提交。        
+       5 +**空隙根因已捕获并修复：SliceD 列切视图触发运行时 MemcopyAsync 
+         +物化**（每视图 1 次 ~380µs 拷贝 + 前置 4.5-12ms host 停顿；visi
+         +on 81 次/执行 = q/k/v 切片、prefix 另有 rope lo/hi 切 70 次）。
+         +三个图组织修复（GEB_QKV3 独立投影 / GEB_ROPEFLAT flat 行交换 / 
+         +GEB_ATTN=manual 三段统一）→ **全模型 2182 → ~431ms（5.06×），距
+         + 378ms 线 14%**：vision 68.06（0.1%）/ prefix 187.75（25.1%⚠）/
+         + flow 17.51/步（1.6%）。顺带修 flow eager 陈旧索引 bug。ADR-002
+         +：调度上限疑虑解除。双仓已提交（子模块 230e24a / 外层 01f1802）
+         +。                                                             
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**性能 profile 定律**（busy 87ms vs 墙钟 700ms；空隙 
+         -81 次/迭代 EVENT→~20ms→MemcopyAsync；算子账本：TransData 17-21/
+         -Trans 融合 mm 19/LN 14.7/Gelu 9.5/Softmax 6.3/**bmm 1.1ms(20µs/
+         -次)**）；**假设排除链**（PFA host 回调 InnerPFA 27 次/迭代但换 
+         -手工 attention 仍 700；unknown-shape Const 折叠 OM 221→16MB 仍 
+         -700；**flow 反例**：2683 unknown 标记 + PFA + Data shape 却 70.
+         -9ms）；**未决头号嫌疑：111 图输出**（LN aux ×108，flow 只有 1  
+         -输出；GEB_NO_AUX 隔离实验全深卡死——**下轮第一动作 GEB_DEPTH=2 +
+         - GEB_ROUNDS=5 GEB_PER=3 + GEB_NO_AUX=1 最小 A/B，1 分钟出数**）
+         -；**eager 竞态 bug 取证**（d2h 非流序 + 闭包 drop 内存复用；C2 
+         -的 104%/30% 漂移是假的，vision 全深 0.1% 销案）；**新工具面**（
+         -GEB_ATTN=manual 手工 attention 0.1% 对拍、headsplit/headmerge、
+         -GEB_OPT_/GEB_INIT_OPT_ 选项直通、geb_add_const_i32、GEB_DBG/GEB
+         -_NO_AUX/GEB_ROUNDS/GEB_PER）；**坑**（enableSingleStream 无效且
+         -数值崩；AttentionScore 310P 无 kernel；SoftmaxV2 half_to_float=
+         -true 输出全 0；[768,1152]→[48,256,72] 直接 Reshape 是头/序错排 
+         -；bmm 输出绑图输出 desc 动态；BiasAdd 在注册表存在未接线）；asc
+         -end-msprof skill（最小采集纪律）。丢弃：三轮 profile 逐条分析命
+         -令、竞态排查中间过程（结论在 skill #19-25 与 summary）。       
+       9 +聚焦保留：**根因与证据链**（SliceD 列切视图 → 运行时 MemcopyAsy
+         +nc 物化 → host 慢路径 ~5.5ms/次；证据：82.4 拷贝/执行全在执行流
+         + s370、每次前 4.5-12ms 全局空隙、**下个 kernel 恒为切片消费者 t
+         +e_transpose**、PFA 模式同数 27×3=81 反证共同因子是 q/k/v 切片；
+         +flow 反例解释 = unknown 动态路径把切片物化成 kernel 不付税）；*
+         +*111 输出假设反向击毙**（GEB_NO_AUX 死端 mean/rstd → LN 动态变 
+         +体更糟 710ms）；**三修复**（GEB_QKV3=1 qkv 3×mm 独立权重输入[权
+         +重 host 切、不注册无消费者输入防 dataset 错位、eager 层内 12→16
+         + 项偏移]；GEB_ROPEFLAT=1 rope 换 flat 视图行交换[Reshape[p,wd]→
+         +[p·h·2,d/2]→GatherV2D Const 索引→mul/mul/add→back，GatherV2D 31
+         +0P 仅 axis=0]；GEB_ATTN=manual 扩到 prefix/flow，scale 折 q 权 
+         +重/bias）；**最终数字**（vision 68.06/0.1%、prefix 187.75/25.1%
+         +、flow 17.51/步/1.6%、全模型 ~431ms，OM {vision,prefix,flow}_r2
+         +.om）；**prefix 25.1% 漂移规律**（vision INTER=4304→0.1% / flow
+         + 4096→1.6% / prefix 16384→25% 随宽度单调，假设大 K fp16 累加序 
+         +差，M3 判）；**flow eager 索引陈旧 bug**（const_i32 化后 4 输入
+         +槽消失 ainwt 16→12/pk 18→14，[832,256] 读 qkvwt 断言 panic 伪装
+         + TBE 崩）；**msprof 顽固导出失败 + sqlite 恢复**（TaskInfo⋈Hwts
+         +Batch 按 (stream,task_id) JOIN，主链不在 HwtsBatch；timestamp  
+         +是提交时刻）。丢弃：A/B 过程中间数字、JOIN 脚本细节、msprof 修 
+         +复尝试过程（结论在 skill #28-29 + ascend-msprof + summary round
+         +2）。                                                          
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 C2 性能攻坚第二轮**（第一轮见 roa
+         -dmap C2 攻坚段与 summary 2026-09-19_c2-perf-attack-round1：busy
+         - 87ms vs 墙钟 700ms 的空隙问题，已排除 PFA/unknown-shape）。第 
+         -一动作：**最小 A/B 裁决 111 图输出假设**——`GEB_SEG=vision GEB_A
+         -TTN=manual GEB_DEPTH=2 GEB_ROUNDS=5 GEB_PER=3` 跑 aux 基线，再 
+         -加 `GEB_NO_AUX=1` 跑对照（数值会坏——trap，只看时间；两轮各 ~1  
+         -分钟）。若 no-aux 显著降：给 LN mean/rstd 找图内 sink（或换无 a
+         -ux 的 LN 形态）消除 108 输出；若不变：转向 prefix 同病对照与 ms
+         -prof 最小采集（ascend-msprof skill：GEB_ROUNDS=5 采 15 次执行）
+         -。目标：vision/prefix 拉回 ~100ms 量级再判 378ms 验收线。      
+      13 +继续 APXinf 昇腾 NPU **C 路线 C2 收尾（攻坚第二轮已完成 5.06×，
+         +见 summary 2026-09-19_c2-perf-attack-round2）**。第一动作：**pr
+         +efix 25.1% 漂移定位**（唯一遗留数值项，阻塞 M3 精度信心）——`GEB
+         +_SEG=prefix GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_DEPTH
+         +=2/4/8 GEB_BENCH=1 GEB_ROUNDS=3 GEB_PER=1` 扫描漂移随深度增长曲
+         +线（depth2 已知 8.5%）：若线性累积 → fp16 大 K 累加序差坐实（e2
+         +e M3 判定，probe 侧销案）；若某深度跳变 → GEB_DBG=1 逐层找首个 
+         +分岔层。之后二选一：flow 尾巴（17.5ms/步仍有 ~1ms/层非算力开销 
+         +，全模型有望 ~380 进线内）或直接验收线判定会谈进 M3（当前 ~431 
+         +vs 378 线 = 1.14×）。                                          
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_c2-
+         -perf-attack-round1.md（新文件：C2 性能攻坚第一轮——msprof 定律 b
+         -usy 87ms/墙钟 700ms、PFA 与 unknown-shape 假设排除、eager 竞态 
+         -修复致 vision 全深 0.1%、手工 attention 落地）                 
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-19_c2-
+         +perf-attack-round2.md（新文件：C2 性能攻坚第二轮——切片视图运行 
+         +时物化根因捕获、三段修复 5.06×、全模型 ~431ms）                
+      18 +                                                               
+
+● Bash(git add syx_docs/dev_logs/handoff.md && git commit -m "handoff: C2 perf
+      round 2 wrap-up (compact params + next first action)…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+      1 file changed, 6 insertions(+), 5 deletions(-)
+     CLEAN_CHECK_DONE
+
+  Thought for 5s (ctrl+o to expand)
+
+● 全量更新完毕，可以压缩了。
+
+  收尾清单
+
+  ┌──────────────┬──────────────────────────────────────────────────────────┐
+  │      项      │                           状态                           │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ summary      │ 2026-09-19_c2-perf-attack-round2.md（A/B                 │
+  │              │ 裁决链、根因取证、三修复、最终数字、遗留）               │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ handoff      │ 重写（① compact 参数 ② 下轮首句 = prefix 漂移定位 ③      │
+  │              │ export 标题）                                            │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ roadmap /    │                                                          │
+  │ ADR-002 /    │ 第二轮段 + 状态行 + 调度上限疑虑解除的决策结论           │
+  │ README       │                                                          │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ ge-offline-o │ 陷阱 #28（切片视图物化：症状指纹/定位法/两种修法）、#29  │
+  │ m skill      │ （const 化后 eager 索引漂移）                            │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ ascend-mspro │ 顽固导出失败 + TaskInfo⋈HwtsBatch sqlite                 │
+  │ f skill      │ 恢复路径（主链不在其中的警告）                           │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ setup.md     │ 三件套 env 文档 + _r2.om 产物路径                        │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ 提交         │ 子模块 230e24a（已推 fork）+ 外层 01f1802 + handoff      │
+  │              │ 补充提交；工作树干净（仅无关 untracked）                 │
+  └──────────────┴──────────────────────────────────────────────────────────┘
+
+  压缩参数（贴 /compact）
+
+  聚焦保留：**根因与证据链**（SliceD 列切视图 → 运行时 MemcopyAsync 物化 → host
+  慢路径 ~5.5ms/次；证据：82.4 拷贝/执行全在执行流、每次前 4.5-12ms
+  全局空隙、下个 kernel 恒为切片消费者 te_transpose、PFA 模式同数 27×3=81
+  反证共同因子是 q/k/v 切片；flow 反例解释 = unknown 动态路径把切片物化成 kernel
+  不付税）；**111 输出假设反向击毙**（GEB_NO_AUX 死端 mean/rstd → LN
+  动态变体更糟 710ms）；**三修复**（GEB_QKV3=1 qkv 3×mm 独立权重输入[权重 host
+  切、不注册无消费者输入防 dataset 错位、eager 层内 12→16
+  项偏移]；GEB_ROPEFLAT=1 rope 换 flat
+  视图行交换[Reshape[p,wd]→[p·h·2,d/2]→GatherV2D Const
+  索引→mul/mul/add→back，GatherV2D 310P 仅 axis=0]；GEB_ATTN=manual 扩到
+  prefix/flow，scale 折 q 权重/bias）；**最终数字**（vision 68.06/0.1%、prefix
+  187.75/25.1%、flow 17.51/步/1.6%、全模型 ~431ms=5.06×，OM
+  {vision,prefix,flow}_r2.om）；**prefix 25.1% 漂移规律**（vision
+  INTER=4304→0.1% / flow 4096→1.6% / prefix 16384→25% 随宽度单调，假设大 K fp16
+  累加序差，M3 判）；**flow eager 索引陈旧 bug**（const_i32 化后 4 输入槽消失
+  ainwt 16→12/pk 18→14，[832,256] 读 qkvwt 断言 panic 伪装 TBE 崩）；**msprof
+  顽固导出失败 + sqlite 恢复**（TaskInfo⋈HwtsBatch 按 (stream,task_id)
+  JOIN，主链不在 HwtsBatch；TaskInfo timestamp 是提交时刻）。丢弃：A/B
+  过程中间数字、JOIN 脚本细节、msprof 修复尝试过程（结论在 skill #28-29 +
+  ascend-msprof + summary round2）。
+
+  下轮第一动作已备好（handoff ②）：prefix
+  漂移深度扫描（DEPTH=2/4/8）分辨“线性累积=fp16 累加序差销案” vs “跳变=真 bug
+  逐层定位”，然后 flow 尾巴或验收线判定会谈。
+
+✻ Sautéed for 1m 19s · done 9:25 AM
