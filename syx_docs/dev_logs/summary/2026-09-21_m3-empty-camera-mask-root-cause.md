@@ -4,7 +4,7 @@
 
 ## 一句话
 
-**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBERO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 pad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（968→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到引擎 MLP 段（m0 0.52% → h1 35.5%）。**
+**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBERO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 pad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（968→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差（torch 同链 f16 仅 0.03%）。**
 
 ## 定位链（当晚五步裁决，全部实测）
 
@@ -32,17 +32,22 @@
 | step0_x1 | **10.1%** | 语义修复大幅收敛（旧口径终态 314%） |
 | final actions | 323.7% | 10 步 euler 复合 v_t 误差（prefix kv 漂移所致）——修 MLP 后应收敛 |
 
-## 剩余问题（已精确定位）
+## 剩余问题（已精确定位到三算子跨度）
 
-**引擎 MLP 段 f16 数值**（slot_cmp712.py 槽位判读，t712dbg 图 + DUMP_MID）：
+**引擎层内 {o_proj mm + res add + addrms} 跨度产生 ~2.8% 执行误差**（slot_cmp712.py 全级槽位判读 + propagate_check.py 传播上界）：
 
-| 级 | rel vs golden v3 真值 |
-|---|---|
-| m0_vis（attention 合并输出） | **0.52%** ✓ attention 无罪 |
-| norm2 | 2.82% |
-| h1（层 0 完整输出） | **35.53%** ← gate/up(K=2048,N=16384) → gelu → mul → **down(K=16384)** 段把 2.8% 放大到 35.5% |
+| 级 | rel vs f64 教科书 | 备注 |
+|---|---|---|
+| m0（attention 合并输出） | **0.52%** | attention 段无罪 |
+| m0 误差经 f64 o_proj+res+norm 传播 | 0.03% | **传播上界——0.52% 输入解释不了下面的 2.82%** |
+| norm2（图槽 37/44/45 一致） | **2.82%** | ~2.8% 产自三算子内部执行 |
+| act（gelu·up，槽 51） | 3.05% | 与 norm2 单调一致 |
+| down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不加新误差）；gate/up 槽（15/32%）系覆写垃圾 |
+| h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程放大 + 逐层复合 |
 
-下一步（嫌疑序）：① down_proj 单算对拍（真权重真 act 输入：GE mm vs aclnn eager vs f64——K=16384 f16 累加序/outlier 放大）；② gate/up mm 同测；③ gelu·mul 中间幅值检查（|act| 分布，可能溢出 f16 精度区）；④ 修复候选：split-K down（2×8192 mm + add）/ act 尺度预除 / 关 WCONST 对比。修到 kvk_l1 ≤5% → 全层复测 → e2e 终态 → LIBERO。
+**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 norm2 只增 ~0.3%——**主嫌疑 = o_proj mm（WCONST Const+NZ 烤入，K=2048）**，addrms 次之。
+
+下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展或最小隔离图）；② addrms 同测（真 res 输入）；③ 若 mm 定罪：WCONST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO。
 
 ## 性能（t712，零回归且更快）
 

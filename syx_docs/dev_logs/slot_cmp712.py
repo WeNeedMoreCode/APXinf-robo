@@ -34,7 +34,18 @@ def gelu_tanh(x):
 res = x0 + m0 @ ow.T
 sc = (1.0 + w2)[None, :]
 n2 = res / np.sqrt((res * res).mean(-1, keepdims=True) + EPS)
-h1_f = res + (gelu_tanh(n2 @ (gw * sc).T) * (n2 @ (uw * sc).T)) @ dw.T
+gate = n2 @ (gw * sc).T
+up = n2 @ (uw * sc).T
+gact = gelu_tanh(gate)
+act = gact * up
+down = act @ dw.T
+h1_f = res + down
+
+f16q = lambda a: np.asarray(a, dtype=np.float16).astype(np.float64)
+print(f"[幅值] gate |max|={np.abs(gate).max():.1f} up |max|={np.abs(up).max():.1f}"
+      f" act |max|={np.abs(act).max():.1f}（f16 上限 65504）")
+n_big = (np.abs(act) > 30000).mean() * 100
+print(f"[幅值] |act|>30000 占比 {n_big:.4f}%  |act|>65504（溢出）{(np.abs(act) > 65504).sum()} 个")
 
 INV16 = np.float64(np.float16(10000.0 ** (-np.arange(128) * 2.0 / 256.0)))
 ANG = np.arange(P)[:, None] * INV16[None, :]
@@ -58,23 +69,26 @@ def k_l1_of(h):
 rel = lambda a, b: np.abs(a - b).max() / max(np.abs(b).max(), 1e-9) * 100
 print(f"[torch 自洽] h1_f(m0_vis 续算) vs h1_vis: {rel(h1_f, h1):.2f}%")
 print(f"[链核对] k_l1(h1_vis) vs golden kvk_l1: {rel(k_l1_of(h1), kvk1):.2f}%")
-print(f"[链核对] k_l1(h1_f) vs golden kvk_l1: {rel(k_l1_of(h1_f), kvk1):.2f}%")
 
 cands = {
-    "x0": x0, "m0_vis": m0, "res": res, "norm2": n2, "h1(cur)": h1_f, "h1_vis": h1,
+    "x0": (x0, 2048), "m0": (m0, 2048), "res": (res, 2048), "norm2": (n2, 2048),
+    "gate": (gate, 16384), "up": (up, 16384), "gact": (gact, 16384), "act": (act, 16384),
+    "down": (down, 2048), "h1": (h1_f, 2048), "h1_vis": (h1, 2048),
 }
-print("\n[槽位判读] 36+ 为调试槽（值匹配最好的级）:")
+print("\n[槽位判读] 全级匹配（每槽最好的三级）：")
 for i in range(36, 55):
     try:
         v = np.fromfile(f"/data/apxinf/dump712/ge_slot{i}.f16", dtype=np.float16).astype(np.float64)
     except OSError:
         break
-    if v.size != x0.size:
-        print(f"  slot{i}: size {v.size} ≠ {x0.size}（k/v 槽？）")
+    matches = []
+    for n, (ref, w) in cands.items():
+        if v.size != P * w:
+            continue
+        matches.append((rel(v.reshape(P, w), ref), n))
+    if not matches:
+        print(f"  slot{i}: size {v.size} 无匹配宽度")
         continue
-    v = v.reshape(P, 2048)
-    best = sorted(((rel(v, ref), n) for n, ref in cands.items()))[0]
-    print(f"  slot{i}: 最匹配 {best[1]} ({best[0]:.2f}%)  " +
-          "  ".join(f"{n}={rel(v, r):.1f}%" for n, r in list(cands.items())[:0]))
-    # 全级数值一行打全
-    print("        " + "  ".join(f"{n}:{rel(v, r):.1f}%" for n, r in cands.items()))
+    matches.sort()
+    top = "  ".join(f"{n}:{d:.2f}%" for d, n in matches[:3])
+    print(f"  slot{i} [{v.size // 712} 宽]: {top}")

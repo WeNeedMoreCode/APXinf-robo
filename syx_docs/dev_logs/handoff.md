@@ -2,7 +2,7 @@
 
 ## 状态一句话
 
-**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/replay 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；**剩余漂移精确定位：引擎 MLP 段（m0 0.52% → norm2 2.82% → h1 35.5%——attention 无罪，gate/up→gelu→mul→down(K=16384) 段放大）**，逐层复合至 l17 84% → final actions 323%。详见 summary 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix 115.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66×）**。
+**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/replay 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；**剩余漂移精确定位：层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差（m0 0.52% 输入传播上界仅 0.03%、torch 同链 f16 全程 0.03%——真执行误差非累积序；down/act 只 3.05/3.15% 无罪，gate/up 槽系覆写垃圾）**，逐层复合至 l17 84% → final actions 323%。详见 summary 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix 115.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66×）**。
 
 ## ① Compact 参数（贴到 /compact 后）
 
@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自洽，剩余 = 引擎 MLP 段 f16 数值：m0 0.52% → h1 35.5%，嫌疑 down_proj K=16384 累加——见 summary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：① **down_proj 单算对拍**（真权重真 act 输入：GE mm vs aclnn eager vs f64——GEB_OPTEST 扩展或隔离图）；② gate/up mm 同测；③ |act| 幅值分布检查（gelu·mul 中间量可能进 f16 精度差区）；④ 修复候选：split-K down（2×8192 mm+add）/ act 预除尺度 / WCONST 开关对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_DUMP_MID + slot_cmp712.py。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。
+继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 summary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 mm vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712dbg OM 现成）；② addrms 同测（真 res 输入）；③ 若 mm 定罪 → WCONST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。
 
 ## ③ Export 标题建议
 
