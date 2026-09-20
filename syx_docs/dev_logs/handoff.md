@@ -1,17 +1,18 @@
-# Handoff（2026-09-20 晚 M3 对拍偏差定位 / 压缩用）
+# Handoff（2026-09-21 凌晨 M3 empty_camera 语义根因 / 压缩用）
 
 ## 状态一句话
 
-**M3 314% 漂移已拆解定位：① rope f16-inv_freq 语义差已修（kvk_l0 12.6%→0.4%，t200 OM 重烤，子模块 c7db8c8）；② 引擎语义/权重/attention/MLP 全部教科书级洗清（0.03-0.14%）；③ 剩余偏差钉死在 GE OM 图内数值行为——同一算子链 x0 输入 0.4% vs golden-h1 输入 18.7%（数据依赖、数值级非结构级）**。详见 summary 2026-09-20_m3-parity-drift-bisect（裁决表 + 已排除清单 + 工具链用法）。
+**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/replay 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%；**剩余漂移精确定位：引擎 MLP 段（m0 0.52% → norm2 2.82% → h1 35.5%——attention 无罪，gate/up→gelu→mul→down(K=16384) 段放大）**，逐层复合至 l17 84% → final actions 323%。详见 summary 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix 115.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66×）**。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**bisect 裁决链**（vision 0.3%/x0 0.1%/权重 0.000%/attention+MLP 复刻 0.03-0.14% 全清；rope f16-inv_freq 根因+修复+rope_angle()；剩余=GE OM 数值：h1 输入同链 18.7% vs x0 0.4%，图 k_l1 值随内存计划变 41↔23.7%、中间量输出槽被图内复用覆写 res→norm2 实证）；**golden v2 键**（vision_out/x0/kvk_l{0..17}/m0/h1/step0_x1 + q0i/k0i/v0i；陷阱：paligemma.language_model 直接 .forward() 绕 hook、GemmaModel None mask 会 create_causal_mask）；**probe 新旋钮**（GEB_DEPTH_VISION/PREFIX、GEB_ATTN_PREFIX、GEB_E2E_STOP、GEB_LAYER_OFFSET、GEB_E2E_X0_KEY、GEB_DBG_MID/FULL、GEB_E2E_DUMP_MID、GEB_OUT_PAD）；**分析脚本七件**（l0_bisect/rope_probe/attn_scale_probe/attn_l0_h1/weights_cmp/m0_variants/stage_cmp，服务器 /data/apxinf/ 有同步副本）。丢弃：过程性烤图/跑批命令（模板在 summary 末尾）。
+聚焦保留：**empty_camera 根因链**（golden v2 混世界：infer-hook 键 vs 968 全开 replay 键——m0_gold 偏全开 35.31% 偏 causal 94.31% 属第三世界 = pad 遮蔽+位置塌缩；修复 GEB_PREFIX_DROP_EMPTY=256 + golden v3 + t712 OM）；**修复后指标**（x0_vis 0.1/kvk_l0 0.3/kvk_l1 45.2 净图 24.7 dbg 图/step0_x1 10.1/actions 323 复合）；**剩余定位**（MLP 段：slot_cmp712 槽位判读 m0_vis 0.52 → norm2 2.82 → h1(cur) 35.53——图槽判读法 + t712dbg OM + DUMP_MID）；**golden v3 键**（x0_vis/m0_vis/h1_vis/kvk_l* 全 712 语义 + infer 侧原键；golden_gen_v3.py，自洽 0.03-0.12%）；**方法论教训**（golden 与被测须同 forward 语义；先证 golden 自洽再怪引擎——AddRmsNorm/WCONST/mm/槽位复用四嫌疑全被 golden 不自洽假象浪费排除）。丢弃：过程性脚本中间版（八件新脚本在 summary 列全）。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（rope 已修、语义全清，剩 GE OM 图内数值级偏差：golden h1 直入同链 18.7% vs x0 0.4%——见 summary 2026-09-20_m3-parity-drift-bisect 裁决表）**。性能基线（rope 修复后 t200，零回归）：prefix 138.81ms@968 / flow 8.12ms/步 / vision 55.86ms → **稳态 e2e ≈ 275.6ms = CUDA 378ms 线的 0.73×**。第一动作（按嫌疑序）：① **AddRmsNorm f16 方差/累加在大动态范围输入的精度**——optest 单算子复测（真权重、真 x0/h1 输入，golden h1 已在 frame0.safetensors）；② **WCONST vs Data 权重数值差**——同图关 WCONST 重烤 d2 对比（GEB_WCONST 不设 + 手动喂权重 Data）；③ mm cube 累加精度——GE vs aclnn eager 单算对拍；④ 输出槽复用覆写——需观测节点防复用。修到 kvk 全层 ≤5% → e2e 终态复测 → 延迟 bench → LIBERO（9/10）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden/分析脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 要全路径文件名。
+继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自洽，剩余 = 引擎 MLP 段 f16 数值：m0 0.52% → h1 35.5%，嫌疑 down_proj K=16384 累加——见 summary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：① **down_proj 单算对拍**（真权重真 act 输入：GE mm vs aclnn eager vs f64——GEB_OPTEST 扩展或隔离图）；② gate/up mm 同测；③ |act| 幅值分布检查（gelu·mul 中间量可能进 f16 精度差区）；④ 修复候选：split-K down（2×8192 mm+add）/ act 预除尺度 / WCONST 开关对比。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_DUMP_MID + slot_cmp712.py。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-parity-drift-bisect.txt（M3 偏差定位：bisect 工具链 + rope 根因修复 + GE OM 数值残留）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-empty-camera-mask-root-cause.txt（M3 真根因：empty_camera 视图语义 + 712 修复 + MLP 段剩余定位）
+
