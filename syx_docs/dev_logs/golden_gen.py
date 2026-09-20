@@ -39,7 +39,13 @@ def make_hook(name):
     def f(mod, args, kwargs, out):
         if name in cap:
             return
-        cap[name] = {i: a.detach().clone() for i, a in enumerate(args) if torch.is_tensor(a)}
+        entry = {i: a.detach().clone() for i, a in enumerate(args) if torch.is_tensor(a)}
+        for k, v in kwargs.items():
+            if torch.is_tensor(v):
+                entry[("kw", k)] = v.detach().clone()
+        if torch.is_tensor(out):
+            entry["out"] = out.detach().clone()
+        cap[name] = entry
     return f
 
 
@@ -50,6 +56,12 @@ for name, mod in model.named_modules():
         targets.setdefault("vision_tower", name)
     if low.endswith("embed_tokens"):
         targets.setdefault("embed_tokens", name)
+    # projector：链上的 linear，其输出 = probe 的 vision_out [768,2048]
+    if "multi_modal_projector" in low and isinstance(mod, torch.nn.Linear):
+        targets.setdefault("projector", name)
+    # language_model：抓 inputs_embeds（= probe 组装的 x0 [968,2048]）
+    if low.endswith("paligemma.model.language_model"):
+        targets.setdefault("langmodel", name)
 if len(targets) < 2:  # 没命中就打全量模块名，下次修
     print("[recon] MISS targets:", targets)
     for name, _ in model.named_modules():
@@ -99,13 +111,22 @@ print("[recon] top id counts:", cnt.most_common(3))  # 占比过高 = 仍有 pad
 from safetensors.numpy import save_file  # noqa: E402
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-save_file(
-    {
-        "patches": patches.astype(np.float32),
-        "token_ids": ids.numpy().astype(np.float32),
-        "noise": noise,
-        "actions": np.asarray(norm_actions, dtype=np.float32),
-    },
-    OUT,
-)
+golden = {
+    "patches": patches.astype(np.float32),
+    "token_ids": ids.numpy().astype(np.float32),
+    "noise": noise,
+    "actions": np.asarray(norm_actions, dtype=np.float32),
+}
+# 中间量（probe 段边界 bisect 用）：projector 输出 = vision_out [768,2048]；
+# langmodel 首个张量输入（inputs_embeds/hidden_states）= x0 [968,2048]
+golden["vision_out"] = cap["projector"]["out"].float().reshape(-1, 2048).cpu().numpy()
+if "langmodel" in cap:
+    lm_in = cap["langmodel"]
+    x0_t = lm_in.get(("kw", "inputs_embeds"), lm_in.get(0))
+    golden["x0"] = x0_t.float().reshape(-1, 2048).cpu().numpy()
+    print("[recon] vision_out", golden["vision_out"].shape, "x0", golden["x0"].shape)
+else:
+    print("[recon] WARN langmodel 未命中，targets=", targets, "captured=", list(cap))
+    print("[recon] vision_out", golden["vision_out"].shape)
+save_file(golden, OUT)
 print("saved:", OUT)
