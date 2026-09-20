@@ -31,12 +31,13 @@
 - **待 golden 裁决**：suffix att_masks `[1]+[0]*49`（make_att_2d_masks 语义——action tokens 间互相可见性 vs 引擎 cross-attn 全拼 kv）；prefix 漂移 100% 实际影响；patch 行序 (c,kh,kw)（引擎与 F.unfold 同构，按构造应一致但从未被真图验证）
 - time_mlp/te 维度 ✓ 一致（te=1024=min AW、min/max period 同 config）；position_ids=cumsum-1 → suffix 从 832 续 ✓ 与引擎 flow rope offset=832 一致
 
-1. **golden 一帧已产出**（2026-09-20 晚，`/data/apxinf/golden/frame0.safetensors`，脚本 `syx_docs/dev_logs/golden_gen.py` ↔ 服务器 `/data/apxinf/golden_gen.py`；npu 容器跑法 `export PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf:$PYTHONPATH` **追加勿覆盖** + `ASCEND_RT_VISIBLE_DEVICES=N`）。侦察实锤四条：
-   - pixel_values **(3,3,224,224)** min=-1.0——三视图 + empty 相机 -1 pad 实锤，VT=768 无矛盾
-   - patches (768,588) F.unfold 构造正合（行 (c,kh,kw)）
-   - **input_ids len=200**（tokenizer pad 到 max_length；~50 真 token + 150 pad，pad mask=0 不参与 attention/position）→ **真实 prefix = 768+200=968，且 968 非 16 倍数 = 对齐死结**：候选解法 a) GE 静态 OM 直接编 M=968 试一把（非 16 倍 M 崩是 eager aclnn 经验，GE 未必）+ golden 任务文本填满 200 全真 token（pad token 引擎侧无 mask，必须消 pad）b) 引擎图内/host pad 到 976（GEB_TOKENS=208）但 torch 侧 200 上限锁死 → 两路输入不一致，不可行 → **先试 a**
-   - **actions (50,7)**：predict_action_chunk 返回已切 deployable 维——probe 对拍须取 e2e 输出前 7 列（golden 键 actions 即 (50,7)，probe 侧比较代码要适配）
-2. **对拍执行**（token 对齐解开后）：`GEB_E2E_GOLDEN=/data/apxinf/golden/frame0.safetensors GEB_TOKENS=<对齐值> GEB_SEG=e2e 四件套 GEB_CKPT=...`；⚠ prefix/flow OM 需按新 P 重建（GEB_SAVE 重烤，分钟级）
+1. **golden 一帧已产出 + 首次对拍已执行（2026-09-20 晚收尾）**：
+   - golden：`/data/apxinf/golden/frame0.safetensors`（脚本 `syx_docs/dev_logs/golden_gen.py` ↔ 服务器 `/data/apxinf/golden_gen.py`；npu 容器跑法 `export PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf:$PYTHONPATH` **追加勿覆盖**）。侦察实锤：pixel_values (3,3,224,224) min=-1.0（三视图+empty 相机 -1 pad）、patches (768,588) 正合、input_ids pad 到 max_length=200、actions = predict_action_chunk 的 **(50,7) deployable 切片**
+   - **token 对齐死结已解**：GE 静态 OM 接受非 16 倍 M（GEB_TOKENS=200 → P=968 编译/运行/parity 全通，d2 17.8% 与 832 同量级——eager aclnn 的 16 倍 M 崩坑不适用 GE 路径）；golden 侧任务文本重复短语填满 200 全真 token（消 pad——引擎无 mask）
+   - **t200 OM 三件套**：`/data/apxinf/om_cache/t200/{vision,prefix,flow}_real.om`（vision 与 token 数无关复用；prefix 138.6ms@968 / flow 8.09ms/步）
+   - **首次 golden 对拍：max_diff=3.32 vs golden |max|=1.05（314%）**——链路全通、量级同 golden（|x|max ~3.1-3.6，非 OOD 爆炸）但存在系统偏差。候选定位方向（下一步逐段 bisect）：suffix att_masks `[1]+[0]*49`（action token 互见性 vs 引擎 cross-attn 全拼 kv）、prefix 100% 漂移放大（层 0 K/V 逐位一致但深层放大）、patch 行序实证、time 融合/ada-cond 细节
+   - 运行模板：`GEB_SEG=e2e 四件套 GEB_CKPT=... GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t200 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0.safetensors ./target/release/examples/ge_model_probe`
+2. **对拍偏差定位循环**（M3 主战场）：段边界 bisect——golden 侧加 dump 中间量（vision_out、x0、prefix k/v 层 0、step0 x）逐段比对，先钉死第一分岔点
 3. LIBERO 对标（9/10 基线）→ 真实 e2e 延迟 bench（host 中转/61s 加载/占位 tokenizer 一并工程化）
 4. 后置：pk/pv 设备直连（免 host 中转）、checkpoint 按段懒加载、真 tokenizer 进 Rust
 

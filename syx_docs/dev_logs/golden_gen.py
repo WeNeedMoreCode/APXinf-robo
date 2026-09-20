@@ -65,7 +65,9 @@ obs = {
     pol.image_keys[0]: rng.integers(0, 256, (256, 256, 3), dtype=np.uint8),
     pol.image_keys[1]: rng.integers(0, 256, (256, 256, 3), dtype=np.uint8),
     pol.state_key: rng.uniform(-1, 1, 8).astype(np.float32),
-    "prompt": "pick up the black bowl and place it on the stove",
+    # 任务文本填满：tokenizer pad 到 max_length=200（截断超出）——重复短语
+    # 让 200 个全为真 token、无 pad（引擎 prefix 无 attention mask，pad 不能进）
+    "prompt": ("pick up the black bowl and place it on the stove. " * 30),
 }
 noise = rng.standard_normal((50, 32)).astype(np.float32)
 
@@ -88,7 +90,11 @@ patches = u.permute(0, 2, 1).reshape(-1, u.shape[1]).numpy()  # 行 (c,kh,kw)
 print("[recon] patches", patches.shape)
 
 ids = cap["embed_tokens"][0].reshape(-1).cpu()
+from collections import Counter  # noqa: E402
+
+cnt = Counter(ids.tolist())
 print("[recon] input_ids len", ids.numel(), "head", ids[:24].tolist())
+print("[recon] top id counts:", cnt.most_common(3))  # 占比过高 = 仍有 pad
 
 from safetensors.numpy import save_file  # noqa: E402
 

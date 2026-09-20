@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3 收尾（e2e 链已通 + 语义对齐 + golden 一帧已产出：/data/apxinf/golden/frame0.safetensors，见 summary 2026-09-20_m3-e2e-chain-wiring）**。第一动作：**解 token 对齐死结 → 对拍**——golden 侦察实锤 input_ids=200（tokenizer pad 到 max，真实 prefix=968 且非 16 倍数；actions 是 (50,7) 切片）。三步：① rust 容器试 `GEB_SEG=prefix GEB_TOKENS=200 GEB_DEPTH=2`（四件套+GEB_CKPT，最小深度）看 GE 静态 OM 是否接受 M=968 非 16 倍（eager aclnn 会崩，GE 未必）——能编则 golden 脚本改任务文本填满 200 全真 token（消 pad——引擎无 mask，pad token 不能进）重产 golden，再 `GEB_TOKENS=200 GEB_SAVE` 重烤 prefix/flow OM 后 `GEB_E2E_GOLDEN=... GEB_SEG=e2e` 对拍（probe 侧比较须取前 7 列 vs golden actions (50,7)——需要小改 golden 比较段）；② 编不过则备选：host pad x0 到 976（图仍按 976 建，末 8 行用任意重复 token——但 torch 侧锁 200 不可行 → 改走"引擎 M-padding 规则泛化"路线论证；③ 对拍通过后：真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）。同帧还裁决：suffix att_masks [1]+[0]*49、prefix 100% 漂移实际影响、patch 行序。⚠ 时间纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖（golden 脚本已踩）。
+继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（首帧 golden 对拍已执行：max_diff=3.32/314%——链路全通量级正常但系统偏差，见 summary 2026-09-20_m3-e2e-chain-wiring；t200 OM 三件套 + golden 已就位）**。第一动作：**段边界 bisect 钉第一分岔点**——golden_gen.py 扩 dump：vision_tower 输出（post-projector 前的 vision 输出过 projector 后的 768×2048）、embed_prefix 输出 x0（968×2048）、prefix 首层 k/v、flow step0 输出 x1，同帧重跑存 frame0_full.safetensors；probe e2e 各段后加 GEB_TRACE 式对拍打印（vision_out/x0/kv0/step0 vs golden 逐段 max_diff）——第一分岔段即凶手。已知候选排序：① suffix att_masks `[1]+[0]*49`（modeling_pi05 L752——action tokens 只有第 1 个可被 prefix 侧看见？make_att_2d_masks 语义要读源码，引擎 cross-attn 是全拼 kv 无此 mask）② prefix 100% 漂移放大（GE vs eager 已知，对 golden 是首次实证）③ patch 行序 (c,kh,kw) ④ time/ada-cond 细节（te 维度 1024 已对齐）。之后：修正→对拍≤5% 量级 → 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden 脚本在 syx_docs/dev_logs/golden_gen.py。
 
 ## ③ Export 标题建议
 
