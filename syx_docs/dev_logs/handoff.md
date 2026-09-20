@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（rope 已修、语义全清，剩 GE OM 图内数值级偏差：golden h1 直入同链 18.7% vs x0 0.4%——见 summary 2026-09-20_m3-parity-drift-bisect 裁决表）**。第一动作（按嫌疑序）：① **AddRmsNorm f16 方差/累加在大动态范围输入的精度**——optest 单算子复测（真权重、真 x0/h1 输入，golden h1 已在 frame0.safetensors）；② **WCONST vs Data 权重数值差**——同图关 WCONST 重烤 d2 对比（GEB_WCONST 不设 + 手动喂权重 Data）；③ mm cube 累加精度——GE vs aclnn eager 单算对拍；④ 输出槽复用覆写——需观测节点防复用。修到 kvk 全层 ≤5% → e2e 终态复测 → 延迟 bench → LIBERO（9/10）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden/分析脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 要全路径文件名。
+继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（rope 已修、语义全清，剩 GE OM 图内数值级偏差：golden h1 直入同链 18.7% vs x0 0.4%——见 summary 2026-09-20_m3-parity-drift-bisect 裁决表）**。性能基线（rope 修复后 t200，零回归）：prefix 138.81ms@968 / flow 8.12ms/步 / vision 55.86ms → **稳态 e2e ≈ 275.6ms = CUDA 378ms 线的 0.73×**。第一动作（按嫌疑序）：① **AddRmsNorm f16 方差/累加在大动态范围输入的精度**——optest 单算子复测（真权重、真 x0/h1 输入，golden h1 已在 frame0.safetensors）；② **WCONST vs Data 权重数值差**——同图关 WCONST 重烤 d2 对比（GEB_WCONST 不设 + 手动喂权重 Data）；③ mm cube 累加精度——GE vs aclnn eager 单算对拍；④ 输出槽复用覆写——需观测节点防复用。修到 kvk 全层 ≤5% → e2e 终态复测 → 延迟 bench → LIBERO（9/10）。⚠ 纪律：不估时间只看 date；PYTHONPATH 追加勿覆盖；golden/分析脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 要全路径文件名。
 
 ## ③ Export 标题建议
 

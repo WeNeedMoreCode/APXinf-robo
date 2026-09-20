@@ -37,6 +37,18 @@
 - denoise_step 结构：suffix 联合 attention 拼接 [prefix;suffix] kv + position 968..1017 + cache k 已 rope——引擎 `kcat/vcat ConcatD` + `rope_flat_const(HOR,·,p)` 动态 offset 全对齐
 - (1+w) 折叠 / gate/up 交换 / gelu 近似模式 / RMS_EPS / 位置 / GemmaAdaLayerNorm chunk 序：逐项核过 ✓
 
+## 性能核对（rope 修复后 t200 OM，GEB_ROUNDS=5 GEB_PER=3 小规模）
+
+| 段 | 修复后 | 修复前（前次烤） | 备注 |
+|---|---|---|---|
+| prefix @968 | **138.81 ms** | 138.6 ms | 持平——rope 修复只改 host 常量表生成，零回归 |
+| flow /步 | **8.12 ms** | 8.09 ms | 同上 |
+| vision | 55.86 ms（未重烤，与 token 数无关） | 同 | |
+| **稳态 e2e 推算** | **55.86 + 138.81 + 10×8.12 ≈ 275.6 ms** | ≈275 ms | vs CUDA 378ms 线 ≈ **0.73×**；对标 torch_npu TorchAir e2e 稳态 374ms ≈ 0.74× |
+
+隔离小图（非产品口径）：d2 manual 8.77ms / d2off 8.83ms / d2+DBG_FULL 12.53ms（调试输出 tap 有 ~40% 开销）/ d2 PFA 9.01ms。
+e2e 一次性墙钟（含 OM 加载 + host 组装，非稳态）：vision 10.1s / prefix 77.9s（含 2.1GB 嵌入 f32 物化）/ flow 9.7s——工程化项（61s 权重加载、host 中转、按段懒加载）仍归后置。
+
 ## 剩余问题（下一步）
 
 **GE prefix OM 在真实幅值输入下 norm→k_proj→rope 链数值偏差 ~19%**（golden h1 直入 + L1 权重实测），逐层复合后至 l17 85%、e2e 终态 314%。x0 输入同链 0.4%——嫌疑集中在 f16 数值路径：
