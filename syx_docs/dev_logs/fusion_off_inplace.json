@@ -1,0 +1,8 @@
+{
+  "Switch": {
+    "GraphFusion": {
+      "InplaceAddRmsNormFusionPass": "off"
+    },
+    "UBFusion": {}
+  }
+}

@@ -1,0 +1,3677 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 本轮 goal 收口（01:34，远早于 02:30 线，全量文档已更新提交）。
+
+  今晚战果：314% 漂移真根因终结
+
+  根因（五步裁决链钉死）：golden_gen 按 LIBERO 9/10 语义只喂 2
+  真实视图，empty_camera 走 missing 路径——pad_mask=0 遮蔽这 256 个 key + 
+  文本位置塌缩到 512..711；引擎（和 golden v2 的
+  replay）都把它们当一等公民。前晚“GE OM 图内数值”的诊断被推翻——golden v2
+  自己混了两个语义世界（infer-hook 键 vs 968 全开 replay
+  键），造出引擎漂移假象。
+
+  修复：GEB_PREFIX_DROP_EMPTY=256（x0 剔除空视图行 968→712，pad 列 softmax
+  贡献恰为 0 故数学等价，theory_check 实证 0.128%）+ golden v3 自洽重产 + t712
+  OM。
+
+  修复后：x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%（原终态
+  314%）；性能白赚——prefix 115.62ms@712、flow 7.64 → 稳态 e2e ≈ 248ms = 378 线 
+  0.66×。
+
+  剩余漂移（已精确定位+连环洗冤）：
+  - 槽位判读：m0 0.52% → norm2 2.82% → down 3.15%（MLP 主体无罪）
+  - 误差结构：无行缩放 → addrms 无罪；通道结构（top10 通道 12-30× 中位）
+  - oproj 单算（真 m0_vis × 真权重，cst/nd 两形态）：GE vs eager 逐位 
+    0.000%——o_proj mm 无罪
+  - ⇒ 结论：2.8% 产自图内 manual attention 链的真实输出（m0 槽回读 0.52%
+    美化了实际消费值——“槽与消费值不一致”再现），下一动作 = attention
+    链孤立对拍（handoff 已备）
+
+  提交：子模块 451cb4b+da456d4（drop 修复 + oproj/arm optest）已推
+  fork/ascend-port；外层 68d9486→1b86f1b 四笔。九个新取证脚本镜像在
+  syx_docs/dev_logs/。
+
+  另：全局 CLAUDE.md 的 goal 时间纪律本轮首次实战——23:30
+  锚点、两次单点查表、无轮询，按约收工。
+
+✔ Goal achieved (2h · 1 turn · 171.4k tokens) (ctrl+o to expand)
+
+✻ Brewed for 2h 5m 13s · done 1:34 AM
+
+※ recap: M3 对拍偏差定位：314% 根因（空视图语义）今晚已修复、验证并全部提交，剩余约 2.8% 误差定位到图内 attention 链真实输出。下一步：用真 x0_vis 孤立复刻 attention 链，对拍 golden m0_vis 定罪。
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   291.8k/1m tokens (29%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 289.3k tokens (28.9%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 707.8k (70.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-empty- 
+camera-mask-root-cause                                                          
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-21_m3-empty-camera-mask-root-cause.txt
+
+❯ /compact 聚焦保留：**empty_camera 根因链**（golden v2 混世界：infer-hook 键   
+vs 968 全开 replay 键——m0_gold 偏全开 35.31% 偏 causal 94.31% 属第三世界 = pad  
+遮蔽+位置塌缩；修复 GEB_PREFIX_DROP_EMPTY=256 + golden v3 + t712                
+OM）；**修复后指标**（x0_vis 0.1/kvk_l0 0.3/kvk_l1 45.2 净图 24.7 dbg           
+图/step0_x1 10.1/actions 323 复合）；**剩余定位**（MLP 段：slot_cmp712 槽位判读 
+m0_vis 0.52 → norm2 2.82 → h1(cur) 35.53——图槽判读法 + t712dbg OM +             
+DUMP_MID）；**golden v3 键**（x0_vis/m0_vis/h1_vis/kvk_l* 全 712 语义 + infer   
+侧原键；golden_gen_v3.py，自洽 0.03-0.12%）；**方法论教训**（golden 与被测须同  
+forward 语义；先证 golden 自洽再怪引擎——AddRmsNorm/WCONST/mm/槽位复用四嫌疑全被 
+golden 不自洽假象浪费排除）。丢弃：过程性脚本中间版（八件新脚本在 summary       
+列全）。                                                                        
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read 
+     syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md (75
+     lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (165 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (19 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3                                        
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU **C 路线 M3
+
+  Thought for 1m 15s (ctrl+o to expand)
+
+● Goal 收到——继续 C 路线 M3：manual attention 链孤立对拍（第一动作）+ arm rc=-3
+  顺手查。开工先记时间锚点，然后读 optest/attn 相关代码段。
+
+● Bash(date)
+  ⎿  Mon, Sep 21, 2026  9:30:22 AM
+
+  Thought for 3s, searched for 1 pattern (ctrl+o to expand)
+
+● 09:30 锚点。读 oproj 模式（作模板）和 seg_prefix 里 manual attention
+  的算子序列。
+
+  Thought for 4s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 读 seg_prefix 的层构造（attention 段完整算子序列），这是最小图要复刻的部分。
+
+  Thought for 1m 8s, read 1 file (ctrl+o to expand)
+
+● 层序列清楚了。现在读 Seg 辅助方法签名（addrms/mm/bias/rope2_flat/headsplit/att
+  n_manual_gqa/headmerge/wt），最小图要精确复用它们。
+
+  Thought for 9s, read 1 file (ctrl+o to expand)
+
+● 再看 rope2_flat 头部、wt/data/data_zeros 与模块常量。
+
+  Thought for 51s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 签名齐了。看 main() 里 optest 的分发与 real 加载方式，然后写 "attn" 模式。
+
+  Thought for 36s, read 1 file (ctrl+o to expand)
+
+● 写 "attn" 模式前最后确认 finish() 的编译/输入处理。
+
+  Thought for 55s, read 1 file (ctrl+o to expand)
+
+● finish() 确认无碍（WCONST 时 Const 不进 names/ins，一致）。写 "attn"
+  模式——最小图复刻生产 L0 算子序列，逐级 fresh 输出：
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 126 lines, removed 1 line
+      3911                  std::fs::write(format!("/tmp/oproj_ge{variant
+            }.f16"), &bytes).expect("dump ge");
+      3912              }
+      3913          }
+      3914 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm, got {other}"),                        
+      3914 +        // attn: manual attention 链孤立对拍（2026-09-21 M3  
+           +第一动作）。                                                 
+      3915 +        // 裁决"槽与消费值不一致"：全图 m0 槽回读 0.52% 但 no
+           +rm2 级 2.82%，                                               
+      3916 +        // oproj 单算（干净上传 buffer）已证 GE mm 逐位 0.000
+           +% ⇒ 嫌疑只剩                                                 
+      3917 +        // ① 图内 attention 链真实输出本就 2.8% 级（槽值被覆 
+           +写美化）或                                                   
+      3918 +        // ② o_proj 消费 headmerge 图内产物时布局/状态异常。 
+           +本模式：真                                                   
+      3919 +        // x0_vis(712×2048) 输入，[norm1→qkv3→ropeflat→headsp
+           +lit→GQA→                                                     
+      3920 +        // headmerge→o_proj→+res] 最小图（生产四件套同款算子 
+           +序列与 scale                                                 
+      3921 +        // 折叠；配 GEB_WCONST=1 同款 Const 权重），逐级 rank
+           +-2 输出全是                                                  
+      3922 +        // fresh buffer——链尾无后续算子，槽位覆写不可能。判读
+           +：m0sq vs                                                    
+      3923 +        // golden m0_vis（①裁决）；res vs golden res0（②裁决—
+           +—mm 消费的                                                   
+      3924 +        // 是本图 headmerge 产物而非上传 buffer）。逐级落盘  
+      3925 +        // /tmp/attnmin_*.f16 供离线结构分析                 
+      3926 +        "attn" => {                                          
+      3927 +            let real = real.expect("attn 需要 GEB_CKPT");    
+      3928 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("attn 需要 GEB_E2E_GOLDEN（golden v3）");                  
+      3929 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      3930 +                .expect("golden load");                      
+      3931 +            let gf = |k: &str| -> Vec<f16> {                 
+      3932 +                let v = t.get(k).unwrap_or_else(|| panic!("go
+           +lden 缺 {k}")).to_f32_vec().unwrap();                        
+      3933 +                v.iter().map(|&x| f16::from_f32(x)).collect()
+      3934 +            };                                               
+      3935 +            let (x0h, m0h, resh) = (gf("x0_vis"), gf("m0_vis"
+           +), gf("res0"));                                              
+      3936 +            let p = 712i64;                                  
+      3937 +            assert_eq!(x0h.len(), (p * PW) as usize, "x0_vis 
+           +长度 ≠ 712×2048");                                           
+      3938 +            let pscale = 1.0f32 / (HD as f32).sqrt();        
+      3939 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      3940 +            let mut s = Seg::new("attn_min");                
+      3941 +            s.data(ctx, "x0", &[p, PW], &x0h);               
+      3942 +            s.data_zeros(ctx, "zeros", p, PW);               
+      3943 +            // rope flat 表（prefix 语义 pos_offset=0，f16 量
+           +化同源）                                                     
+      3944 +            let (qc, qs, qi) = rope_flat_const(p, HEADS, 0); 
+      3945 +            let (kc, ks, ki) = rope_flat_const(p, KV_HEADS, 0
+           +);                                                           
+      3946 +            let (qf, kf) = ((p * HEADS * 2, HD / 2), (p * KV_
+           +HEADS * 2, HD / 2));                                         
+      3947 +            s.data(ctx, "qcos", &[qf.0, qf.1], &qc);         
+      3948 +            s.data(ctx, "qsin", &[qf.0, qf.1], &qs);         
+      3949 +            s.data(ctx, "kcos", &[kf.0, kf.1], &kc);         
+      3950 +            s.data(ctx, "ksin", &[kf.0, kf.1], &ks);         
+      3951 +            s.const_i32("qswap_c", &qi);                     
+      3952 +            s.const_i32("kswap_c", &ki);                     
+      3953 +            s.const_i32("shp_qflat", &[qf.0 as i32, qf.1 as i
+           +32]);                                                        
+      3954 +            s.const_i32("shp_kflat", &[kf.0 as i32, kf.1 as i
+           +32]);                                                        
+      3955 +            s.const_i32("shp_kb2", &[p as i32, KVD as i32]); 
+      3956 +            s.const_i32("shp_q3", &[1, p as i32, QD as i32]);
+      3957 +            s.const_i32("shp_k3", &[1, p as i32, KVD as i32])
+           +;                                                            
+      3958 +            s.const_i32("shp_v3", &[1, p as i32, KVD as i32])
+           +;                                                            
+      3959 +            s.const_i32("shp_mq4", &[1, p as i32, HEADS as i3
+           +2, HD as i32]);                                              
+      3960 +            s.const_i32("shp_mq3", &[HEADS as i32, p as i32, 
+           +HD as i32]);                                                 
+      3961 +            s.const_i32("shp_ma4", &[1, HEADS as i32, p as i3
+           +2, HD as i32]);                                              
+      3962 +            s.const_i32("shp_mflat", &[p as i32, QD as i32]);
+      3963 +            // L0 真权重（q 侧折 1/√hd——图内无 scale 算子，同
+           +生产 manual                                                  
+      3964 +            // 路径；Gemma 投影 bias = zeros）               
+      3965 +            s.data(ctx, "g1", &[PW], &t_f16(&lay.input_norm_s
+           +cale));                                                      
+      3966 +            let (wq, wk, wv) =                               
+      3967 +                (lw_f16(&lay.attention.q), lw_f16(&lay.attent
+           +ion.k), lw_f16(&lay.attention.v));                           
+      3968 +            let wq_s: Vec<f16> = wq.iter().map(|v| f16::from_
+           +f32(v.to_f32() * pscale)).collect();                         
+      3969 +            s.wt(ctx, "qw", &[QD, PW], &wq_s, PW, QD);       
+      3970 +            s.wt(ctx, "kw", &[KVD, PW], &wk, PW, KVD);       
+      3971 +            s.wt(ctx, "vw", &[KVD, PW], &wv, PW, KVD);       
+      3972 +            s.data(ctx, "qb", &[1, QD], &vec![f16::from_f32(0
+           +.0); QD as usize]);                                          
+      3973 +            s.data(ctx, "kb", &[1, KVD], &vec![f16::from_f32(
+           +0.0); KVD as usize]);                                        
+      3974 +            s.data(ctx, "vb", &[1, KVD], &vec![f16::from_f32(
+           +0.0); KVD as usize]);                                        
+      3975 +            s.wt(ctx, "outwt", &[PW, QD], &lw_f16(&lay.attent
+           +ion.output), QD, PW);                                        
+      3976 +            s.data(ctx, "outb", &[1, PW], &vec![f16::from_f32
+           +(0.0); PW as usize]);                                        
+      3977 +            // ---- 链：seg_prefix L0 逐算子复刻（qkv3+ropefl
+           +at+manual GQA）----                                          
+      3978 +            let norm1 = s.addrms("n1", "x0", "zeros", "g1", &
+           +[p, PW]);                                                    
+      3979 +            let qm = s.mm("qm", &norm1, &[p, PW], "qw", &[QD,
+           + PW], &[p, QD]);                                             
+      3980 +            let km = s.mm("km", &norm1, &[p, PW], "kw", &[KVD
+           +, PW], &[p, KVD]);                                           
+      3981 +            let vm = s.mm("vm", &norm1, &[p, PW], "vw", &[KVD
+           +, PW], &[p, KVD]);                                           
+      3982 +            let qb_ = s.bias("qb_", &qm, &[p, QD], "qb");    
+      3983 +            let kb_ = s.bias("kb_", &km, &[p, KVD], "kb");   
+      3984 +            let vb_ = s.bias("vb_", &vm, &[p, KVD], "vb");   
+      3985 +            let (qf2, kf2) = ([qf.0, qf.1], [kf.0, kf.1]);   
+      3986 +            let (kr2, kr3) = s.rope2_flat(                   
+      3987 +                "kr", &kb_, &[p, KVD], &kf2, "kcos", "ksin", 
+           +"kswap_c", "shp_kflat", "shp_kb2", "shp_k3",                 
+      3988 +            );                                               
+      3989 +            let (qr2, _) = s.rope2_flat(                     
+      3990 +                "qr", &qb_, &[p, QD], &qf2, "qcos", "qsin", "
+           +qswap_c", "shp_qflat", "shp_mflat", "shp_q3",                
+      3991 +            );                                               
+      3992 +            let v3 = s.reshape("v3", &vb_, &[p, KVD], "shp_v3
+           +", &[1, p, KVD]);                                            
+      3993 +            let q3 = s.headsplit("qh", &qr2, p, 1, p, HEADS, 
+           +HD, "shp_mq4", "shp_mq3");                                   
+      3994 +            let attn = s.attn_manual_gqa("attn", &q3, &kr3, &
+           +v3, HEADS, p, p, HD);                                        
+      3995 +            let sq = s.headmerge("am", &attn, 1, p, HEADS, HD
+           +, "shp_ma4", "shp_mflat");                                   
+      3996 +            let proj = s.mm("proj", &sq, &[p, QD], "outwt", &
+           +[PW, QD], &[p, PW]);                                         
+      3997 +            let projb = s.bias("projb", &proj, &[p, PW], "out
+           +b");                                                         
+      3998 +            let res = s.add2("res", &projb, "x0", &[p, PW]); 
+      3999 +            // 逐级图输出（显示名, 算子名, 列宽）            
+      4000 +            let taps: Vec<(&'static str, String, i64)> = vec!
+           +[                                                            
+      4001 +                ("norm1", norm1, PW),                        
+      4002 +                ("q", qb_, QD),                              
+      4003 +                ("k", kb_, KVD),                             
+      4004 +                ("v", vb_, KVD),                             
+      4005 +                ("qr", qr2, QD),                             
+      4006 +                ("kr", kr2, KVD),                            
+      4007 +                ("m0sq", sq.clone(), QD),                    
+      4008 +                ("res", res, PW),                            
+      4009 +            ];                                               
+      4010 +            let out_names: Vec<&str> = taps.iter().map(|(_, n
+           +, _)| n.as_str()).collect();                                 
+      4011 +            s.finish(&out_names);                            
+      4012 +            let ins: Vec<&DeviceBuffer> = s.ins().collect(); 
+      4013 +            let mut bufs = Vec::new();                       
+      4014 +            for (_, _, w) in &taps {                         
+      4015 +                bufs.push(ctx.malloc((p * w * 2) as usize).un
+           +wrap());                                                     
+      4016 +            }                                                
+      4017 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4018 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4019 +            drop(stream.synchronize());                      
+      4020 +            for ((dn, _, w), buf) in taps.iter().zip(&bufs) {
+      4021 +                let vals = download_f16(ctx, buf, (p * w) as 
+           +usize);                                                      
+      4022 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4023 +                std::fs::write(format!("/tmp/attnmin_{dn}.f16
+           +"), &bytes).expect("dump");                                  
+      4024 +                let tgt: Option<&Vec<f16>> = match *dn {     
+      4025 +                    "m0sq" => Some(&m0h),                    
+      4026 +                    "res" => Some(&resh),                    
+      4027 +                    _ => None,                               
+      4028 +                };                                           
+      4029 +                if let Some(tgt) = tgt {                     
+      4030 +                    let (mut md, mut gm) = (0f32, 0f32);     
+      4031 +                    for (a, b) in vals.iter().zip(tgt.iter())
+           + {                                                           
+      4032 +                        md = md.max((a.to_f32() - b.to_f32())
+           +.abs());                                                     
+      4033 +                        gm = gm.max(b.to_f32().abs());       
+      4034 +                    }                                        
+      4035 +                    println!("attn[{dn}]: vs_golden max_diff=
+           +{md:.5} rel={:.3}%", md / gm * 100.0);                       
+      4036 +                }                                            
+      4037 +            }                                                
+      4038 +        }                                                    
+      4039 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn, got {other}"),                   
+      4040      }
+      4041      println!("OPTEST_{which}_OK");
+      4042      ge_builder::fini().expect("fini");
+
+  Thought for 21s (ctrl+o to expand)
+
+● 代码就位。同步到服务器并编译（tar 管道 + touch 骗增量 + release 例程）：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  4012 |             let ins: Vec<&DeviceBuffer> = s.ins().collect();
+          |                                                   ^^^^^^^ `Vec<
+     &DeviceBuffer>` is not an iterator
+     … +28 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 编译错（只看到尾）。重跑抓全部 error 行：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "source /data/apxinf/rus…)
+  ⎿  error[E0425]: cannot find value `stream` in this scope
+         --> crates/apxinf-model/examples/ge_model_probe.rs:4018:38
+          |
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 两处小错：attn 臂内没建 stream（arm/oproj 都是臂内 be.stream()），以及 ins()
+  已是 Vec。修：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line
+      3933                  v.iter().map(|&x| f16::from_f32(x)).collect()
+      3934              };
+      3935              let (x0h, m0h, resh) = (gf("x0_vis"), gf("m0_vis"
+            ), gf("res0"));
+      3936 +            let stream = be.stream();                        
+      3937              let p = 712i64;
+      3938              assert_eq!(x0h.len(), (p * PW) as usize, "x0_vis 
+            长度 ≠ 712×2048");
+      3939              let pscale = 1.0f32 / (HD as f32).sqrt();
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      4010              ];
+      4011              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            , _)| n.as_str()).collect();
+      4012              s.finish(&out_names);
+      4013 -            let ins: Vec<&DeviceBuffer> = s.ins().collect(); 
+      4013 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4014              let mut bufs = Vec::new();
+      4015              for (_, _, w) in &taps {
+      4016                  bufs.push(ctx.malloc((p * w * 2) as usize).un
+            wrap());
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  help: use `let _ = ...` to ignore the expression or result
+          |
+     4020 -             drop(stream.synchronize());
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 编译过（25.9s，warning 与既有风格一致）。查空闲芯然后跑 attn 对拍（61s
+  权重加载 + 编译 + 运行，几分钟级）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'npu-smi info | grep -E "310P|Total" | head -12')
+  ⎿  | 1       310P3                 | OK              | NA           53
+                  0     / 0             |
+     | 1       310P3                 | OK              | NA           52
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● chip4 占用/告警，chip6 沿用。跑对拍：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "source /data/apxinf/rus…)
+  ⎿  [geb]   out[6] size=2916352 dims=712,2048
+     [geb]   out[7] size=364544 dims=712,256
+     [geb]   out[8] size=2916352 dims=712,2048
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 45s (ctrl+o to expand)
+
+● geb run: n_out 8 != model 10——模型比声明的 8 个输出多 2 个（AddRmsNorm 悬空
+  required 输出被 GE 自动绑定为图输出）。生产路径走 model introspection
+  所以从未踩过。看 geb 客户端的输出 introspection API：
+
+  Thought for 42s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 客户端有 num_outputs()/output_size()/output_dims()
+  introspection。改成按模型声明分配全部输出并逐个 dump + 对 712×2048
+  的槽就地比对 golden——既修 run 又顺便把“多出的 2 个输出是什么”打印出来：
+
+  Thought for 4s, read 1 file (ctrl+o to expand)
+
+● API 齐。重写 attn 臂的运行尾段（模型 introspection 驱动）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 23 lines, removed 16 lines
+      4011              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            , _)| n.as_str()).collect();
+      4012              s.finish(&out_names);
+      4013              let ins: Vec<&DeviceBuffer> = s.ins();
+      4014 +            // 输出按模型 introspection 分配（声明 8 个但模型
+           +可能自动补绑悬空                                             
+      4015 +            // required 输出——首跑实测 model=10 > 声明 8，geb
+           +_run rc=-3；                                                 
+      4016 +            // 全量 dump 后离线按值/形状对号，不猜槽序）     
+      4017 +            let n_out = s.g.num_outputs().unwrap();          
+      4018              let mut bufs = Vec::new();
+      4015 -            for (_, _, w) in &taps {                         
+      4016 -                bufs.push(ctx.malloc((p * w * 2) as usize).un
+           -wrap());                                                     
+      4019 +            for i in 0..n_out {                              
+      4020 +                let sz = s.g.output_size(i).unwrap();        
+      4021 +                let dims = s.g.output_dims(i).unwrap();      
+      4022 +                println!("attn: out[{i}] size={sz} dims={dims
+           +:?}");                                                       
+      4023 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4024              }
+      4025              let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+            llect();
+      4026              s.g.run(&ins, &out_refs, stream).unwrap();
+      4027              drop(stream.synchronize());
+      4021 -            for ((dn, _, w), buf) in taps.iter().zip(&bufs) {
+      4022 -                let vals = download_f16(ctx, buf, (p * w) as 
+           -usize);                                                      
+      4028 +            for (i, buf) in bufs.iter().enumerate() {        
+      4029 +                let sz = s.g.output_size(i).unwrap();        
+      4030 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4031                  let bytes: Vec<u8> = vals.iter().flat_map(|v|
+             v.to_bits().to_le_bytes()).collect();
+      4024 -                std::fs::write(format!("/tmp/attnmin_{dn}.f16
+           -"), &bytes).expect("dump");                                  
+      4025 -                let tgt: Option<&Vec<f16>> = match *dn {     
+      4026 -                    "m0sq" => Some(&m0h),                    
+      4027 -                    "res" => Some(&resh),                    
+      4028 -                    _ => None,                               
+      4029 -                };                                           
+      4030 -                if let Some(tgt) = tgt {                     
+      4031 -                    let (mut md, mut gm) = (0f32, 0f32);     
+      4032 -                    for (a, b) in vals.iter().zip(tgt.iter())
+           - {                                                           
+      4033 -                        md = md.max((a.to_f32() - b.to_f32())
+           -.abs());                                                     
+      4034 -                        gm = gm.max(b.to_f32().abs());       
+      4032 +                std::fs::write(format!("/tmp/attnmin_out{i}.f
+           +16"), &bytes).expect("dump");                                
+      4033 +                // [712,2048] 槽就地双比 golden（m0_vis / res
+           +0）——attention 链                                            
+      4034 +                // 与 o_proj 消费值的一手判读（精确对号离线脚
+           +本做）                                                       
+      4035 +                if vals.len() == (p * PW) as usize {         
+      4036 +                    for (tn, tgt) in [("m0_vis", &m0h), ("res
+           +0", &resh)] {                                                
+      4037 +                        let (mut md, mut gm) = (0f32, 0f32); 
+      4038 +                        for (a, b) in vals.iter().zip(tgt.ite
+           +r()) {                                                       
+      4039 +                            md = md.max((a.to_f32() - b.to_f3
+           +2()).abs());                                                 
+      4040 +                            gm = gm.max(b.to_f32().abs());   
+      4041 +                        }                                    
+      4042 +                        println!("attn[out{i}]: vs_golden_{tn
+           +} max_diff={md:.5} rel={:.3}%", md / gm * 100.0);            
+      4043                      }
+      4036 -                    println!("attn[{dn}]: vs_golden max_diff=
+           -{md:.5} rel={:.3}%", md / gm * 100.0);                       
+      4044                  }
+      4045              }
+      4046          }
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  warning: `apxinf-model` (example "ge_model_probe") generated 39 warnin
+     gs (run `cargo fix --example "ge_model_probe"` to apply 1 suggestion)
+         Finished `release` profile [optimized] target(s) in 27.71s
+     … +40 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 2m 0s (ctrl+o to expand)
+
+● 重大转折：按值对号——out[8] = m0sq 0.229% vs golden m0_vis、out[9] = res 0.089%
+  vs golden res0。孤立的最小图里 attention 链 + o_proj
+  消费全干净，比全图槽读数（m0 0.52%/norm2 2.82%）还干净。多出的槽是 addrms 悬空
+  rstd（out[1] [712,1]）等自动补绑。
+
+  ⇒ 2.8% 不是层内算子序列本身产生的。剩余嫌疑：L0 MLP 尾（norm2→gate/up→act→down
+  →h1）或全图上下文（槽覆写/深度干扰）。最小图延伸一层直接裁决：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 1 line
+      3932                  let v = t.get(k).unwrap_or_else(|| panic!("go
+            lden 缺 {k}")).to_f32_vec().unwrap();
+      3933                  v.iter().map(|&x| f16::from_f32(x)).collect()
+      3934              };
+      3935 -            let (x0h, m0h, resh) = (gf("x0_vis"), gf("m0_vis"
+           -), gf("res0"));                                              
+      3935 +            let (x0h, m0h, resh, h1h, kvk1h) =               
+      3936 +                (gf("x0_vis"), gf("m0_vis"), gf("res0"), gf("
+           +h1_vis"), gf("kvk_l1"));                                     
+      3937              let stream = be.stream();
+      3938              let p = 712i64;
+      3939              assert_eq!(x0h.len(), (p * PW) as usize, "x0_vis 
+            长度 ≠ 712×2048");
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 12 lines
+      3976              s.data(ctx, "vb", &[1, KVD], &vec![f16::from_f32(
+            0.0); KVD as usize]);
+      3977              s.wt(ctx, "outwt", &[PW, QD], &lw_f16(&lay.attent
+            ion.output), QD, PW);
+      3978              s.data(ctx, "outb", &[1, PW], &vec![f16::from_f32
+            (0.0); PW as usize]);
+      3979 +            // L0 MLP 权重 + norm2 gamma + L1 k 投影（延伸： 
+           +全层 0 → h1 →                                                
+      3980 +            // 层 1 [norm1→k→rope] = kvk_l1 公式——孤立裁决漂 
+           +移是否在                                                     
+      3981 +            // MLP 尾或跨层产生；最小图 L0 span 已证 0.23%/0.
+           +089% 干净）                                                  
+      3982 +            s.data(ctx, "g2", &[PW], &t_f16(&lay.post_attenti
+           +on_norm_scale));                                             
+      3983 +            s.wt(ctx, "gatewt", &[INTER, PW], &lw_f16(&lay.ml
+           +p.gate), PW, INTER);                                         
+      3984 +            s.wt(ctx, "upwt", &[INTER, PW], &lw_f16(&lay.mlp.
+           +up), PW, INTER);                                             
+      3985 +            s.wt(ctx, "downwt", &[PW, INTER], &lw_f16(&lay.ml
+           +p.down), INTER, PW);                                         
+      3986 +            s.data(ctx, "downb", &[1, PW], &vec![f16::from_f3
+           +2(0.0); PW as usize]);                                       
+      3987 +            let lay1 = real.language_layers.get(1).expect("L1
+           + 权重");                                                     
+      3988 +            s.data(ctx, "g1l1", &[PW], &t_f16(&lay1.input_nor
+           +m_scale));                                                   
+      3989 +            s.wt(ctx, "kwl1", &[KVD, PW], &lw_f16(&lay1.atten
+           +tion.k), PW, KVD);                                           
+      3990 +            s.data(ctx, "kbl1", &[1, KVD], &vec![f16::from_f3
+           +2(0.0); KVD as usize]);                                      
+      3991              // ---- 链：seg_prefix L0 逐算子复刻（qkv3+ropefl
+            at+manual GQA）----
+      3992              let norm1 = s.addrms("n1", "x0", "zeros", "g1", &
+            [p, PW]);
+      3993              let qm = s.mm("qm", &norm1, &[p, PW], "qw", &[QD,
+             PW], &[p, QD]);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 21 lines, removed 6 lines
+      4010              let proj = s.mm("proj", &sq, &[p, QD], "outwt", &
+            [PW, QD], &[p, PW]);
+      4011              let projb = s.bias("projb", &proj, &[p, PW], "out
+            b");
+      4012              let res = s.add2("res", &projb, "x0", &[p, PW]);
+      4013 +            // ---- 延伸：L0 MLP 全尾 → h1 → L1 [norm1→k→rope
+           +] → kvk_l1 ----                                              
+      4014 +            let norm2 = s.addrms("n2", &res, "zeros", "g2", &
+           +[p, PW]);                                                    
+      4015 +            let gate = s.mm("gate", &norm2, &[p, PW], "gatewt
+           +", &[INTER, PW], &[p, INTER]);                               
+      4016 +            let up = s.mm("up", &norm2, &[p, PW], "upwt", &[I
+           +NTER, PW], &[p, INTER]);                                     
+      4017 +            let gact = s.gelu("gact", &gate, &[p, INTER], tru
+           +e);                                                          
+      4018 +            let act = s.mul2("act", &gact, &up, &[p, INTER]);
+      4019 +            let down = s.mm("down", &act, &[p, INTER], "downw
+           +t", &[PW, INTER], &[p, PW]);                                 
+      4020 +            let downb = s.bias("downb_", &down, &[p, PW], "do
+           +wnb");                                                       
+      4021 +            let h1 = s.add2("h1", &downb, &res, &[p, PW]);   
+      4022 +            let n1l1 = s.addrms("l1n1", &h1, "zeros", "g1l1",
+           + &[p, PW]);                                                  
+      4023 +            let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl1", 
+           +&[KVD, PW], &[p, KVD]);                                      
+      4024 +            let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD], "kb
+           +l1");                                                        
+      4025 +            let (kvk1, _) = s.rope2_flat(                    
+      4026 +                "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", "ksi
+           +n", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",             
+      4027 +            );                                               
+      4028              // 逐级图输出（显示名, 算子名, 列宽）
+      4029              let taps: Vec<(&'static str, String, i64)> = vec!
+            [
+      4030                  ("norm1", norm1, PW),
+      4016 -                ("q", qb_, QD),                              
+      4017 -                ("k", kb_, KVD),                             
+      4018 -                ("v", vb_, KVD),                             
+      4019 -                ("qr", qr2, QD),                             
+      4020 -                ("kr", kr2, KVD),                            
+      4031                  ("m0sq", sq.clone(), QD),
+      4022 -                ("res", res, PW),                            
+      4032 +                ("res", res.clone(), PW),                    
+      4033 +                ("norm2", norm2, PW),                        
+      4034 +                ("act", act, INTER),                         
+      4035 +                ("down", downb, PW),                         
+      4036 +                ("h1", h1, PW),                              
+      4037 +                ("kvk1", kvk1, KVD),                         
+      4038              ];
+      4039              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            , _)| n.as_str()).collect();
+      4040              s.finish(&out_names);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 12 lines, removed 3 lines
+      4058                  let vals = download_f16(ctx, buf, sz / 2);
+      4059                  let bytes: Vec<u8> = vals.iter().flat_map(|v|
+             v.to_bits().to_le_bytes()).collect();
+      4060                  std::fs::write(format!("/tmp/attnmin_out{i}.f
+            16"), &bytes).expect("dump");
+      4061 -                // [712,2048] 槽就地双比 golden（m0_vis / res
+           -0）——attention 链                                            
+      4062 -                // 与 o_proj 消费值的一手判读（精确对号离线脚
+           -本做）                                                       
+      4061 +                // [712,2048] 槽就地多比 golden（m0_vis / res
+           +0 / h1_vis）+                                                
+      4062 +                // [712,256] 槽比 kvk_l1——attention 链、o_pro
+           +j 消费值、MLP                                                
+      4063 +                // 尾、跨层 k 的一手判读（精确对号离线脚本做 
+           +）                                                           
+      4064                  if vals.len() == (p * PW) as usize {
+      4064 -                    for (tn, tgt) in [("m0_vis", &m0h), ("res
+           -0", &resh)] {                                                
+      4065 +                    for (tn, tgt) in [("m0_vis", &m0h), ("res
+           +0", &resh), ("h1_vis", &h1h)] {                              
+      4066                          let (mut md, mut gm) = (0f32, 0f32);
+      4067                          for (a, b) in vals.iter().zip(tgt.ite
+            r()) {
+      4068                              md = md.max((a.to_f32() - b.to_f3
+            2()).abs());
+     ...
+      4071                          println!("attn[out{i}]: vs_golden_{tn
+            } max_diff={md:.5} rel={:.3}%", md / gm * 100.0);
+      4072                      }
+      4073                  }
+      4074 +                if vals.len() == (p * KVD) as usize {        
+      4075 +                    let (mut md, mut gm) = (0f32, 0f32);     
+      4076 +                    for (a, b) in vals.iter().zip(kvk1h.iter(
+           +)) {                                                         
+      4077 +                        md = md.max((a.to_f32() - b.to_f32())
+           +.abs());                                                     
+      4078 +                        gm = gm.max(b.to_f32().abs());       
+      4079 +                    }                                        
+      4080 +                    println!("attn[out{i}]: vs_golden_kvk_l1 
+           +max_diff={md:.5} rel={:.3}%", md / gm * 100.0);              
+      4081 +                }                                            
+      4082              }
+      4083          }
+      4084          other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+            ma*|bc4|wgt|oproj|arm|attn, got {other}"),
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  GEB_CKPT: /data/apxinf/weights/pi05_libero_finetuned loaded in 61.9283
+     3464s
+     attn: out[0] size=2916352 dims=[712, 2048]
+     … +37 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 2m 45s (ctrl+o to expand)
+
+● 漂移在最小图里复现了：out[3] = m0sq 0.229%（attention 链干净✓），out[11] =
+  kvk_l1 45.224%——与全净图 45.2% 精确一致！罪魁从"全图上下文"收窄到 L0 MLP 
+  尾（h1 无槽干净匹配，最好 54%）。注意 gate/up 是 N=16384 宽 mm、down 是
+  K=16384，而 M=712 不是 16 倍数（712 mod 16 = 8）——eager 路径当年就踩过"宽 N ×
+  非 16 倍 M 崩"（有 memset+D2D 垫 M 修复，GE 图没垫）。
+
+  先把 dump 拷到共享盘做离线扫描（inf/nan + 槽对号 + 误差结构）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "mkdir -p /data/apxinf/a…)
+  ⎿  total 45948
+     drwxr-xr-x  2 root root     4096 Sep 21 01:53 .
+     drwxr-xr-x 31 root root    12288 Sep 21 01:53 ..
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 写离线判读脚本（槽对号 + inf/nan + 行/通道结构）并跑：
+
+● Write(syx_docs\dev_logs\attnmin_scan.py)
+  ⎿  Wrote 67 lines to syx_docs\dev_logs\attnmin_scan.py
+       1 #!/usr/bin/env python3
+         线判读。
+       3 # 背景：最小图复现全净图 kvk_l1 45.2%（out11=45.224%）——漂移定位
+         到
+          倍数）。
+       5 # 本脚本：模型 introspection 全量 dump 的槽对号（值匹配 golden）
+       6 # inf/nan 扫描、kvk1 行画像、h1 通道误差结构。
+       7 import numpy as np
+       8 from safetensors.numpy import load_file
+      10 G = load_file('/data/apxinf/golden/frame0_v3.safetensors')
+     … +67 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/attnmin_scan.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  == [712,2048] 槽对号（rel% vs golden，升序前 3）==
+     out0: nan=0 inf=0 x0_vis=93.985%  res0=95.405%  h1_vis=97.974%
+     out2: nan=0 inf=0 h1_vis=54.545%  res0=335.510%  x0_vis=358.935%
+     … +43 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+  Thought for 1m 36s (ctrl+o to expand)
+
+● 行画像有结构：视觉行 16-19%、文本行 51-53%；通道结构 top10/中位 34.7×（ch738
+  err 750 ≈ 0.48×|H|max）。槽对号一团糟（res0/h1_vis
+  无干净匹配——输出槽被复用覆写 + 部分 addrms
+  自动补绑）。注意行剖面是全行有错非尾部行——弱化 M 
+  对齐尾部腐化假说。新嫌疑：权重折叠（gemma 1+w 折进 gate/up 权重、norm2 用 ones
+  gamma——通道结构误差的天然来源）。先查 Pi05Weights 折叠实现确认约定：
+
+  Thought for 1m 11s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 折叠确认：weights.rs 在 f32 里把 (1+w) 乘进 q/k/v/gate/up 权重行、norm gamma
+  置 ones——数学上等价，但 f16 环境下两条路径的舍入/溢出不同（Gemma (1+w) 有大
+  outlier 通道时折叠进 f16 权重可能 inf）。写离线模拟裁决：同 golden res0
+  输入，unfolded（真 gamma）vs folded（图约定）双路径推到 h1：
+
+● Write(syx_docs\dev_logs\fold_sim.py)
+  ⎿  Wrote 89 lines to syx_docs\dev_logs\fold_sim.py
+       1 #!/usr/bin/env python3
+         否为
+       3 # kvk_l1 45% 漂移根因（2026-09-21 最小图已把漂移定位到 L0 MLP 尾
+       4 # 方法：golden res0（712×2048）出发，f64 教科书链与 f16 模拟链（
+         unfolded
+          + 折叠
+       6 # f16 权重）双路径推到 h1，对拍 golden h1_vis。折叠溢出（>65504→
+       7 # 单独统计。
+       8 import glob
+      10 import torch
+     … +110 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/fold_sim.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  (1+w_post): max=12.4 min=0.002 std=0.85
+     (1+w_in_l1): max=10.2 std=1.16
+     |Wg|max=0.5 |Wu|max=0.5 |Wd|max=2.5
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 28s (ctrl+o to expand)
+
+● 折叠无罪（f16 folded 0.032% =
+  unfolded，零溢出），但通道指纹完全吻合（674/50/738/604/1870
+  同一批通道，误差被放大 1000×）——嫌疑收窄到 mm 执行层：我的模拟用 f32 累加，GE
+  图 K=16384 的 down mm 可能是 f16 累加。写 fold_sim2：① out8(act) vs f64
+  act（先判 gate/up 段还是 down 段坏）② f16 分块累加模拟 down mm：
+
+● Write(syx_docs\dev_logs\fold_sim2.py)
+  ⎿  Wrote 90 lines to syx_docs\dev_logs\fold_sim2.py
+       1 #!/usr/bin/env python3
+         ded 0.032%
+       3 # 干净），通道指纹（738/674/604/50/1870）与图实测一致但误差被放
+       4 # 剩余嫌疑 = GE MatMulV2 的 f16 累加（模拟均用 f32 累加）。本脚
+         本：
+         是 down 段
+       6 #    （K=16384）；② down mm 的 f16 分块累加模拟（chunk=16/64/512
+       7 import glob
+       8 import numpy as np
+      10 from safetensors import safe_open
+     … +99 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/fold_sim2.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  Error: Exit code 1
+     图 act(out8) vs f64 act: rel=20.831%  nan=0 inf=0
+       act 通道误差 top5: [15024 10058  4993  7634  6293] err=[82.4 69.7 55.1 
+     48.4 35.8]  中位=0.3173
+     Traceback (most recent call last):
+       File "/data/apxinf/fold_sim2.py", line 67, in <module>
+         part = (act16[:, s:s + C].float() @ Wd16[s:s + C, 
+     :].float().T).to(torch.float16)
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     RuntimeError: mat1 and mat2 shapes cannot be multiplied (712x16 and 
+     16384x16)
+     [ERROR] 2026-09-21-09:58:40 (PID:914370, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 26s (ctrl+o to expand)
+
+● 关键进展：act（out8）vs f64 = 20.831%——分岔在 gate/up 段（N=16384 宽 mm）或 
+  gelu/mul，down mm 还没上场就已有错！且 K=2048 的 mm（oproj）已被证与 golden
+  一致（res 0.089%）——嫌疑聚焦 N 宽 tiling 或大 shape 元素算子。修脚本切片 bug
+  并改攻 gate/up 段模拟（对齐 out8 通道指纹）：
+
+● Write(syx_docs\dev_logs\fold_sim3.py)
+  ⎿  Wrote 72 lines to syx_docs\dev_logs\fold_sim3.py
+       1 #!/usr/bin/env python3
+         裁决。
+       3 # 已知：act(out8) vs f64 = 20.8%（分岔在 down 之前）；oproj（K=2
+         048,
+          f16
+       5 # 累加 / gelu / mul 大 shape 执行。本脚本：f16 分块累加模拟 gate
+       6 # （chunk 越小越接近逐元素 f16 累加），对齐图 act 的通道指纹。
+       7 import glob
+       8 import numpy as np
+      10 from safetensors import safe_open
+     … +75 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/fold_sim3.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "/data/apxinf/fold_sim3.py", line 59, in <module>
+         gacc = (gacc.float() + gp.float()).to(torch.float16)
+                 ~~~~~~~~~~~~~^~~~~~~~~~~~
+     RuntimeError: The size of tensor a (16384) must match the size of tensor b 
+     (2048) at non-singleton dimension 1
+     [ERROR] 2026-09-21-09:59:41 (PID:914538, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 13s (ctrl+o to expand)
+
+● 切片轴又写反（Wg 是 [out,in]，K 在 dim1）。修：
+● Update(syx_docs\dev_logs\fold_sim3.py)
+  ⎿  Added 2 lines, removed 2 lines
+      54      gacc = torch.zeros(712, 16384, dtype=torch.float16)
+      55      uacc = torch.zeros(712, 16384, dtype=torch.float16)
+      56      for s in range(0, 2048, C):
+      57 -        gp = (n2o[:, s:s + C].float() @ WgF[s:s + C, :].float()
+         -.T).to(torch.float16)                                          
+      58 -        up_ = (n2o[:, s:s + C].float() @ WuF[s:s + C, :].float(
+         -).T).to(torch.float16)                                         
+      57 +        gp = (n2o[:, s:s + C].float() @ WgF[:, s:s + C].float()
+         +.T).to(torch.float16)                                          
+      58 +        up_ = (n2o[:, s:s + C].float() @ WuF[:, s:s + C].float(
+         +).T).to(torch.float16)                                         
+      59          gacc = (gacc.float() + gp.float()).to(torch.float16)
+      60          uacc = (uacc.float() + up_.float()).to(torch.float16)
+      61      a_ = (gelu_tanh(gacc.double()).to(torch.float16).float() * 
+          uacc.float()).to(torch.float16).numpy()
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/fold_sim3.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  chunk=2048: act_sim vs f64 =    0.019%   top5通道 [15024   113  4993
+     9760 15980] err=[0.1 0.  0.  0.  0. ]
+     chunk= 512: act_sim vs f64 =    0.044%   top5通道 [15024  4993  9760
+     … +10 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 45s (ctrl+o to expand)
+
+● f16 累加模拟全干净（连 chunk=16 都 0.145%）——f16 舍入也洗清。图实测 20.8%
+  是模拟的 ~500×，这是真 bug 不是精度。而且视觉行 110%/文本行 20.8%——eager 
+  当年“宽 N × 非 16 倍 M”507015 崩的 GE 图内变体（静默数值错）
+  嫌疑陡增。直接上裁决实验：MLP 段 M 垫 712→720。先看 gather_rows 签名：
+
+  Thought for 43s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● gather_rows 的 desc 是等长交换语义（输出 dims=输入 dims），720→712 切行要专用
+  desc。写 M 垫充变体（GEB_ATTN_MLP_PAD）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 53 lines, removed 17 lines
+      4011              let projb = s.bias("projb", &proj, &[p, PW], "out
+            b");
+      4012              let res = s.add2("res", &projb, "x0", &[p, PW]);
+      4013              // ---- 延伸：L0 MLP 全尾 → h1 → L1 [norm1→k→rope
+            ] → kvk_l1 ----
+      4014 +            // GEB_ATTN_MLP_PAD：MLP 段 mm 的 M 垫到 16 倍数 
+           +（712→720：行尾                                              
+      4015 +            // ConcatD 8 零行，down 后 GatherV2D 行切回）——ea
+           +ger 路径当年                                                 
+      4016 +            // "宽 N × 非 16 倍 M" 507015 崩；GE 图内同 shape
+           + 疑似静默数值错                                              
+      4017 +            // （act 20.8%，f16 分块累加模拟仅 0.145% ⇒ 非精 
+           +度问题）                                                     
+      4018 +            let mlp_pad = std::env::var("GEB_ATTN_MLP_PAD").i
+           +s_ok();                                                      
+      4019              let norm2 = s.addrms("n2", &res, "zeros", "g2", &
+            [p, PW]);
+      4015 -            let gate = s.mm("gate", &norm2, &[p, PW], "gatewt
+           -", &[INTER, PW], &[p, INTER]);                               
+      4016 -            let up = s.mm("up", &norm2, &[p, PW], "upwt", &[I
+           -NTER, PW], &[p, INTER]);                                     
+      4017 -            let gact = s.gelu("gact", &gate, &[p, INTER], tru
+           -e);                                                          
+      4018 -            let act = s.mul2("act", &gact, &up, &[p, INTER]);
+      4019 -            let down = s.mm("down", &act, &[p, INTER], "downw
+           -t", &[PW, INTER], &[p, PW]);                                 
+      4020 -            let downb = s.bias("downb_", &down, &[p, PW], "do
+           -wnb");                                                       
+      4021 -            let h1 = s.add2("h1", &downb, &res, &[p, PW]);   
+      4020 +            let (act_tap, h1) = if mlp_pad {                 
+      4021 +                let mp = (p + 15) / 16 * 16;                 
+      4022 +                s.data_zeros(ctx, "zpad", mp - p, PW);       
+      4023 +                s.g.add_op("n2cat", "ConcatD").unwrap();     
+      4024 +                s.g.dyn_inputs("n2cat", "x", 2).unwrap();    
+      4025 +                s.g.set_input_desc("n2cat", "x0", &[p, PW], D
+           +type::Fp16).unwrap();                                        
+      4026 +                s.g.set_input_desc("n2cat", "x1", &[mp - p, P
+           +W], Dtype::Fp16).unwrap();                                   
+      4027 +                s.g.set_output_desc("n2cat", "y", &[mp, PW], 
+           +Dtype::Fp16).unwrap();                                       
+      4028 +                s.g.set_attr_int("n2cat", "concat_dim", 0).un
+           +wrap();                                                      
+      4029 +                s.g.set_attr_int("n2cat", "N", 2).unwrap();  
+      4030 +                s.wire("n2cat", "x0", &norm2);               
+      4031 +                s.wire("n2cat", "x1", "zpad");               
+      4032 +                let n2p = s.reg_out("n2cat", "y");           
+      4033 +                let gate = s.mm("gate", &n2p, &[mp, PW], "gat
+           +ewt", &[INTER, PW], &[mp, INTER]);                           
+      4034 +                let up = s.mm("up", &n2p, &[mp, PW], "upwt", 
+           +&[INTER, PW], &[mp, INTER]);                                 
+      4035 +                let gact = s.gelu("gact", &gate, &[mp, INTER]
+           +, true);                                                     
+      4036 +                let act = s.mul2("act", &gact, &up, &[mp, INT
+           +ER]);                                                        
+      4037 +                let down = s.mm("down", &act, &[mp, INTER], "
+           +downwt", &[PW, INTER], &[mp, PW]);                           
+      4038 +                let idx712: Vec<i32> = (0..p as i32).collect(
+           +);                                                           
+      4039 +                s.const_i32("cut_idx", &idx712);             
+      4040 +                s.g.add_op("cut", "GatherV2D").unwrap();     
+      4041 +                s.g.set_input_desc("cut", "x", &[mp, PW], Dty
+           +pe::Fp16).unwrap();                                          
+      4042 +                s.g.set_input_desc("cut", "indices", &[p], Dt
+           +ype::Int32).unwrap();                                        
+      4043 +                s.g.set_output_desc("cut", "y", &[p, PW], Dty
+           +pe::Fp16).unwrap();                                          
+      4044 +                s.g.set_attr_int("cut", "axis", 0).unwrap(); 
+      4045 +                s.wire("cut", "x", &down);                   
+      4046 +                s.g.link("cut", "indices", "cut_idx").unwrap(
+           +);                                                           
+      4047 +                let cut = s.reg_out("cut", "y");             
+      4048 +                let downb = s.bias("downb_", &cut, &[p, PW], 
+           +"downb");                                                    
+      4049 +                (act, s.add2("h1", &downb, &res, &[p, PW]))  
+      4050 +            } else {                                         
+      4051 +                let gate = s.mm("gate", &norm2, &[p, PW], "ga
+           +tewt", &[INTER, PW], &[p, INTER]);                           
+      4052 +                let up = s.mm("up", &norm2, &[p, PW], "upwt",
+           + &[INTER, PW], &[p, INTER]);                                 
+      4053 +                let gact = s.gelu("gact", &gate, &[p, INTER],
+           + true);                                                      
+      4054 +                let act = s.mul2("act", &gact, &up, &[p, INTE
+           +R]);                                                         
+      4055 +                let down = s.mm("down", &act, &[p, INTER], "d
+           +ownwt", &[PW, INTER], &[p, PW]);                             
+      4056 +                let downb = s.bias("downb_", &down, &[p, PW],
+           + "downb");                                                   
+      4057 +                (act, s.add2("h1", &downb, &res, &[p, PW]))  
+      4058 +            };                                               
+      4059              let n1l1 = s.addrms("l1n1", &h1, "zeros", "g1l1",
+             &[p, PW]);
+      4060              let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl1", 
+            &[KVD, PW], &[p, KVD]);
+      4061              let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD], "kb
+            l1");
+      4062              let (kvk1, _) = s.rope2_flat(
+      4063                  "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", "ksi
+            n", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",
+      4064              );
+      4028 -            // 逐级图输出（显示名, 算子名, 列宽）            
+      4029 -            let taps: Vec<(&'static str, String, i64)> = vec!
+           -[                                                            
+      4030 -                ("norm1", norm1, PW),                        
+      4031 -                ("m0sq", sq.clone(), QD),                    
+      4032 -                ("res", res.clone(), PW),                    
+      4033 -                ("norm2", norm2, PW),                        
+      4034 -                ("act", act, INTER),                         
+      4035 -                ("down", downb, PW),                         
+      4036 -                ("h1", h1, PW),                              
+      4037 -                ("kvk1", kvk1, KVD),                         
+      4065 +            // 逐级图输出（显示名, 算子名）                  
+      4066 +            let taps: Vec<(&'static str, String)> = vec![    
+      4067 +                ("norm1", norm1),                            
+      4068 +                ("m0sq", sq.clone()),                        
+      4069 +                ("res", res.clone()),                        
+      4070 +                ("norm2", norm2),                            
+      4071 +                ("act", act_tap),                            
+      4072 +                ("h1", h1),                                  
+      4073 +                ("kvk1", kvk1),                              
+      4074              ];
+      4075              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            , _)| n.as_str()).collect();
+      4076              s.finish(&out_names);
+
+  Thought for 10s (ctrl+o to expand)
+
+● 修 out_names 的解构（taps 现在是二元组）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      4072                  ("h1", h1),
+      4073                  ("kvk1", kvk1),
+      4074              ];
+      4075 -            let out_names: Vec<&str> = taps.iter().map(|(_, n
+           -, _)| n.as_str()).collect();                                 
+      4075 +            let out_names: Vec<&str> = taps.iter().map(|(_, n
+           +)| n.as_str()).collect();                                    
+      4076              s.finish(&out_names);
+      4077              let ins: Vec<&DeviceBuffer> = s.ins();
+      4078              // 输出按模型 introspection 分配（声明 8 个但模型
+            可能自动补绑悬空
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn: out[3] size=2916352 dims=[712, 2048]
+     attn: out[4] size=2916352 dims=[712, 2048]
+     attn: out[5] size=2916352 dims=[712, 2048]
+     … +28 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 53s (ctrl+o to expand)
+
+● 垫 M 后 kvk1 45.2%→24.66%（≈dbg 图 24.7%！）——部分有效，还剩第二层病。m0sq
+  依旧 0.229%。看垫 M 后 act 干净没（拷 dump + 扫描，act 现在是 [720,16384] 取前
+  712 行比）：
+
+● Write(syx_docs\dev_logs\attnmin_scan2.py)
+  ⎿  Wrote 61 lines to syx_docs\dev_logs\attnmin_scan2.py
+       1 #!/usr/bin/env python3
+       2 # attnmin_scan2.py — GEB_ATTN_MLP_PAD=1 版 dump 判读：垫 M 后 ac
+         t 是否
+         层问题）。
+       4 import glob
+       5 import numpy as np
+       6 import torch
+       8 from safetensors.numpy import load_file
+       9 
+      10 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+     … +68 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "cp /tmp/attnmin_*.f16 /…)
+  ⎿  垫M后 act(out8 前712行) vs f64: rel=3.050%
+       行画像: 视觉行 20.22%  文本行 3.05%
+       通道误差 top5: [ 7634  4993 15024  6293 10622] err=[12.1 10.3  6.7
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 36s (ctrl+o to expand)
+
+● 垫 M 后 act 20.8%→3.05%（视觉行仍
+  20.2%）——部分有效但没除根。上隔离矩阵一次裁决四个变量：gate
+  单算图，M∈{712,720} × 权重 {Const,Data} × {全宽 16384, 拆半 8192×2} + eager
+  对照：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 95 lines, removed 1 line
+      4117                  }
+      4118              }
+      4119          }
+      4120 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm|attn, got {other}"),                   
+      4120 +        // wmm: 宽 N mm 隔离矩阵（gate 单算，2026-09-21）——at
+           +tn 最小图已把                                                
+      4121 +        // 漂移钉到 gate/up 段（act 20.8%，垫 M 后 3.05%，f16
+           + 累加模拟仅                                                  
+      4122 +        // 0.145% ⇒ 非精度）。一次裁决四变量：M∈{712,720} ×  
+           +权重{Const,Data}                                             
+      4123 +        // × {全宽 N=16384, 拆半 8192×2} + eager aclnn（内部 
+           +自动垫 M）。                                                 
+      4124 +        // 输入 = golden res0 的 f64 rms 归一化（gamma=ones，
+           +权重已折叠）。                                               
+      4125 +        // 输出落盘 /tmp/wmm_*.f16，Python 对拍 f64          
+      4126 +        "wmm" => {                                           
+      4127 +            let real = real.expect("wmm 需要 GEB_CKPT");     
+      4128 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("wmm 需要 GEB_E2E_GOLDEN（golden v3）");                   
+      4129 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      4130 +                .expect("golden load");                      
+      4131 +            let rv = t.get("res0").expect("golden 缺 res0").t
+           +o_f32_vec().unwrap();                                        
+      4132 +            let p = 712i64;                                  
+      4133 +            assert_eq!(rv.len(), (p * PW) as usize, "res0 长 
+           +度 ≠ 712×2048");                                             
+      4134 +            let mut n2h = Vec::with_capacity((p * PW) as usiz
+           +e);                                                          
+      4135 +            for r in 0..p as usize {                         
+      4136 +                let row = &rv[r * PW as usize..(r + 1) * PW a
+           +s usize];                                                    
+      4137 +                let ms: f64 = row.iter().map(|&v| let x = v a
+           +s f64; x * x).sum::<f64>() / PW as f64;                      
+      4138 +                let rms = (ms + 1e-6f64).sqrt();             
+      4139 +                for &v in row {                              
+      4140 +                    n2h.push(f16::from_f32((v as f64 / rms) a
+           +s f32));                                                     
+      4141 +                }                                            
+      4142 +            }                                                
+      4143 +            let mut x720 = n2h.clone();                      
+      4144 +            x720.extend(std::iter::repeat(f16::from_f32(0.0))
+           +.take((8 * PW) as usize));                                   
+      4145 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      4146 +            let wgt = lw_f16(&lay.mlp.gate); // [PW, INTER]  
+           +物理（in,out，已折叠）                                       
+      4147 +            assert_eq!(wgt.len(), (PW * INTER) as usize);    
+      4148 +            let bytes = unsafe { std::slice::from_raw_parts(w
+           +gt.as_ptr() as *const u8, wgt.len() * 2) };                  
+      4149 +            let trans = |src: &[f16], rows: i64, cols: i64| -
+           +> Vec<f16> {                                                 
+      4150 +                let b = unsafe { std::slice::from_raw_parts(s
+           +rc.as_ptr() as *const u8, src.len() * 2) };                  
+      4151 +                let t = aops::host_transpose(b, rows, cols); 
+      4152 +                t.chunks_exact(2)                            
+      4153 +                    .map(|c| f16::from_bits(u16::from_le_byte
+           +s([c[0], c[1]])))                                            
+      4154 +                    .collect()                               
+      4155 +            };                                               
+      4156 +            let wfull_t = trans(&wgt, PW, INTER); // [INTER, 
+           +PW]                                                          
+      4157 +            let half = (INTER / 2) as usize;                 
+      4158 +            let (mut wlo, mut whi) =                         
+      4159 +                (Vec::with_capacity(PW as usize * half), Vec:
+           +:with_capacity(PW as usize * half));                         
+      4160 +            for r in 0..PW as usize {                        
+      4161 +                let row = &wgt[r * INTER as usize..(r + 1) * 
+           +INTER as usize];                                             
+      4162 +                wlo.extend_from_slice(&row[..half]);         
+      4163 +                whi.extend_from_slice(&row[half..]);         
+      4164 +            }                                                
+      4165 +            let wlo_t = trans(&wlo, PW, INTER / 2);          
+      4166 +            let whi_t = trans(&whi, PW, INTER / 2);          
+      4167 +            let stream = be.stream();                        
+      4168 +            let mut s = Seg::new("wmm");                     
+      4169 +            let x712 = s.data(ctx, "x712", &[p, PW], &n2h);  
+      4170 +            let x720n = s.data(ctx, "x720", &[p + 8, PW], &x7
+           +20);                                                         
+      4171 +            s.const_f16("wcst", &[INTER, PW], &wfull_t);     
+      4172 +            s.data(ctx, "wnd", &[INTER, PW], &wfull_t);      
+      4173 +            s.const_f16("wlo", &[INTER / 2, PW], &wlo_t);    
+      4174 +            s.const_f16("whi", &[INTER / 2, PW], &whi_t);    
+      4175 +            let _ = x712;                                    
+      4176 +            let _ = x720n;                                   
+      4177 +            let o1 = s.mm("mm_cst712", "x712", &[p, PW], "wcs
+           +t", &[INTER, PW], &[p, INTER]);                              
+      4178 +            let o2 = s.mm("mm_nd712", "x712", &[p, PW], "wnd"
+           +, &[INTER, PW], &[p, INTER]);                                
+      4179 +            let o3 = s.mm("mm_cst720", "x720", &[p + 8, PW], 
+           +"wcst", &[INTER, PW], &[p + 8, INTER]);                      
+      4180 +            let o4 = s.mm("mm_lo712", "x712", &[p, PW], "wlo"
+           +, &[INTER / 2, PW], &[p, INTER / 2]);                        
+      4181 +            let o5 = s.mm("mm_hi712", "x712", &[p, PW], "whi"
+           +, &[INTER / 2, PW], &[p, INTER / 2]);                        
+      4182 +            let outs = [o1, o2, o3, o4, o5];                 
+      4183 +            let out_names: Vec<&str> = outs.iter().map(|x| x.
+           +as_str()).collect();                                         
+      4184 +            s.finish(&out_names);                            
+      4185 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4186 +            let n_out = s.g.num_outputs().unwrap();          
+      4187 +            let mut bufs = Vec::new();                       
+      4188 +            for i in 0..n_out {                              
+      4189 +                let sz = s.g.output_size(i).unwrap();        
+      4190 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4191 +            }                                                
+      4192 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4193 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4194 +            drop(stream.synchronize());                      
+      4195 +            let names = ["cst712", "nd712", "cst720", "lo712"
+           +, "hi712"];                                                  
+      4196 +            for (i, buf) in bufs.iter().enumerate() {        
+      4197 +                let sz = s.g.output_size(i).unwrap();        
+      4198 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4199 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4200 +                let dn = names.get(i).map(|x| *x).unwrap_or("
+           +extra");                                                     
+      4201 +                std::fs::write(format!("/tmp/wmm_ge_{dn}.f16"
+           +), &bytes).expect("dump");                                   
+      4202 +            }                                                
+      4203 +            // eager aclnn（aops matmul 内部自动垫 M 到 16 倍
+           +数——生产 eager                                               
+      4204 +            // 从未踩此坑的原因）                            
+      4205 +            let wb = upload(ctx, &wfull_t);                  
+      4206 +            let xb = upload(ctx, &n2h);                      
+      4207 +            let er = aops::matmul_b_t_fp16(ctx, &stream, &xb,
+           + [p, PW], &wb, PW, INTER).unwrap();                          
+      4208 +            drop(stream.synchronize());                      
+      4209 +            let ef = download_f16(ctx, &er, (p * INTER) as us
+           +ize);                                                        
+      4210 +            let bytes: Vec<u8> = ef.iter().flat_map(|v| v.to_
+           +bits().to_le_bytes()).collect();                             
+      4211 +            std::fs::write("/tmp/wmm_eager712.f16", &bytes).e
+           +xpect("dump eager");                                         
+      4212 +            let _ = &bytes;                                  
+      4213 +        }                                                    
+      4214 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn|wmm, got {other}"),               
+      4215      }
+      4216      println!("OPTEST_{which}_OK");
+      4217      ge_builder::fini().expect("fini");
+
+  Thought for 18s (ctrl+o to expand)
+
+● 修一处闭包语法（需花括号）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      4134              let mut n2h = Vec::with_capacity((p * PW) as usiz
+            e);
+      4135              for r in 0..p as usize {
+      4136                  let row = &rv[r * PW as usize..(r + 1) * PW a
+            s usize];
+      4137 -                let ms: f64 = row.iter().map(|&v| let x = v a
+           -s f64; x * x).sum::<f64>() / PW as f64;                      
+      4137 +                let ms: f64 = row.iter().map(|&v| { let x = v
+           + as f64; x * x }).sum::<f64>() / PW as f64;                  
+      4138                  let rms = (ms + 1e-6f64).sqrt();
+      4139                  for &v in row {
+      4140                      n2h.push(f16::from_f32((v as f64 / rms) a
+            s f32));
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  [geb]   in[1] size=2949120 dims=720,2048
+     [geb]   in[2] size=67108864 dims=16384,2048
+     [geb]   out[0] size=23330816 dims=712,16384
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 27s (ctrl+o to expand)
+
+● 矩阵跑通（5 输出无 extras）。写 Python 对拍：
+
+● Write(syx_docs\dev_logs\wmm_check.py)
+  ⎿  Wrote 53 lines to syx_docs\dev_logs\wmm_check.py
+       1 #!/usr/bin/env python3
+       2 # wmm_check.py — 宽 N mm 隔离矩阵判读（gate 单算，M/cst-nd/拆半/
+         eager）。
+       4 import numpy as np
+       5 import torch
+       6 from safetensors import safe_open
+       7 from safetensors.numpy import load_file
+       9 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+      10 LP = 'model.paligemma_with_expert.paligemma.model.language_model
+         .layers.0'
+     … +53 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "mkdir -p /data/apxinf/w…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "/data/apxinf/wmm_check.py", line 24, in <module>
+         WgF = (ckpt_get(f'{LP}.mlp.gate_proj.weight').double() * 
+     torch.from_numpy(wp)[None, :]).numpy()  # [16384,2048]
+                                                                  
+     ^^^^^^^^^^^^^^^^^^^^
+     TypeError: expected np.ndarray (got Tensor)
+     [ERROR] 2026-09-21-10:12:02 (PID:915042, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 6s (ctrl+o to expand)
+
+● 类型混用（torch/np）。修：
+● Update(syx_docs\dev_logs\wmm_check.py)
+  ⎿  Added 2 lines, removed 2 lines
+      20  
+      21  G = load_file('/data/apxinf/golden/frame0_v3.safetensors')
+      22  res0 = G['res0'].astype(np.float64).reshape(712, 2048)
+      23 -wp = (1.0 + ckpt_get(f'{LP}.post_attention_layernorm.weight')).
+         -reshape(-1)                                                    
+      24 -WgF = (ckpt_get(f'{LP}.mlp.gate_proj.weight').double() * torch.
+         -from_numpy(wp)[None, :]).numpy()  # [16384,2048]               
+      23 +wp = (1.0 + ckpt_get(f'{LP}.post_attention_layernorm.weight')).
+         +double().numpy().reshape(-1)                                   
+      24 +WgF = ckpt_get(f'{LP}.mlp.gate_proj.weight').double().numpy() *
+         + wp[None, :]  # [16384,2048]                                   
+      25  n2 = res0 / np.sqrt((res0 ** 2).mean(-1, keepdims=True) + 1e-6)
+      26  gate64 = n2 @ WgF.T
+      27  
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/wmm_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  ge_cst712   : rel=   0.057%  视觉行    0.06%  文本行    0.06%
+     ge_nd712    : rel=   0.057%  视觉行    0.06%  文本行    0.06%
+     ge_cst720   : rel=   0.057%  视觉行    0.06%  文本行    0.06%
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 27s (ctrl+o to expand)
+
+● 修掉优先级 bug 后真相：全部 wmm 变体 0.057% 干净（含 M=712 全宽 Const！hi
+  半区的“误差”其实是我比错了对象——那是 gate64 自身幅值）。gate mm 单算无罪 ⇒
+  嫌疑转到 down mm（K=16384）——唯一没单独隔离过的维度。做 wmm2：Python 产 f64
+  act 的 f16 输入，Rust 隔离 down mm（M∈{712,720} + eager）：
+
+● Write(syx_docs\dev_logs\wmm2_prep.py)
+  ⎿  Wrote 35 lines to syx_docs\dev_logs\wmm2_prep.py
+       1 #!/usr/bin/env python3
+       2 # wmm2_prep.py — down mm 隔离的输入准备：golden res0 → f64 MLP 
+         前段
+         ）。
+       4 import glob
+       5 import numpy as np
+       6 import torch
+       8 from safetensors.numpy import load_file
+       9 
+      10 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+     … +30 lines (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 58 lines, removed 1 line
+      4211              std::fs::write("/tmp/wmm_eager712.f16", &bytes).e
+            xpect("dump eager");
+      4212              let _ = &bytes;
+      4213          }
+      4214 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm|attn|wmm, got {other}"),               
+      4214 +        // wmm2: down mm 隔离（K=16384——wmm 已洗 gate/up N=16
+           +384 宽 mm，                                                  
+      4215 +        // 全变体 0.057% 干净；down 的 K 维是唯一未隔离嫌疑）
+           +。输入 =                                                     
+      4216 +        // Python f64 链产的 act16（/data/apxinf/wmm/act_in.f
+           +16，wmm2_prep）                                              
+      4217 +        // × L0 down 真权重，M∈{712,720} × {GE cst} + eager  
+           +三方。                                                       
+      4218 +        "wmm2" => {                                          
+      4219 +            let real = real.expect("wmm2 需要 GEB_CKPT");    
+      4220 +            let raw = std::fs::read("/data/apxinf/wmm/act_in.
+           +f16").expect("act_in.f16（先跑 wmm2_prep.py）");             
+      4221 +            let p = 712i64;                                  
+      4222 +            let n_in = (p * INTER) as usize;                 
+      4223 +            assert_eq!(raw.len(), n_in * 2, "act_in 长度 ≠ 71
+           +2×16384");                                                   
+      4224 +            let x712: Vec<f16> = raw                         
+      4225 +                .chunks_exact(2)                             
+      4226 +                .map(|c| f16::from_bits(u16::from_le_bytes([c
+           +[0], c[1]])))                                                
+      4227 +                .collect();                                  
+      4228 +            let mut x720 = x712.clone();                     
+      4229 +            x720.extend(std::iter::repeat(f16::from_f32(0.0))
+           +.take((8 * INTER) as usize));                                
+      4230 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      4231 +            let wgt = lw_f16(&lay.mlp.down); // [INTER, PW]  
+           +物理（in,out）                                               
+      4232 +            assert_eq!(wgt.len(), (INTER * PW) as usize);    
+      4233 +            let bytes = unsafe { std::slice::from_raw_parts(w
+           +gt.as_ptr() as *const u8, wgt.len() * 2) };                  
+      4234 +            let t = aops::host_transpose(bytes, INTER, PW);  
+      4235 +            let wt_t: Vec<f16> = t                           
+      4236 +                .chunks_exact(2)                             
+      4237 +                .map(|c| f16::from_bits(u16::from_le_bytes([c
+           +[0], c[1]])))                                                
+      4238 +                .collect();                                  
+      4239 +            let stream = be.stream();                        
+      4240 +            let mut s = Seg::new("wmm2");                    
+      4241 +            s.data(ctx, "x712", &[p, INTER], &x712);         
+      4242 +            s.data(ctx, "x720", &[p + 8, INTER], &x720);     
+      4243 +            s.const_f16("wcst", &[PW, INTER], &wt_t);        
+      4244 +            let o1 = s.mm("mm_dn712", "x712", &[p, INTER], "w
+           +cst", &[PW, INTER], &[p, PW]);                               
+      4245 +            let o2 = s.mm("mm_dn720", "x720", &[p + 8, INTER]
+           +, "wcst", &[PW, INTER], &[p + 8, PW]);                       
+      4246 +            s.finish(&[&o1, &o2]);                           
+      4247 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4248 +            let n_out = s.g.num_outputs().unwrap();          
+      4249 +            let mut bufs = Vec::new();                       
+      4250 +            for i in 0..n_out {                              
+      4251 +                let sz = s.g.output_size(i).unwrap();        
+      4252 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4253 +            }                                                
+      4254 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4255 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4256 +            drop(stream.synchronize());                      
+      4257 +            for (i, buf) in bufs.iter().enumerate() {        
+      4258 +                let sz = s.g.output_size(i).unwrap();        
+      4259 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4260 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4261 +                std::fs::write(format!("/tmp/wmm2_ge_{i}.f16"
+           +), &bytes).expect("dump");                                   
+      4262 +            }                                                
+      4263 +            let wb = upload(ctx, &wt_t);                     
+      4264 +            let xb = upload(ctx, &x712);                     
+      4265 +            let er = aops::matmul_b_t_fp16(ctx, &stream, &xb,
+           + [p, INTER], &wb, INTER, PW).unwrap();                       
+      4266 +            drop(stream.synchronize());                      
+      4267 +            let ef = download_f16(ctx, &er, (p * PW) as usize
+           +);                                                           
+      4268 +            let bytes: Vec<u8> = ef.iter().flat_map(|v| v.to_
+           +bits().to_le_bytes()).collect();                             
+      4269 +            std::fs::write("/tmp/wmm2_eager712.f16", &bytes).
+           +expect("dump eager");                                        
+      4270 +        }                                                    
+      4271 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2, got {other}"),          
+      4272      }
+      4273      println!("OPTEST_{which}_OK");
+      4274      ge_builder::fini().expect("fini");
+
+  Thought for 14s (ctrl+o to expand)
+
+● 编译 + prep + 跑（先 Python 产输入，再 Rust 跑，最后 Python 对拍——一串三步）：
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/wmm2_prep.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  act_in.f16 落盘: 11665408 元素 |act64|max=395.67
+     [geb] io: n_in=2 n_out=2
+     [geb]   in[0] size=23330816 dims=712,16384
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Write(syx_docs\dev_logs\wmm2_check.py)
+  ⎿  Wrote 62 lines to syx_docs\dev_logs\wmm2_check.py
+       1 #!/usr/bin/env python3
+       2 # wmm2_check.py — down mm（K=16384）隔离判读。
+       3 import glob
+       4 import numpy as np
+       5 import torch
+       7 from safetensors.numpy import load_file
+       8 
+       9 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+      10 LP = 'model.paligemma_with_expert.paligemma.model.language_model
+         .layers.0'
+     … +61 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "cp /tmp/wmm2_*.f16 /dat…)
+  ⎿  f64 链自检: h1_64 vs golden h1_vis = 0.018%
+     ge_dn712      : rel=   0.017%  视觉行    0.03%  文本行    0.02%  inf=0
+     ge_dn720      : rel=   0.017%  视觉行    0.03%  文本行    0.02%  inf=0
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 28s (ctrl+o to expand)
+
+● down mm 也干净（0.017%）——gate/down/attention/o_proj/addrms
+  全部单算洗清。剩余未隔离：gelu/mul 大 shape 执行、或组合图内交互（buffer
+  复用/依赖）。上组合阶梯（wmm3）：同一 res0 输入，四条独立链
+  A[addrms→gate]/B[+gelu]/C[+mul(up)]/D[全尾→h1]，一次定位第一坏组合：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 70 lines, removed 1 line
+      4268              let bytes: Vec<u8> = ef.iter().flat_map(|v| v.to_
+            bits().to_le_bytes()).collect();
+      4269              std::fs::write("/tmp/wmm2_eager712.f16", &bytes).
+            expect("dump eager");
+      4270          }
+      4271 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2, got {other}"),          
+      4271 +        // wmm3: MLP 尾组合阶梯（gate/down 单算全净后的组合性
+           +裁决）。                                                     
+      4272 +        // 同一 golden res0 输入，四条独立链：A[addrms→gate m
+           +m] /                                                         
+      4273 +        // B[addrms→gate→gelu] / C[addrms→gate,up→gelu·up=act
+           +] /                                                          
+      4274 +        // D[全尾→down→bias→+res=h1]。独立 addrms 实例（链间 
+           +零共享）。                                                   
+      4275 +        // 第一条坏链 = 组合性根因的位置；A 净而 attn 图脏 ⇒ 
+           +addrms→mm                                                    
+      4276 +        // 组合（而非 mm 本身）有布局/交互问题               
+      4277 +        "wmm3" => {                                          
+      4278 +            let real = real.expect("wmm3 需要 GEB_CKPT");    
+      4279 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("wmm3 需要 GEB_E2E_GOLDEN（golden v3）");                  
+      4280 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      4281 +                .expect("golden load");                      
+      4282 +            let rv = t.get("res0").expect("golden 缺 res0").t
+           +o_f32_vec().unwrap();                                        
+      4283 +            let p = 712i64;                                  
+      4284 +            assert_eq!(rv.len(), (p * PW) as usize, "res0 长 
+           +度 ≠ 712×2048");                                             
+      4285 +            let resh: Vec<f16> = rv.iter().map(|&v| f16::from
+           +_f32(v)).collect();                                          
+      4286 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      4287 +            let stream = be.stream();                        
+      4288 +            let mut s = Seg::new("wmm3");                    
+      4289 +            s.data(ctx, "x", &[p, PW], &resh);               
+      4290 +            s.data_zeros(ctx, "zeros", p, PW);               
+      4291 +            s.data(ctx, "g2", &[PW], &t_f16(&lay.post_attenti
+           +on_norm_scale));                                             
+      4292 +            s.wt(ctx, "gw", &[INTER, PW], &lw_f16(&lay.mlp.ga
+           +te), PW, INTER);                                             
+      4293 +            s.wt(ctx, "uw", &[INTER, PW], &lw_f16(&lay.mlp.up
+           +), PW, INTER);                                               
+      4294 +            s.wt(ctx, "dw", &[PW, INTER], &lw_f16(&lay.mlp.do
+           +wn), INTER, PW);                                             
+      4295 +            s.data(ctx, "db", &[1, PW], &vec![f16::from_f32(0
+           +.0); PW as usize]);                                          
+      4296 +            // 链 A：addrms → gate mm                        
+      4297 +            let a1 = s.addrms("a1", "x", "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4298 +            let ga = s.mm("gA", &a1, &[p, PW], "gw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4299 +            // 链 B：addrms → gate → gelu                    
+      4300 +            let a2 = s.addrms("a2", "x", "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4301 +            let gb = s.mm("gB", &a2, &[p, PW], "gw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4302 +            let eb = s.gelu("eB", &gb, &[p, INTER], true);   
+      4303 +            // 链 C：addrms → gate,up → gelu·up = act        
+      4304 +            let a3 = s.addrms("a3", "x", "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4305 +            let gc = s.mm("gC", &a3, &[p, PW], "gw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4306 +            let uc = s.mm("uC", &a3, &[p, PW], "uw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4307 +            let ec = s.gelu("eC", &gc, &[p, INTER], true);   
+      4308 +            let actc = s.mul2("actC", &ec, &uc, &[p, INTER]);
+      4309 +            // 链 D：全尾 → down → bias → +res = h1          
+      4310 +            let a4 = s.addrms("a4", "x", "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4311 +            let gd = s.mm("gD", &a4, &[p, PW], "gw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4312 +            let ud = s.mm("uD", &a4, &[p, PW], "uw", &[INTER,
+           + PW], &[p, INTER]);                                          
+      4313 +            let ed = s.gelu("eD", &gd, &[p, INTER], true);   
+      4314 +            let actd = s.mul2("actD", &ed, &ud, &[p, INTER]);
+      4315 +            let dnd = s.mm("dnD", &actd, &[p, INTER], "dw", &
+           +[PW, INTER], &[p, PW]);                                      
+      4316 +            let dbd = s.bias("dbD", &dnd, &[p, PW], "db");   
+      4317 +            let h1d = s.add2("h1D", &dbd, "x", &[p, PW]);    
+      4318 +            let outs = [ga, eb, actc, h1d];                  
+      4319 +            let out_names: Vec<&str> = outs.iter().map(|x| x.
+           +as_str()).collect();                                         
+      4320 +            s.finish(&out_names);                            
+      4321 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4322 +            let n_out = s.g.num_outputs().unwrap();          
+      4323 +            let mut bufs = Vec::new();                       
+      4324 +            for i in 0..n_out {                              
+      4325 +                let sz = s.g.output_size(i).unwrap();        
+      4326 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4327 +            }                                                
+      4328 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4329 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4330 +            drop(stream.synchronize());                      
+      4331 +            let names = ["A_gate", "B_gelu", "C_act", "D_h1"]
+           +;                                                            
+      4332 +            for (i, buf) in bufs.iter().enumerate() {        
+      4333 +                let sz = s.g.output_size(i).unwrap();        
+      4334 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4335 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4336 +                let dn = names.get(i).map(|x| *x).unwrap_or("
+           +extra");                                                     
+      4337 +                std::fs::write(format!("/tmp/wmm3_{dn}.f16"),
+           + &bytes).expect("dump");                                     
+      4338 +            }                                                
+      4339 +        }                                                    
+      4340 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3, got {other}"),     
+      4341      }
+      4342      println!("OPTEST_{which}_OK");
+      4343      ge_builder::fini().expect("fini");
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  [geb]   in[3] size=4096 dims=1,2048
+     [geb]   out[0] size=23330816 dims=712,16384
+     [geb]   out[1] size=23330816 dims=712,16384
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Write(syx_docs\dev_logs\wmm3_check.py)
+  ⎿  Wrote 49 lines to syx_docs\dev_logs\wmm3_check.py
+       1 #!/usr/bin/env python3
+       2 # wmm3_check.py — MLP 尾组合阶梯判读：A_gate / B_gelu / C_act / 
+         D_h1 各 vs f64。
+       4 import numpy as np
+       5 import torch
+       6 from safetensors import safe_open
+       7 from safetensors.numpy import load_file
+       9 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+      10 LP = 'model.paligemma_with_expert.paligemma.model.language_model
+         .layers.0'
+     … +49 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/wmm3_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  A_gate  : rel=   0.057%  视觉行    0.06%  文本行    0.06%
+     B_gelu  : rel=   0.023%  视觉行    0.05%  文本行    0.02%
+     C_act   : rel=   0.019%  视觉行    0.22%  文本行    0.02%
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 8s (ctrl+o to expand)
+
+● 组合阶梯全净（D_h1 0.032%）——MLP 尾从 golden res0 出发整链干净。但同一链在
+  attn 图里（attention 上游之后）就脏。另注意到关键差异：attn 图把 addrms
+  输出（norm1/norm2）声明为图输出，触发了 GE 自动补绑 rstd/x_out（多出 4-5
+  个输出槽）；wmm3 没绑任何 addrms 输出 → 无 extras 且干净。第一试验：去掉 norm 
+  槽声明，看 kvk1 是否转净（自动补绑 vs attention 子图交互，二选一）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 3 lines
+      4062              let (kvk1, _) = s.rope2_flat(
+      4063                  "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", "ksi
+            n", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",
+      4064              );
+      4065 -            // 逐级图输出（显示名, 算子名）                  
+      4065 +            // 逐级图输出（显示名, 算子名）。⚠ 不声明 addrms 
+           +输出（norm1/                                                 
+      4066 +            // norm2）——绑定 AddRmsNorm 的 y 会触发 GE 自动补
+           +绑 rstd/x_out                                                
+      4067 +            // （wmm3 无 addrms 输出绑定时无 extras 且全净；a
+           +ttn 图有 extras                                              
+      4068 +            // 且脏——auto-bind 破坏内存计划的嫌疑，去掉后 kvk
+           +1 若转净即坐实）                                             
+      4069              let taps: Vec<(&'static str, String)> = vec![
+      4067 -                ("norm1", norm1),                            
+      4070                  ("m0sq", sq.clone()),
+      4071                  ("res", res.clone()),
+      4070 -                ("norm2", norm2),                            
+      4072                  ("act", act_tap),
+      4073                  ("h1", h1),
+      4074                  ("kvk1", kvk1),
+
+  Thought for 11s (ctrl+o to expand)
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn: out[0] size=2916352 dims=[712, 2048]
+     attn: out[1] size=2916352 dims=[712, 2048]
+     attn: out[2] size=23330816 dims=[712, 16384]
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 28s (ctrl+o to expand)
+
+● 去掉 norm 槽后 extras 消失，但 kvk1 仍 
+  45.224%（六位数字不变——确定性、与槽声明无关）。auto-bind 洗清。下一刀：V1 
+  实验——MLP 尾改吃 golden res0 Data（attention 子图仍在图里、m0sq
+  仍输出）：若转净 ⇒ res 的在图 buffer 在产出与被消费之间被踩；若仍脏 ⇒
+  attention 算子的存在本身污染无关 buffer：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines, removed 1 line
+      4016              // "宽 N × 非 16 倍 M" 507015 崩；GE 图内同 shape
+             疑似静默数值错
+      4017              // （act 20.8%，f16 分块累加模拟仅 0.145% ⇒ 非精
+            度问题）
+      4018              let mlp_pad = std::env::var("GEB_ATTN_MLP_PAD").i
+            s_ok();
+      4019 -            let norm2 = s.addrms("n2", &res, "zeros", "g2", &
+           -[p, PW]);                                                    
+      4019 +            // GEB_ATTN_RES_GOLDEN：MLP 尾改吃 golden res0 Da
+           +ta（attention 子图                                           
+      4020 +            // 仍在图中、m0sq 仍为图输出）——裁决"res 在图 buf
+           +fer 被踩"vs                                                  
+      4021 +            // "attention 算子存在本身污染无关 buffer"（V1 实
+           +验）                                                         
+      4022 +            let mlp_in = if std::env::var("GEB_ATTN_RES_GOLDE
+           +N").is_ok() {                                                
+      4023 +                s.data(ctx, "resg", &[p, PW], &resh);        
+      4024 +                "resg".to_string()                           
+      4025 +            } else {                                         
+      4026 +                res.clone()                                  
+      4027 +            };                                               
+      4028 +            let norm2 = s.addrms("n2", &mlp_in, "zeros", "g2"
+           +, &[p, PW]);                                                 
+      4029              let (act_tap, h1) = if mlp_pad {
+      4030                  let mp = (p + 15) / 16 * 16;
+      4031                  s.data_zeros(ctx, "zpad", mp - p, PW);
+
+  Thought for 7s (ctrl+o to expand)
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      4055                  s.g.link("cut", "indices", "cut_idx").unwrap(
+            );
+      4056                  let cut = s.reg_out("cut", "y");
+      4057                  let downb = s.bias("downb_", &cut, &[p, PW], 
+            "downb");
+      4058 -                (act, s.add2("h1", &downb, &res, &[p, PW]))  
+      4058 +                (act, s.add2("h1", &downb, &mlp_in, &[p, PW])
+           +)                                                            
+      4059              } else {
+      4060                  let gate = s.mm("gate", &norm2, &[p, PW], "ga
+            tewt", &[INTER, PW], &[p, INTER]);
+      4061                  let up = s.mm("up", &norm2, &[p, PW], "upwt",
+             &[INTER, PW], &[p, INTER]);
+     ...
+      4063                  let act = s.mul2("act", &gact, &up, &[p, INTE
+            R]);
+      4064                  let down = s.mm("down", &act, &[p, INTER], "d
+            ownwt", &[PW, INTER], &[p, PW]);
+      4065                  let downb = s.bias("downb_", &down, &[p, PW],
+             "downb");
+      4066 -                (act, s.add2("h1", &downb, &res, &[p, PW]))  
+      4066 +                (act, s.add2("h1", &downb, &mlp_in, &[p, PW])
+           +)                                                            
+      4067              };
+      4068              let n1l1 = s.addrms("l1n1", &h1, "zeros", "g1l1",
+             &[p, PW]);
+      4069              let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl1", 
+            &[KVD, PW], &[p, KVD]);
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_m0_vis max_diff=0.02344 rel=0.229%
+     attn[out0]: vs_golden_res0 max_diff=559.89404 rel=100.160%
+     attn[out0]: vs_golden_h1_vis max_diff=1562.04309 rel=100.003%
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 52s (ctrl+o to expand)
+
+● V1 结果炸裂：res 槽本身干净了（0.089%），但 kvk1 反而 78.6%——MLP 吃的是 golden
+  res0 Data（与干净的 wmm3 同输入！），唯一区别是 attention 子图还在图里。⇒
+  attention 算子簇的存在本身污染无关 buffer（不是值传播）。下一刀：FAKE 模式——用
+  golden m0_vis Data 替掉 [qkv→rope→headsplit→GQA→headmerge] 簇（保留
+  proj→MLP→L1），判哪簇算子是触发器：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 18 lines, removed 6 lines
+      4003              let (qr2, _) = s.rope2_flat(
+      4004                  "qr", &qb_, &[p, QD], &qf2, "qcos", "qsin", "
+            qswap_c", "shp_qflat", "shp_mflat", "shp_q3",
+      4005              );
+      4006 +            // GEB_ATTN_FAKE：用 golden m0_vis Data 替掉 [qkv
+           +→rope→headsplit                                              
+      4007 +            // →GQA→headmerge] 簇（保留 proj→MLP→L1）——V1 已 
+           +证 MLP 吃                                                    
+      4008 +            // golden res0 仍 78.6% 脏 ⇒ attention 算子簇的" 
+           +存在"污染无关                                                
+      4009 +            // buffer；本模式二分触发簇（FAKE 净 ⇒ 触发器在 q
+           +kv/rope/GQA 簇）                                             
+      4010 +            let fake = std::env::var("GEB_ATTN_FAKE").is_ok()
+           +;                                                            
+      4011              let v3 = s.reshape("v3", &vb_, &[p, KVD], "shp_v3
+            ", &[1, p, KVD]);
+      4007 -            let q3 = s.headsplit("qh", &qr2, p, 1, p, HEADS, 
+           -HD, "shp_mq4", "shp_mq3");                                   
+      4008 -            let attn = s.attn_manual_gqa("attn", &q3, &kr3, &
+           -v3, HEADS, p, p, HD);                                        
+      4009 -            let sq = s.headmerge("am", &attn, 1, p, HEADS, HD
+           -, "shp_ma4", "shp_mflat");                                   
+      4010 -            let proj = s.mm("proj", &sq, &[p, QD], "outwt", &
+           -[PW, QD], &[p, PW]);                                         
+      4011 -            let projb = s.bias("projb", &proj, &[p, PW], "out
+           -b");                                                         
+      4012 -            let res = s.add2("res", &projb, "x0", &[p, PW]); 
+      4012 +            let (sq, res) = if fake {                        
+      4013 +                let m0 = s.data(ctx, "m0g", &[p, QD], &m0h); 
+      4014 +                let proj = s.mm("proj", &m0, &[p, QD], "outwt
+           +", &[PW, QD], &[p, PW]);                                     
+      4015 +                let projb = s.bias("projb", &proj, &[p, PW], 
+           +"outb");                                                     
+      4016 +                (proj, s.add2("res", &projb, "x0", &[p, PW]))
+      4017 +            } else {                                         
+      4018 +                let q3 = s.headsplit("qh", &qr2, p, 1, p, HEA
+           +DS, HD, "shp_mq4", "shp_mq3");                               
+      4019 +                let attn = s.attn_manual_gqa("attn", &q3, &kr
+           +3, &v3, HEADS, p, p, HD);                                    
+      4020 +                let sq = s.headmerge("am", &attn, 1, p, HEADS
+           +, HD, "shp_ma4", "shp_mflat");                               
+      4021 +                let proj = s.mm("proj", &sq, &[p, QD], "outwt
+           +", &[PW, QD], &[p, PW]);                                     
+      4022 +                let projb = s.bias("projb", &proj, &[p, PW], 
+           +"outb");                                                     
+      4023 +                (sq, s.add2("res", &projb, "x0", &[p, PW]))  
+      4024 +            };                                               
+      4025              // ---- 延伸：L0 MLP 全尾 → h1 → L1 [norm1→k→rope
+            ] → kvk_l1 ----
+      4026              // GEB_ATTN_MLP_PAD：MLP 段 mm 的 M 垫到 16 倍数
+            （712→720：行尾
+      4027              // ConcatD 8 零行，down 后 GatherV2D 行切回）——ea
+            ger 路径当年
+
+  Thought for 20s (ctrl+o to expand)
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_m0_vis max_diff=517.70020 rel=5054.586%
+     attn[out0]: vs_golden_res0 max_diff=526.23438 rel=94.139%
+     attn[out0]: vs_golden_h1_vis max_diff=1549.73438 rel=99.215%
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 30s (ctrl+o to expand)
+
+● FAKE 仍 45.175%——GQA 簇（headsplit/bmm/softmax/headmerge/TileD）洗清，触发器在
+  剩余算子里。但矩阵还缺一格：无 attention/qkv/rope、res0 直入 MLP→L1 尾（wmm3
+  停在 h1，从没测过带 L1 尾的版本）。补上（GEB_ATTN_MIN）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 36 lines, removed 30 lines
+      3989              s.wt(ctx, "kwl1", &[KVD, PW], &lw_f16(&lay1.atten
+            tion.k), PW, KVD);
+      3990              s.data(ctx, "kbl1", &[1, KVD], &vec![f16::from_f3
+            2(0.0); KVD as usize]);
+      3991              // ---- 链：seg_prefix L0 逐算子复刻（qkv3+ropefl
+            at+manual GQA）----
+      3992 -            let norm1 = s.addrms("n1", "x0", "zeros", "g1", &
+           -[p, PW]);                                                    
+      3993 -            let qm = s.mm("qm", &norm1, &[p, PW], "qw", &[QD,
+           - PW], &[p, QD]);                                             
+      3994 -            let km = s.mm("km", &norm1, &[p, PW], "kw", &[KVD
+           -, PW], &[p, KVD]);                                           
+      3995 -            let vm = s.mm("vm", &norm1, &[p, PW], "vw", &[KVD
+           -, PW], &[p, KVD]);                                           
+      3996 -            let qb_ = s.bias("qb_", &qm, &[p, QD], "qb");    
+      3997 -            let kb_ = s.bias("kb_", &km, &[p, KVD], "kb");   
+      3998 -            let vb_ = s.bias("vb_", &vm, &[p, KVD], "vb");   
+      3999 -            let (qf2, kf2) = ([qf.0, qf.1], [kf.0, kf.1]);   
+      4000 -            let (kr2, kr3) = s.rope2_flat(                   
+      4001 -                "kr", &kb_, &[p, KVD], &kf2, "kcos", "ksin", 
+           -"kswap_c", "shp_kflat", "shp_kb2", "shp_k3",                 
+      4002 -            );                                               
+      4003 -            let (qr2, _) = s.rope2_flat(                     
+      4004 -                "qr", &qb_, &[p, QD], &qf2, "qcos", "qsin", "
+           -qswap_c", "shp_qflat", "shp_mflat", "shp_q3",                
+      4005 -            );                                               
+      4006 -            // GEB_ATTN_FAKE：用 golden m0_vis Data 替掉 [qkv
+           -→rope→headsplit                                              
+      4007 -            // →GQA→headmerge] 簇（保留 proj→MLP→L1）——V1 已 
+           -证 MLP 吃                                                    
+      4008 -            // golden res0 仍 78.6% 脏 ⇒ attention 算子簇的" 
+           -存在"污染无关                                                
+      4009 -            // buffer；本模式二分触发簇（FAKE 净 ⇒ 触发器在 q
+           -kv/rope/GQA 簇）                                             
+      3992 +            // GEB_ATTN_MIN：x0 = golden res0 直入 MLP 尾 + L
+           +1 k（无 n1/qkv/                                              
+      3993 +            // rope/proj 簇）——补矩阵缺失格：wmm3（净）停在 h
+           +1 输出，本格                                                 
+      3994 +            // 验证 [MLP 尾→L1 {addrms→k mm→bias→rope}] 组合 
+           +本身是否带病                                                 
+      3995 +            let minmode = std::env::var("GEB_ATTN_MIN").is_ok
+           +();                                                          
+      3996 +            // GEB_ATTN_FAKE：用 golden m0_vis Data 替掉 [hea
+           +dsplit→GQA→                                                  
+      3997 +            // headmerge] 簇（保留 qkv/rope/proj→MLP→L1）——二
+           +分触发簇                                                     
+      3998              let fake = std::env::var("GEB_ATTN_FAKE").is_ok()
+            ;
+      4011 -            let v3 = s.reshape("v3", &vb_, &[p, KVD], "shp_v3
+           -", &[1, p, KVD]);                                            
+      4012 -            let (sq, res) = if fake {                        
+      4013 -                let m0 = s.data(ctx, "m0g", &[p, QD], &m0h); 
+      4014 -                let proj = s.mm("proj", &m0, &[p, QD], "outwt
+           -", &[PW, QD], &[p, PW]);                                     
+      4015 -                let projb = s.bias("projb", &proj, &[p, PW], 
+           -"outb");                                                     
+      4016 -                (proj, s.add2("res", &projb, "x0", &[p, PW]))
+      3999 +            let (qf2, kf2) = ([qf.0, qf.1], [kf.0, kf.1]);   
+      4000 +            let (sq, res) = if minmode {                     
+      4001 +                (String::new(), "x0".to_string())            
+      4002              } else {
+      4018 -                let q3 = s.headsplit("qh", &qr2, p, 1, p, HEA
+           -DS, HD, "shp_mq4", "shp_mq3");                               
+      4019 -                let attn = s.attn_manual_gqa("attn", &q3, &kr
+           -3, &v3, HEADS, p, p, HD);                                    
+      4020 -                let sq = s.headmerge("am", &attn, 1, p, HEADS
+           -, HD, "shp_ma4", "shp_mflat");                               
+      4021 -                let proj = s.mm("proj", &sq, &[p, QD], "outwt
+           -", &[PW, QD], &[p, PW]);                                     
+      4022 -                let projb = s.bias("projb", &proj, &[p, PW], 
+           -"outb");                                                     
+      4023 -                (sq, s.add2("res", &projb, "x0", &[p, PW]))  
+      4003 +                let norm1 = s.addrms("n1", "x0", "zeros", "g1
+           +", &[p, PW]);                                                
+      4004 +                let qm = s.mm("qm", &norm1, &[p, PW], "qw", &
+           +[QD, PW], &[p, QD]);                                         
+      4005 +                let km = s.mm("km", &norm1, &[p, PW], "kw", &
+           +[KVD, PW], &[p, KVD]);                                       
+      4006 +                let vm = s.mm("vm", &norm1, &[p, PW], "vw", &
+           +[KVD, PW], &[p, KVD]);                                       
+      4007 +                let qb_ = s.bias("qb_", &qm, &[p, QD], "qb");
+      4008 +                let kb_ = s.bias("kb_", &km, &[p, KVD], "kb")
+           +;                                                            
+      4009 +                let vb_ = s.bias("vb_", &vm, &[p, KVD], "vb")
+           +;                                                            
+      4010 +                let (kr2, kr3) = s.rope2_flat(               
+      4011 +                    "kr", &kb_, &[p, KVD], &kf2, "kcos", "ksi
+           +n", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",             
+      4012 +                );                                           
+      4013 +                let (qr2, _) = s.rope2_flat(                 
+      4014 +                    "qr", &qb_, &[p, QD], &qf2, "qcos", "qsin
+           +", "qswap_c", "shp_qflat", "shp_mflat", "shp_q3",            
+      4015 +                );                                           
+      4016 +                let v3 = s.reshape("v3", &vb_, &[p, KVD], "sh
+           +p_v3", &[1, p, KVD]);                                        
+      4017 +                if fake {                                    
+      4018 +                    let m0 = s.data(ctx, "m0g", &[p, QD], &m0
+           +h);                                                          
+      4019 +                    let proj = s.mm("proj", &m0, &[p, QD], "o
+           +utwt", &[PW, QD], &[p, PW]);                                 
+      4020 +                    let projb = s.bias("projb", &proj, &[p, P
+           +W], "outb");                                                 
+      4021 +                    (proj, s.add2("res", &projb, "x0", &[p, P
+           +W]))                                                         
+      4022 +                } else {                                     
+      4023 +                    let q3 = s.headsplit("qh", &qr2, p, 1, p,
+           + HEADS, HD, "shp_mq4", "shp_mq3");                           
+      4024 +                    let attn = s.attn_manual_gqa("attn", &q3,
+           + &kr3, &v3, HEADS, p, p, HD);                                
+      4025 +                    let sq = s.headmerge("am", &attn, 1, p, H
+           +EADS, HD, "shp_ma4", "shp_mflat");                           
+      4026 +                    let proj = s.mm("proj", &sq, &[p, QD], "o
+           +utwt", &[PW, QD], &[p, PW]);                                 
+      4027 +                    let projb = s.bias("projb", &proj, &[p, P
+           +W], "outb");                                                 
+      4028 +                    (sq, s.add2("res", &projb, "x0", &[p, PW]
+           +))                                                           
+      4029 +                }                                            
+      4030              };
+      4031              // ---- 延伸：L0 MLP 全尾 → h1 → L1 [norm1→k→rope
+            ] → kvk_l1 ----
+      4032              // GEB_ATTN_MLP_PAD：MLP 段 mm 的 M 垫到 16 倍数
+            （712→720：行尾
+
+  Thought for 5s (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines, removed 1 line
+      3940              let pscale = 1.0f32 / (HD as f32).sqrt();
+      3941              let lay = real.language_layers.get(0).expect("L0 
+            权重");
+      3942              let mut s = Seg::new("attn_min");
+      3943 -            s.data(ctx, "x0", &[p, PW], &x0h);               
+      3943 +            let x0_src: &Vec<f16> = if minmode { &resh } else
+           + { &x0h };                                                   
+      3944 +            s.data(ctx, "x0", &[p, PW], x0_src);             
+      3945              s.data_zeros(ctx, "zeros", p, PW);
+      3946              // rope flat 表（prefix 语义 pos_offset=0，f16 量
+            化同源）
+      3947              let (qc, qs, qi) = rope_flat_const(p, HEADS, 0);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 2 lines
+      4094              // norm2）——绑定 AddRmsNorm 的 y 会触发 GE 自动补
+            绑 rstd/x_out
+      4095              // （wmm3 无 addrms 输出绑定时无 extras 且全净；a
+            ttn 图有 extras
+      4096              // 且脏——auto-bind 破坏内存计划的嫌疑，去掉后 kvk
+            1 若转净即坐实）
+      4097 -            let taps: Vec<(&'static str, String)> = vec![    
+      4098 -                ("m0sq", sq.clone()),                        
+      4097 +            let mut taps: Vec<(&'static str, String)> = vec![
+      4098                  ("res", res.clone()),
+      4099                  ("act", act_tap),
+      4100                  ("h1", h1),
+      4101                  ("kvk1", kvk1),
+      4102              ];
+      4103 +            if !minmode {                                    
+      4104 +                taps.insert(0, ("m0sq", sq.clone()));        
+      4105 +            }                                                
+      4106              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            )| n.as_str()).collect();
+      4107              s.finish(&out_names);
+      4108              let ins: Vec<&DeviceBuffer> = s.ins();
+
+  Thought for 5s (ctrl+o to expand)
+
+● minmode 在 x0 之前就用了——声明要前移：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines
+      3940              let pscale = 1.0f32 / (HD as f32).sqrt();
+      3941              let lay = real.language_layers.get(0).expect("L0 
+            权重");
+      3942              let mut s = Seg::new("attn_min");
+      3943 +            // GEB_ATTN_MIN：x0 = golden res0 直入 MLP 尾 + L
+           +1 k（无 n1/qkv/                                              
+      3944 +            // rope/proj 簇）——补矩阵缺失格：wmm3（净）停在 h
+           +1 输出，本格                                                 
+      3945 +            // 验证 [MLP 尾→L1 {addrms→k mm→bias→rope}] 组合 
+           +本身是否带病。                                               
+      3946 +            // GEB_ATTN_FAKE：golden m0_vis Data 替掉 [headsp
+           +lit→GQA→headmerge]                                           
+      3947 +            // 簇（保留 qkv/rope/proj→MLP→L1）——二分触发簇   
+      3948 +            let minmode = std::env::var("GEB_ATTN_MIN").is_ok
+           +();                                                          
+      3949 +            let fake = std::env::var("GEB_ATTN_FAKE").is_ok()
+           +;                                                            
+      3950              let x0_src: &Vec<f16> = if minmode { &resh } else
+             { &x0h };
+      3951              s.data(ctx, "x0", &[p, PW], x0_src);
+      3952              s.data_zeros(ctx, "zeros", p, PW);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Removed 7 lines
+      3997              s.wt(ctx, "kwl1", &[KVD, PW], &lw_f16(&lay1.atten
+            tion.k), PW, KVD);
+      3998              s.data(ctx, "kbl1", &[1, KVD], &vec![f16::from_f3
+            2(0.0); KVD as usize]);
+      3999              // ---- 链：seg_prefix L0 逐算子复刻（qkv3+ropefl
+            at+manual GQA）----
+      4000 -            // GEB_ATTN_MIN：x0 = golden res0 直入 MLP 尾 + L
+           -1 k（无 n1/qkv/                                              
+      4001 -            // rope/proj 簇）——补矩阵缺失格：wmm3（净）停在 h
+           -1 输出，本格                                                 
+      4002 -            // 验证 [MLP 尾→L1 {addrms→k mm→bias→rope}] 组合 
+           -本身是否带病                                                 
+      4003 -            let minmode = std::env::var("GEB_ATTN_MIN").is_ok
+           -();                                                          
+      4004 -            // GEB_ATTN_FAKE：用 golden m0_vis Data 替掉 [hea
+           -dsplit→GQA→                                                  
+      4005 -            // headmerge] 簇（保留 qkv/rope/proj→MLP→L1）——二
+           -分触发簇                                                     
+      4006 -            let fake = std::env::var("GEB_ATTN_FAKE").is_ok()
+           -;                                                            
+      4000              let (qf2, kf2) = ([qf.0, qf.1], [kf.0, kf.1]);
+      4001              let (sq, res) = if minmode {
+      4002                  (String::new(), "x0".to_string())
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_m0_vis max_diff=559.89404 rel=5466.547%
+     attn[out0]: vs_golden_res0 max_diff=0.00000 rel=0.000%
+     attn[out0]: vs_golden_h1_vis max_diff=1023.50000 rel=65.525%
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 22s (ctrl+o to expand)
+
+● MIN 模式 11.041% 仍脏！——wmm3 链 D（同一 MLP 尾、无 L1 尾）干净 ⇒ 病根锁定在 
+  [h1 → L1 {addrms→k mm→bias→rope}] 这段接续。最小脏图缩到 ~12
+  个算子。下一刀：去掉 h1 的 dual-role（既是图输出又被 l1n1 消费）——MIN 只留
+  kvk1 输出：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines, removed 1 line
+      4100                  ("h1", h1),
+      4101                  ("kvk1", kvk1),
+      4102              ];
+      4103 -            if !minmode {                                    
+      4103 +            if minmode {                                     
+      4104 +                // MIN 二分：只留 kvk1——去掉 h1 的 dual-role 
+           +（既是图输出又                                               
+      4105 +                // 被 l1n1 消费）。若转净 ⇒ "输出 tap+消费者"
+           + 双角色破坏                                                  
+      4106 +                // GE 内存计划（也解释各图槽读数不可信）     
+      4107 +                taps.clear();                                
+      4108 +                taps.push(("kvk1", kvk1));                   
+      4109 +            } else {                                         
+      4110                  taps.insert(0, ("m0sq", sq.clone()));
+      4111              }
+      4112              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            )| n.as_str()).collect();
+
+  Thought for 7s (ctrl+o to expand)
+
+● kvk1 被移动后又用——重构成条件构造：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 13 lines, removed 14 lines
+      4094              // norm2）——绑定 AddRmsNorm 的 y 会触发 GE 自动补
+            绑 rstd/x_out
+      4095              // （wmm3 无 addrms 输出绑定时无 extras 且全净；a
+            ttn 图有 extras
+      4096              // 且脏——auto-bind 破坏内存计划的嫌疑，去掉后 kvk
+            1 若转净即坐实）
+      4097 -            let mut taps: Vec<(&'static str, String)> = vec![
+      4098 -                ("res", res.clone()),                        
+      4099 -                ("act", act_tap),                            
+      4100 -                ("h1", h1),                                  
+      4101 -                ("kvk1", kvk1),                              
+      4102 -            ];                                               
+      4103 -            if minmode {                                     
+      4104 -                // MIN 二分：只留 kvk1——去掉 h1 的 dual-role 
+           -（既是图输出又                                               
+      4105 -                // 被 l1n1 消费）。若转净 ⇒ "输出 tap+消费者"
+           - 双角色破坏                                                  
+      4106 -                // GE 内存计划（也解释各图槽读数不可信）     
+      4107 -                taps.clear();                                
+      4108 -                taps.push(("kvk1", kvk1));                   
+      4097 +            // MIN 二分：只留 kvk1——去掉 h1 的 dual-role（既 
+           +是图输出又被                                                 
+      4098 +            // l1n1 消费）。若转净 ⇒ "输出 tap+消费者" 双角色
+           +破坏 GE 内存                                                 
+      4099 +            // 计划（也解释各图槽读数不可信）                
+      4100 +            let mut taps: Vec<(&'static str, String)> = if mi
+           +nmode {                                                      
+      4101 +                vec![("kvk1", kvk1)]                         
+      4102              } else {
+      4110 -                taps.insert(0, ("m0sq", sq.clone()));        
+      4111 -            }                                                
+      4103 +                vec![                                        
+      4104 +                    ("m0sq", sq.clone()),                    
+      4105 +                    ("res", res.clone()),                    
+      4106 +                    ("act", act_tap),                        
+      4107 +                    ("h1", h1),                              
+      4108 +                    ("kvk1", kvk1),                          
+      4109 +                ]                                            
+      4110 +            };                                               
+      4111              let out_names: Vec<&str> = taps.iter().map(|(_, n
+            )| n.as_str()).collect();
+      4112              s.finish(&out_names);
+      4113              let ins: Vec<&DeviceBuffer> = s.ins();
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     Mon Sep 21 02:37:43 UTC 2026
+  ⎿  (timeout 10m)
+
+  Thought for 42s (ctrl+o to expand)
+
+● dual-role 也洗清（11.041% 逐位不变）。对照 wmm3（净）：唯一结构性差异 =
+  [add2(h1) → addrms(l1n1)] 邻接——wmm3 的 add2 是链尾。且生产图每层都有
+  [add→addrms]（res→n2、h→n1_next），与 kvk_l0 净/kvk_l1 脏完全吻合！L1
+  段二分：bar（mul-ones 屏障）/mm（跳过 addrms 直投）：
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 26 lines, removed 6 lines
+      4084                  let downb = s.bias("downb_", &down, &[p, PW],
+             "downb");
+      4085                  (act, s.add2("h1", &downb, &mlp_in, &[p, PW])
+            )
+      4086              };
+      4087 -            let n1l1 = s.addrms("l1n1", &h1, "zeros", "g1l1",
+           - &[p, PW]);                                                  
+      4088 -            let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl1", 
+           -&[KVD, PW], &[p, KVD]);                                      
+      4089 -            let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD], "kb
+           -l1");                                                        
+      4090 -            let (kvk1, _) = s.rope2_flat(                    
+      4091 -                "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", "ksi
+           -n", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",             
+      4092 -            );                                               
+      4087 +            // GEB_ATTN_L1=bar|mm：L1 段二分——[add2→addrms]  
+           +邻接是当前最小                                               
+      4088 +            // 脏图（MIN 11%）的唯一候选模式（wmm3 无此邻接即
+           +净 0.032%；                                                  
+      4089 +            // 生产图每层都有 [proj→add→addrms]，与 kvk_l0 净
+           + / kvk_l1 45%                                                
+      4090 +            // 脏吻合）。bar = h1 过 mul(ones) 屏障再进 addrm
+           +s（屏障若治愈                                                
+      4091 +            // ⇒ 可用生产 workaround）；mm = 跳过 addrms 直接
+           + k 投影（输出                                                
+      4092 +            // pre-rope k，判 add2 输出被 mm 消费是否也坏）  
+      4093 +            let l1mode = std::env::var("GEB_ATTN_L1").unwrap_
+           +or_default();                                                
+      4094 +            let kvk1 = if l1mode == "mm" {                   
+      4095 +                let kml1 = s.mm("l1km", &h1, &[p, PW], "kwl1"
+           +, &[KVD, PW], &[p, KVD]);                                    
+      4096 +                s.bias("l1kb_", &kml1, &[p, KVD], "kbl1")    
+      4097 +            } else {                                         
+      4098 +                let h1_in = if l1mode == "bar" {             
+      4099 +                    let ones = vec![f16::from_f32(1.0); (p * 
+           +PW) as usize];                                               
+      4100 +                    s.data(ctx, "ones", &[p, PW], &ones);    
+      4101 +                    s.mul2("h1bar", &h1, "ones", &[p, PW])   
+      4102 +                } else {                                     
+      4103 +                    h1.clone()                               
+      4104 +                };                                           
+      4105 +                let n1l1 = s.addrms("l1n1", &h1_in, "zeros", 
+           +"g1l1", &[p, PW]);                                           
+      4106 +                let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl
+           +1", &[KVD, PW], &[p, KVD]);                                  
+      4107 +                let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD],
+           + "kbl1");                                                    
+      4108 +                s.rope2_flat(                                
+      4109 +                    "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", 
+           +"ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",         
+      4110 +                )                                            
+      4111 +                .0                                           
+      4112 +            };                                               
+      4113              // 逐级图输出（显示名, 算子名）。⚠ 不声明 addrms 
+            输出（norm1/
+      4114              // norm2）——绑定 AddRmsNorm 的 y 会触发 GE 自动补
+            绑 rstd/x_out
+      4115              // （wmm3 无 addrms 输出绑定时无 extras 且全净；a
+            ttn 图有 extras
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  == GEB_ATTN_L1=bar ==
+     attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     == GEB_ATTN_L1=mm ==
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 46s (ctrl+o to expand)
+
+● bar 屏障逐位不变（11.041%）——不是“h1 产出后被踩”（否则屏障会改变结果）⇒ 要么
+  h1 本身就错、要么 L1 段自身从干净 h1 算错。mm 模式的 dump 是关键判据（[h1→mm]
+  干净与否二分）。跑 Python 对拍 mm 模式输出：
+
+● Write(syx_docs\dev_logs\attn_l1mm_check.py)
+  ⎿  Wrote 48 lines to syx_docs\dev_logs\attn_l1mm_check.py
+      1 #!/usr/bin/env python3
+      2 # attn_l1mm_check.py — GEB_ATTN_MIN+L1=mm 的 dump 判读：pre-rope 
+        k vs
+      3 # f64(h1_64 @ Wk_l1_folded)。干净 ⇒ [h1→mm] 无罪，病在 L1 addrms
+        ；
+      5 import glob
+      6 import numpy as np
+      7 import torch
+      8 from safetensors import safe_open
+      9 from safetensors.numpy import load_file
+     … +52 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "cp /tmp/attnmin_out0.f1…)
+  ⎿  f64 自检: h1_64 vs h1_vis = 0.018%
+     图[h1→k mm→bias] vs f64 k_ref: rel=0.036%  视觉行 0.05%  文本行 0.03%
+     通道 top5: [105 212 233 246 231] err=[0.05 0.05 0.04 0.04 0.04] 中位=0
+     .0091
+  ⎿  (timeout 5m)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 决定性分裂：[h1→k mm→bias] = 0.036% 干净（整链经 h1 全净！），而
+  [h1→addrms→mm→bias→rope] = 11% 脏。但 mm 模式同时跳过了 addrms 和 
+  rope——还差一刀分开两者：norm 模式（保留 addrms、只去 rope）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 9 lines, removed 4 lines
+      4105                  let n1l1 = s.addrms("l1n1", &h1_in, "zeros", 
+            "g1l1", &[p, PW]);
+      4106                  let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl
+            1", &[KVD, PW], &[p, KVD]);
+      4107                  let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD],
+             "kbl1");
+      4108 -                s.rope2_flat(                                
+      4109 -                    "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", 
+           -"ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",         
+      4110 -                )                                            
+      4111 -                .0                                           
+      4108 +                if l1mode == "norm" {                        
+      4109 +                    // 只去 rope（addrms 保留）——与 mm 模式（
+           +两者都去）对分                                               
+      4110 +                    kbl1_                                    
+      4111 +                } else {                                     
+      4112 +                    s.rope2_flat(                            
+      4113 +                        "l1kr", &kbl1_, &[p, KVD], &kf2, "kco
+           +s", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",     
+      4114 +                    )                                        
+      4115 +                    .0                                       
+      4116 +                }                                            
+      4117              };
+      4118              // 逐级图输出（显示名, 算子名）。⚠ 不声明 addrms 
+            输出（norm1/
+      4119              // norm2）——绑定 AddRmsNorm 的 y 会触发 GE 自动补
+            绑 rstd/x_out
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_kvk_l1 max_diff=8.97656 rel=91.263%
+     Mon Sep 21 02:46:12 UTC 2026
+  ⎿  (timeout 10m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● norm 模式需要 f64 参考判读（in-process 比的是 post-rope golden 无意义）。算
+  rms(h1_64)@Wk1folded 对拍：
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/attn_l1mm_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119…)
+  ⎿  Error: Exit code 1
+     f64 自检: h1_64 vs h1_vis = 0.018%
+     Traceback (most recent call last):
+       File "/data/apxinf/attn_l1norm_check.py", line 42, in <module>
+         a = np.fromfile('/data/apxinf/attnmin/attnmin_out0.f16', 
+     dtype='<f2').astype(np.float32).reshape(712, 256)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     ValueError: cannot reshape array of size 1458176 into shape (712,256)
+     [ERROR] 2026-09-21-10:46:36 (PID:916052, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 6s (ctrl+o to expand)
+
+● sed 目标串没匹配（本地文件还是 attnmin_out0.f16）。修正：
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/attn_l1mm_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119…)
+  ⎿  f64 自检: h1_64 vs h1_vis = 0.018%
+     图[h1→k mm→bias] vs f64 k_ref: rel=12.858%  视觉行 12.86%  文本行 12.3
+     6%
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 8s (ctrl+o to expand)
+
+● addrms 定罪：mm 模式（无 addrms 无 rope）0.036% 净，norm 模式（只保留
+  addrms）12.858% 脏——l1n1 的 AddRmsNorm 本身算错，行剖面平坦（视觉 12.86/文本
+  12.36）、通道结构扁平（4×）——像系统性行缩放（rms
+  算错）而非布局乱读。离线验证行缩放假设（k_graph ≈ α_r·k_ref?）：
+
+● Write(syx_docs\dev_logs\attn_rowscale_check.py)
+  ⎿  Wrote 58 lines to syx_docs\dev_logs\attn_rowscale_check.py
+      1 #!/usr/bin/env python3
+      2 # attn_rowscale_check.py — norm 模式（l1n1 addrms 保留）的误差结
+        构：
+        分母错；
+      4 # 残差大 ⇒ 值乱（布局）。同时反推 addrms 实际用的 rms 与理论 rms 
+        的比。
+      5 import glob
+      7 import torch
+      8 from safetensors import safe_open
+      9 from safetensors.numpy import load_file
+     … +66 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/attn_rowscale_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13…)
+  ⎿  /usr/local/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504
+     : RuntimeWarning: Mean of empty slice.
+       return _methods._mean(a, axis=axis, dtype=dtype,
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 37s (ctrl+o to expand)
+
+● 行缩放不纯（残差 7.8%）——值级污染。但注意：res0 的 |max|=559（平方 313k 同样超
+  f16 范围）而 n2-on-res0 干净 ⇒ 单纯“f16
+  平方饱和”解释不了区分度。关键微测试（wmm4）：把 golden h1_vis 作为 Data 输入喂
+  addrms→k mm——干净 ⇒ 病在“输入来源”（在图中间量）；脏 ⇒ 病在 h1 的值（1562
+  量级打破 AddRmsNorm，与来源无关）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 44 lines, removed 1 line
+      4398                  std::fs::write(format!("/tmp/wmm3_{dn}.f16"),
+             &bytes).expect("dump");
+      4399              }
+      4400          }
+      4401 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3, got {other}"),     
+      4401 +        // wmm4: addrms 值域 vs 输入来源裁决（norm 模式已定罪
+           + l1n1 的                                                     
+      4402 +        // AddRmsNorm：12.9% 值级误差；但 n2-on-res0(|max|559
+           +，平方同样                                                   
+      4403 +        // >f16) 干净 ⇒ f16 平方饱和解释不了区分度）。golden 
+           +h1_vis 作                                                    
+      4404 +        // Data 直喂 [addrms→k mm→bias]：净 ⇒ 病在"在图中间量
+           +作输入"；                                                    
+      4405 +        // 脏 ⇒ 病在 h1 值域（|max|1562）与来源无关          
+      4406 +        "wmm4" => {                                          
+      4407 +            let real = real.expect("wmm4 需要 GEB_CKPT");    
+      4408 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("wmm4 需要 GEB_E2E_GOLDEN（golden v3）");                  
+      4409 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      4410 +                .expect("golden load");                      
+      4411 +            let hv = t.get("h1_vis").expect("golden 缺 h1_vis
+           +").to_f32_vec().unwrap();                                    
+      4412 +            let h1h: Vec<f16> = hv.iter().map(|&v| f16::from_
+           +f32(v)).collect();                                           
+      4413 +            let p = 712i64;                                  
+      4414 +            assert_eq!(h1h.len(), (p * PW) as usize, "h1_vis 
+           +长度 ≠ 712×2048");                                           
+      4415 +            let lay1 = real.language_layers.get(1).expect("L1
+           + 权重");                                                     
+      4416 +            let stream = be.stream();                        
+      4417 +            let mut s = Seg::new("wmm4");                    
+      4418 +            s.data(ctx, "x", &[p, PW], &h1h);                
+      4419 +            s.data_zeros(ctx, "zeros", p, PW);               
+      4420 +            s.data(ctx, "g1", &[PW], &t_f16(&lay1.input_norm_
+           +scale));                                                     
+      4421 +            s.wt(ctx, "kw", &[KVD, PW], &lw_f16(&lay1.attenti
+           +on.k), PW, KVD);                                             
+      4422 +            s.data(ctx, "kb", &[1, KVD], &vec![f16::from_f32(
+           +0.0); KVD as usize]);                                        
+      4423 +            let n1 = s.addrms("n1", "x", "zeros", "g1", &[p, 
+           +PW]);                                                        
+      4424 +            let km = s.mm("km", &n1, &[p, PW], "kw", &[KVD, P
+           +W], &[p, KVD]);                                              
+      4425 +            let out = s.bias("kb_", &km, &[p, KVD], "kb");   
+      4426 +            s.finish(&[&out]);                               
+      4427 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4428 +            let n_out = s.g.num_outputs().unwrap();          
+      4429 +            let mut bufs = Vec::new();                       
+      4430 +            for i in 0..n_out {                              
+      4431 +                let sz = s.g.output_size(i).unwrap();        
+      4432 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4433 +            }                                                
+      4434 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4435 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4436 +            drop(stream.synchronize());                      
+      4437 +            for (i, buf) in bufs.iter().enumerate() {        
+      4438 +                let sz = s.g.output_size(i).unwrap();        
+      4439 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4440 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4441 +                std::fs::write(format!("/tmp/wmm4_out{i}.f16"
+           +), &bytes).expect("dump");                                   
+      4442 +            }                                                
+      4443 +        }                                                    
+      4444 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3|wmm4, got {other}"),
+      4445      }
+      4446      println!("OPTEST_{which}_OK");
+      4447      ge_builder::fini().expect("fini");
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  [geb]   in[3] size=1048576 dims=256,2048
+     [geb]   in[4] size=512 dims=1,256
+     [geb]   out[0] size=364544 dims=712,256
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/attn_l1mm_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119…)
+  ⎿  f64 自检: h1_64 vs h1_vis = 0.018%
+     图[h1→k mm→bias] vs f64 k_ref: rel=0.073%  视觉行 0.07%  文本行 0.07%
+     通道 top5: [105 212 233 246 231] err=[0.01 0.01 0.   0.   0.  ] 中位=0
+     .0011
+  ⎿  (timeout 5m)
+
+  Thought for 1m 14s (ctrl+o to expand)
+
+● 裁决完成：值无罪、来源定罪——同样的 h1_vis 值作为 Data 输入 → addrms → k mm =
+  0.073% 干净。⇒ AddRmsNorm 读“在图中间量”算错、读 Data 输入正确（bar 证明 mul
+  输出也不行 ⇒ 非单一算子问题，是中间量格式/复用类别问题）。这也一并解释了 flow
+  1.6% 残差（同病小 shape）。
+
+  机制判别 + 修复原型一次做（wmm5 三链）：M[Data→mm→addrms→mm]、G[+gather
+  拷贝屏障]、看 mm 输出喂 addrms 行不行、gather 拷贝能不能治：
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 62 lines, removed 1 line
+      4441                  std::fs::write(format!("/tmp/wmm4_out{i}.f16"
+            ), &bytes).expect("dump");
+      4442              }
+      4443          }
+      4444 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3|wmm4, got {other}"),
+      4444 +        // wmm5: addrms 输入来源机制判别 + 修复原型。wmm4 已 
+           +证 [h1_vis 值                                                
+      4445 +        // 作 Data → addrms] 净 ⇒ 病在"在图中间量作 x1"。三链
+           +同源：                                                       
+      4446 +        // M[Data→mm→addrms→k mm]（mm 输出喂 addrms 行不行）/
+      4447 +        // G[mm 输出过 GatherV2D 恒等拷贝→addrms]（真拷贝屏障
+           +能否治愈——                                                   
+      4448 +        // bar 的 mul 无效说明"新 buffer"不够，需判格式/搬运 
+           +差异）                                                       
+      4449 +        "wmm5" => {                                          
+      4450 +            let real = real.expect("wmm5 需要 GEB_CKPT");    
+      4451 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("wmm5 需要 GEB_E2E_GOLDEN（golden v3）");                  
+      4452 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      4453 +                .expect("golden load");                      
+      4454 +            let rv = t.get("res0").expect("golden 缺 res0").t
+           +o_f32_vec().unwrap();                                        
+      4455 +            let p = 712i64;                                  
+      4456 +            let resh: Vec<f16> = rv.iter().map(|&v| f16::from
+           +_f32(v)).collect();                                          
+      4457 +            assert_eq!(resh.len(), (p * PW) as usize);       
+      4458 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      4459 +            let lay1 = real.language_layers.get(1).expect("L1
+           + 权重");                                                     
+      4460 +            let stream = be.stream();                        
+      4461 +            let mut s = Seg::new("wmm5");                    
+      4462 +            s.data(ctx, "x", &[p, PW], &resh);               
+      4463 +            s.data_zeros(ctx, "zeros", p, PW);               
+      4464 +            s.data(ctx, "g2", &[PW], &t_f16(&lay.post_attenti
+           +on_norm_scale));                                             
+      4465 +            s.wt(ctx, "outwt", &[PW, QD], &lw_f16(&lay.attent
+           +ion.output), QD, PW);                                        
+      4466 +            s.data(ctx, "outb", &[1, PW], &vec![f16::from_f32
+           +(0.0); PW as usize]);                                        
+      4467 +            s.wt(ctx, "kw", &[KVD, PW], &lw_f16(&lay1.attenti
+           +on.k), PW, KVD);                                             
+      4468 +            s.data(ctx, "kb", &[1, KVD], &vec![f16::from_f32(
+           +0.0); KVD as usize]);                                        
+      4469 +            let id_idx: Vec<i32> = (0..p as i32).collect();  
+      4470 +            s.const_i32("id_idx", &id_idx);                  
+      4471 +            // 公共生产段：y = bias(mm(res0, outwt)) —— addrm
+           +s 的在图输入                                                 
+      4472 +            let y0 = s.mm("yM", "x", &[p, PW], "outwt", &[PW,
+           + QD], &[p, PW]);                                             
+      4473 +            let yb = s.bias("ybM", &y0, &[p, PW], "outb");   
+      4474 +            // 链 M：addrms 直读 mm+bias 输出                
+      4475 +            let nm = s.addrms("nM", &yb, "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4476 +            let km = s.mm("kM", &nm, &[p, PW], "kw", &[KVD, P
+           +W], &[p, KVD]);                                              
+      4477 +            let outm = s.bias("kbM", &km, &[p, KVD], "kb");  
+      4478 +            // 链 G：mm 输出过 GatherV2D 恒等拷贝再进 addrms 
+      4479 +            let yg = s.gather_rows("yg", &yb, &[p, PW], "id_i
+           +dx");                                                        
+      4480 +            let ng = s.addrms("nG", &yg, "zeros", "g2", &[p, 
+           +PW]);                                                        
+      4481 +            let kg = s.mm("kG", &ng, &[p, PW], "kw", &[KVD, P
+           +W], &[p, KVD]);                                              
+      4482 +            let outg = s.bias("kbG", &kg, &[p, KVD], "kb");  
+      4483 +            let outs = [outm, outg];                         
+      4484 +            let out_names: Vec<&str> = outs.iter().map(|x| x.
+           +as_str()).collect();                                         
+      4485 +            s.finish(&out_names);                            
+      4486 +            let ins: Vec<&DeviceBuffer> = s.ins();           
+      4487 +            let n_out = s.g.num_outputs().unwrap();          
+      4488 +            let mut bufs = Vec::new();                       
+      4489 +            for i in 0..n_out {                              
+      4490 +                let sz = s.g.output_size(i).unwrap();        
+      4491 +                bufs.push(ctx.malloc(sz).unwrap());          
+      4492 +            }                                                
+      4493 +            let out_refs: Vec<&DeviceBuffer> = bufs.iter().co
+           +llect();                                                     
+      4494 +            s.g.run(&ins, &out_refs, stream).unwrap();       
+      4495 +            drop(stream.synchronize());                      
+      4496 +            let names = ["M", "G"];                          
+      4497 +            for (i, buf) in bufs.iter().enumerate() {        
+      4498 +                let sz = s.g.output_size(i).unwrap();        
+      4499 +                let vals = download_f16(ctx, buf, sz / 2);   
+      4500 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      4501 +                let dn = names.get(i).map(|x| *x).unwrap_or("
+           +extra");                                                     
+      4502 +                std::fs::write(format!("/tmp/wmm5_{dn}.f16"),
+           + &bytes).expect("dump");                                     
+      4503 +            }                                                
+      4504 +        }                                                    
+      4505 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3|wmm4|wmm5, got {othe
+           +r}"),                                                        
+      4506      }
+      4507      println!("OPTEST_{which}_OK");
+      4508      ge_builder::fini().expect("fini");
+
+  Thought for 21s (ctrl+o to expand)
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  [geb]   in[6] size=512 dims=1,256
+     [geb]   out[0] size=364544 dims=712,256
+     [geb]   out[1] size=364544 dims=712,256
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Write(syx_docs\dev_logs\wmm5_check.py)
+  ⎿  Wrote 37 lines to syx_docs\dev_logs\wmm5_check.py
+       1 #!/usr/bin/env python3
+       2 # wmm5_check.py — 机制判别：M[mm输出→addrms] vs G[mm输出→gather
+         拷贝→addrms]。
+       3 # ref = f64: y = res0 @ Wout.T; n = y/rms(y); k = n @ Wk1fold.T
+       4 import glob
+       6 import torch
+       7 from safetensors import safe_open
+       8 from safetensors.numpy import load_file
+       9 
+      10 CKPT = '/data/apxinf/weights/pi05_libero_finetuned'
+     … +37 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/wmm5_check.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  链M: rel=   0.058%  视觉行    0.06%  文本行    0.06%
+     链G: rel=   0.073%  视觉行    0.07%  文本行    0.07%
+  ⎿  (timeout 5m)
+
+  Thought for 54s (ctrl+o to expand)
+
+● 再转折：wmm5 链 M 干净（0.058%）——[mm+bias(Add) → addrms] 没事！但 attn 图里
+  [add2(经 MLP 长链) → addrms] 脏。生产者类型不是完整解释——更像特定 buffer 尺寸/
+  复用类的分配重叠。不纠结机制，直接在复现图上试修复原型（便宜→贵）：swap（h1 走
+  x2 端口）和 rshp（恒等 Reshape 屏障）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 29 lines
+      4094              let kvk1 = if l1mode == "mm" {
+      4095                  let kml1 = s.mm("l1km", &h1, &[p, PW], "kwl1"
+            , &[KVD, PW], &[p, KVD]);
+      4096                  s.bias("l1kb_", &kml1, &[p, KVD], "kbl1")
+      4097 +            } else if l1mode == "swap" || l1mode == "rshp" { 
+      4098 +                // 修复原型①：h1 走 x2 端口（x1=zeros）——若 A
+           +ddRmsNorm 的                                                 
+      4099 +                // 病在 x1 端口的在图输入，端口对调即治愈；② 
+           +恒等 Reshape                                                 
+      4100 +                // 屏障（元数据级，若强制了 buffer 重新分配亦
+           +可治愈）                                                     
+      4101 +                let h1_in = if l1mode == "swap" {            
+      4102 +                    h1.clone()                               
+      4103 +                } else {                                     
+      4104 +                    s.reshape("h1rsh", &h1, &[p, PW], "shp_mf
+           +lat", &[p, QD])                                              
+      4105 +                };                                           
+      4106 +                s.g.add_op("l1n2", "AddRmsNorm").unwrap();   
+      4107 +                s.g.set_input_desc("l1n2", "x1", &[p, PW], Dt
+           +ype::Fp16).unwrap();                                         
+      4108 +                s.g.set_input_desc("l1n2", "x2", &[p, PW], Dt
+           +ype::Fp16).unwrap();                                         
+      4109 +                s.g.set_input_desc("l1n2", "gamma", &[PW], Dt
+           +ype::Fp16).unwrap();                                         
+      4110 +                s.g.set_output_desc("l1n2", "y", &[p, PW], Dt
+           +ype::Fp16).unwrap();                                         
+      4111 +                s.g.set_attr_float("l1n2", "epsilon", RMS_EPS
+           +).unwrap();                                                  
+      4112 +                s.g.link("l1n2", "x1", "zeros").unwrap();    
+      4113 +                s.wire("l1n2", "x2", &h1_in);                
+      4114 +                s.g.link("l1n2", "gamma", "g1l1").unwrap();  
+      4115 +                let n1l1 = s.reg_out("l1n2", "y");           
+      4116 +                let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl
+           +1", &[KVD, PW], &[p, KVD]);                                  
+      4117 +                let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD],
+           + "kbl1");                                                    
+      4118 +                if l1mode == "swap" || l1mode == "rshp" {    
+      4119 +                    kbl1_                                    
+      4120 +                } else {                                     
+      4121 +                    s.rope2_flat(                            
+      4122 +                        "l1kr", &kbl1_, &[p, KVD], &kf2, "kco
+           +s", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",     
+      4123 +                    )                                        
+      4124 +                    .0                                       
+      4125 +                }                                            
+      4126              } else {
+      4127                  let h1_in = if l1mode == "bar" {
+      4128                      let ones = vec![f16::from_f32(1.0); (p * 
+            PW) as usize];
+
+  Thought for 7s (ctrl+o to expand)
+
+● swap/rshp 也要带 rope 才能直接对拍 kvk_l1——修掉内层死分支：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 4 lines, removed 8 lines
+      4115                  let n1l1 = s.reg_out("l1n2", "y");
+      4116                  let kml1 = s.mm("l1km", &n1l1, &[p, PW], "kwl
+            1", &[KVD, PW], &[p, KVD]);
+      4117                  let kbl1_ = s.bias("l1kb_", &kml1, &[p, KVD],
+             "kbl1");
+      4118 -                if l1mode == "swap" || l1mode == "rshp" {    
+      4119 -                    kbl1_                                    
+      4120 -                } else {                                     
+      4121 -                    s.rope2_flat(                            
+      4122 -                        "l1kr", &kbl1_, &[p, KVD], &kf2, "kco
+           -s", "ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",     
+      4123 -                    )                                        
+      4124 -                    .0                                       
+      4125 -                }                                            
+      4118 +                s.rope2_flat(                                
+      4119 +                    "l1kr", &kbl1_, &[p, KVD], &kf2, "kcos", 
+           +"ksin", "kswap_c", "shp_kflat", "shp_kb2", "shp_k3",         
+      4120 +                )                                            
+      4121 +                .0                                           
+      4122              } else {
+      4123                  let h1_in = if l1mode == "bar" {
+      4124                      let ones = vec![f16::from_f32(1.0); (p * 
+            PW) as usize];
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  == GEB_ATTN_L1=swap ==
+     attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     == GEB_ATTN_L1=rshp ==
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 54s (ctrl+o to expand)
+
+● swap/rshp 仍是逐位相同的 11.041%——bar/swap/rshp/去 tap 全部 bit-identical ⇒
+  不是 buffer 地址/格式问题（那些都变了），是确定性的值级现象。但 wmm4
+  用同样值（h1_vis）作 Data 却干净……唯一没验过的：在图 h1 的 f16 
+  值本身可能带某种对 mm 无害、对 addrms 有害的痕迹。取在图 h1 的真实值（mm
+  模式加 h1 tap——此时 h1 早被消费、槽不会被覆写），纯离线 f64 判决：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 8 lines, removed 1 line
+      4148              // l1n1 消费）。若转净 ⇒ "输出 tap+消费者" 双角色
+            破坏 GE 内存
+      4149              // 计划（也解释各图槽读数不可信）
+      4150              let mut taps: Vec<(&'static str, String)> = if mi
+            nmode {
+      4151 -                vec![("kvk1", kvk1)]                         
+      4151 +                if l1mode == "mm" {                          
+      4152 +                    // mm 模式附 h1 tap：此时 h1 在链早期被 k
+           +-mm 消费、尾部                                               
+      4153 +                    // 无算子，输出槽不会被覆写——取在图 h1 的
+           +真实 f16 值做                                                
+      4154 +                    // 离线判决（wmm4 喂 h1_vis 干净 vs 在图 
+           +h1 脏的最终分裂）                                            
+      4155 +                    vec![("h1", h1.clone()), ("k", kvk1)]    
+      4156 +                } else {                                     
+      4157 +                    vec![("kvk1", kvk1)]                     
+      4158 +                }                                            
+      4159              } else {
+      4160                  vec![
+      4161                      ("m0sq", sq.clone()),
+
+  Thought for 10s (ctrl+o to expand)
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  attn[out0]: vs_golden_m0_vis max_diff=1562.04285 rel=15251.066%
+     attn[out0]: vs_golden_res0 max_diff=1023.50000 rel=183.095%
+     attn[out0]: vs_golden_h1_vis max_diff=0.50000 rel=0.032%
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 31s (ctrl+o to expand)
+
+● 在图 h1 的值干净（0.032%）——值也洗清！同一值同一算子：Data
+  输入→净、在图输入→确定性脏（bar/swap/rshp 只动 h1 之后的算子→逐位不变；mm
+  模式动 h1 之后的第一个算子→净）。病与“addrms
+  之前跑了什么”相关。全部素材在手，纯离线穷举 addrms 的错误公式假设（全局 rms/错
+  eps/mean 代替 rms/错行距…）：
+
+● Write(syx_docs\dev_logs\addrms_hypo.py)
+  ⎿  Wrote 83 lines to syx_docs\dev_logs\addrms_hypo.py
+      1 #!/usr/bin/env python3
+      2 # addrms_hypo.py — norm 模式脏 k 的错误公式穷举（纯离线）。
+      3 # 已知：图 h1 值净（0.032%）；f64 rms(h1)@Wk1 与图输出差 12.9%；w
+        mm4
+      4 # 同值 Data 输入干净。对 dump 试各错误假设，找 0 误差匹配。
+      5 import glob
+      6 import numpy as np
+      7 import torch
+      8 from safetensors import safe_open
+      9 from safetensors.numpy import load_file
+     … +93 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/addrms_hypo.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  Error: Exit code 1
+     基线（f64 行 rms）: rel vs 图脏输出 = 12.861%
+     Traceback (most recent call last):
+       File "/data/apxinf/addrms_hypo.py", line 62, in <module>
+         h1bf = 
+     h1.astype(np.float32).astype(torch.bfloat16).numpy().astype(np.float64)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     TypeError: Cannot interpret 'torch.bfloat16' as a data type
+     [ERROR] 2026-09-21-11:06:35 (PID:916895, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\addrms_hypo.py)
+  ⎿  Added 1 line, removed 1 line
+      59  sq = np.clip(h1 ** 2, None, 65504.0)
+      60  hyp['平方饱和'] = (h1 / np.sqrt(sq.mean(-1, keepdims=True) + 1e
+          -6)) @ Wk1.T
+      61  # 6. bf16 输入舍入后 rms
+      62 -h1bf = h1.astype(np.float32).astype(torch.bfloat16).numpy().ast
+         -ype(np.float64)                                                
+      62 +h1bf = torch.from_numpy(h1.astype(np.float32)).to(torch.bfloat1
+         +6).to(torch.float32).numpy().astype(np.float64)                
+      63  hyp['bf16入rms'] = (h1bf / np.sqrt((h1bf ** 2).mean(-1, keepdim
+          s=True) + 1e-6)) @ Wk1.T
+      64  # 7. f16 累加（分块 128）
+      65  sq16 = (h1 ** 2)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/addrms_hypo.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  /data/apxinf/addrms_hypo.py:68: RuntimeWarning: overflow encountered i
+     n cast
+       acc = (acc + sq16[:, s:s + 128].sum(-1)).astype(np.float16).astype(n
+     … +20 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 42s (ctrl+o to expand)
+
+● 公式假设全灭（都 ~12.8% 基线级）——不是 rms 公式错，是上下文相关的执行损坏。转
+  实用路线：在复现图上直接试生产级修复原型。两个候选（一个零成本一个 mm
+  屏障）：swapadd（残差加法操作数对调 x1/x2——in-place 别名可能依赖操作数次序）+
+  mbar（恒等 mm 屏障——wmm5 已证 [mm输出→addrms] 干净）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)  ⎿  Added 3 lines
+      4035              // "宽 N × 非 16 倍 M" 507015 崩；GE 图内同 shape
+             疑似静默数值错
+      4036              // （act 20.8%，f16 分块累加模拟仅 0.145% ⇒ 非精
+            度问题）
+      4037              let mlp_pad = std::env::var("GEB_ATTN_MLP_PAD").i
+            s_ok();
+      4038 +            // GEB_ATTN_SWAPADD：残差 Add 操作数对调（x1=Data
+           +/激活侧，                                                    
+      4039 +            // x2=投影侧——in-place 别名若依赖 x1 次序即可躲开
+           +，零成本）                                                   
+      4040 +            let swapadd = std::env::var("GEB_ATTN_SWAPADD").i
+           +s_ok();                                                      
+      4041              // GEB_ATTN_RES_GOLDEN：MLP 尾改吃 golden res0 Da
+            ta（attention 子图
+      4042              // 仍在图中、m0sq 仍为图输出）——裁决"res 在图 buf
+            fer 被踩"vs
+      4043              // "attention 算子存在本身污染无关 buffer"（V1 实
+            验）
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines, removed 1 line
+      4085                  let act = s.mul2("act", &gact, &up, &[p, INTE
+            R]);
+      4086                  let down = s.mm("down", &act, &[p, INTER], "d
+            ownwt", &[PW, INTER], &[p, PW]);
+      4087                  let downb = s.bias("downb_", &down, &[p, PW],
+             "downb");
+      4088 -                (act, s.add2("h1", &downb, &mlp_in, &[p, PW])
+           -)                                                            
+      4088 +                if swapadd {                                 
+      4089 +                    (act, s.add2("h1", &mlp_in, &downb, &[p, 
+           +PW]))                                                        
+      4090 +                } else {                                     
+      4091 +                    (act, s.add2("h1", &downb, &mlp_in, &[p, 
+           +PW]))                                                        
+      4092 +                }                                            
+      4093              };
+      4094              // GEB_ATTN_L1=bar|mm：L1 段二分——[add2→addrms] 
+            邻接是当前最小
+      4095              // 脏图（MIN 11%）的唯一候选模式（wmm3 无此邻接即
+            净 0.032%；
+
+  Thought for 17s (ctrl+o to expand)
+
+● 加 mbar 模式（恒等 mm 屏障进 l1n1）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 9 lines
+      4131                      let ones = vec![f16::from_f32(1.0); (p * 
+            PW) as usize];
+      4132                      s.data(ctx, "ones", &[p, PW], &ones);
+      4133                      s.mul2("h1bar", &h1, "ones", &[p, PW])
+      4134 +                } else if l1mode == "mbar" {                 
+      4135 +                    // 恒等 mm 屏障：wmm5-M 已证 [mm 输出 → a
+           +ddrms] 干净——                                                
+      4136 +                    // 生产修复原型（代价 ~0.3ms/实例）      
+      4137 +                    let mut idw = vec![f16::from_f32(0.0); (P
+           +W * PW) as usize];                                           
+      4138 +                    for i in 0..PW as usize {                
+      4139 +                        idw[i * PW as usize + i] = f16::from_
+           +f32(1.0);                                                    
+      4140 +                    }                                        
+      4141 +                    s.wt(ctx, "idw", &[PW, PW], &idw, PW, PW)
+           +;                                                            
+      4142 +                    s.mm("h1id", &h1, &[p, PW], "idw", &[PW, 
+           +PW], &[p, PW])                                               
+      4143                  } else {
+      4144                      h1.clone()
+      4145                  };
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model \
+        | ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshk…)
+  ⎿  == SWAPADD（零成本）==
+     attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     == MBAR（恒等mm屏障）==
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 1m 12s (ctrl+o to expand)
+
+● 五个变体全部 bit-identical——连恒等 mm 屏障都无效！这强烈暗示：k-mm 
+  消费的根本不是 addrms 的输出而是它的输入 h1（pre-norm 张量）——这样
+  bar/swap/rshp/mbar 全一致（屏障输出≈h1）、wmm4 却干净（那图里 mm
+  只有一个可选输入）。纯离线验证：
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/addrms_hypo.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  Error: Exit code 2
+     /usr/bin/bash: eval: line 21: syntax error near unexpected token `('
+     /usr/bin/bash: eval: line 21: `print('k_dirty vs rms(res0)@Wk1   =', 
+     round(rel(kd,( (np.fromfile('/data/apxinf/attnmin/graph_h1.f16',dtype='<f2'
+     ).astype(np.float64)) )*0+kd,4) if False else 'skip')'
+
+  Thought for 4s (ctrl+o to expand)
+
+● 引号地狱。走文件管道（顺手删掉那行废代码）：
+
+● Write(syx_docs\dev_logs\addrms_hypo2.py)
+  ⎿  Wrote 38 lines to syx_docs\dev_logs\addrms_hypo2.py
+       1 #!/usr/bin/env python3
+       2 # addrms_hypo2.py — 核心假设：k-mm 消费了 addrms 的输入（pre-nor
+       3 # 而非其输出。五个屏障变体 bit-identical + wmm4（Data 输入）干净
+         的
+       4 # 唯一自洽解释。
+       6 import numpy as np
+       7 from safetensors import safe_open
+       8 
+      10 L1 = 'model.paligemma_with_expert.paligemma.model.language_model
+         .layers.1'
+     … +38 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/addrms_hypo2.py" \
+        | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 \…)
+  ⎿  k_dirty vs f64 [rms(h1)·1]@Wk1 = 12.8608%   （正确语义）
+     k_dirty vs f64 [h1_raw]@Wk1    = 97.2086%   （未归一化——核心假设）
+     行级判别: 归一化更优的行 712/712，未归一化更优 0/712
+  ⎿  (timeout 5m)
+
+  Thought for 53s (ctrl+o to expand)
+
+● 核心假设也灭（未归一化 97%）。但所有证据现在收敛到GE 静态内存计划重叠活 
+  buffer：post-h1 变体不动大 buffer 分配 → 逐位不变；MLP_PAD 改变大 buffer 尺寸
+  → 45.2→24.66 变了；dbg 图多输出 → 24.7。试 GE 编译选项关 buffer 
+  重用——ge.exec_reuseLevel=0（GEB_OPT 直通口现成）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "source /data/apxinf/rus…)
+  ⎿  == exec_reuseLevel=0 ==
+     [geb-opt] ge.exec_reuseLevel = 0
+     Mon Sep 21 03:16:32 UTC 2026
+  ⎿  (timeout 10m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 选项生效了但没跑出对拍行——看完整输出：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "source /data/apxinf/rus…)
+  ⎿  [geb] node kswap_c(Const) out0 dims[1424]
+     [geb] node downwt(Const) out0 dims[2048,16384]
+     [geb] node l1kr_3(Reshape) out0 dims[1,712,256] in0<-l1kr_bk:0 dims[71
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● exec_reuseLevel=0 编译拒绝（rc=-7）。翻 GE 头文件/库找真实内存选项名：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "grep -rn -i \"reuse\|bu…)
+  ⎿  --buffer_optimize
+     ../../compiler/graph/passes/memory_optimize/concat_notask_pass.cc
+     ../../compiler/graph/passes/memory_optimize/swap_space_pass.cc
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 10s (ctrl+o to expand)
+
+● ge.bufferOptimize 存在。再扫一遍别的内存相关选项名，然后试
+  bufferOptimize=off：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 \
+          'docker exec -i apxinf_rust bash -c "strings /usr/local/Asce…)
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   276.8k/1m tokens (28%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 274.1k tokens (27.4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 723k (72.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ 先更新一下全部文档吧，这个问题留下一轮攻坚                                    
+
+  Thought for 1m 4s (ctrl+o to expand)
+
+● 收到——收口归档，攻坚留下一轮。先写今晚的 summary（定位链完整），再更新
+  handoff/setup/roadmap，最后两步提交。
+● Write(syx_docs\dev_logs\summary\2026-09-21_ge-addrms-ingraph-corruption.md)
+  ⎿  Wrote 63 lines to
+     syx_docs\dev_logs\summary\2026-09-21_ge-addrms-ingraph-corruption.md
+      1 # M3 剩余漂移定罪：GE 图内 AddRmsNorm 读"在图中间量"被污染（内存
+      2 
+        9-21_m3-empty-camera-mask-root-cause.md)（上轮收口推断"2.8% 产自
+      4 
+      6 
+        读在图中间量**：attention 链（0.229%）、o_proj 消费（0.089%）、ga
+        .032%）、权重折叠（0.032%）、M 对齐、GQA 簇、rope、dual-role 槽、
+        msNorm] 数值错（11-13% 级），同值作 Data 输入则 0.073% 干净**（wm
+        pe/Add 操作数对调/恒等 mm）输出逐位不变 + 小图 [mm→addrms] 干净（
+        .0 / RES_GOLDEN 78.6）⇒ 收敛到 **GE 静态 OM 内存计划重
+     … +116 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 重写 handoff（Edit 整体替换）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+  Thought for 6s (ctrl+o to expand)
+
+● handoff 内容与我记的不一致（session 开头快照已过期）——重读再改：
+
+  Thought for 29s, read 1 file (ctrl+o to expand)
+
+● 逐段替换（先标题，再各段）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      1 -# Handoff（2026-09-21 凌晨 M3 empty_camera 语义根因 / 压缩用）  
+      1 +# Handoff（2026-09-21 上午 GE 图内 AddRmsNorm 污染定罪 / 压缩用 
+        +）                                                              
+      2  
+      3  ## 状态一句话
+      4  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真
+        -实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/repla
+        -y 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视 
+        -图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产
+        -（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.
+        -1%；**剩余漂移精确定位：层内 {o_proj mm + res + addrms} 跨度 ~2.
+        -8% 执行误差（m0 0.52% 输入传播上界仅 0.03%、torch 同链 f16 全程 
+        -0.03%——真执行误差非累积序；down/act 只 3.05/3.15% 无罪，gate/up 
+        -槽系覆写垃圾）**，逐层复合至 l17 84% → final actions 323%。详见 
+        -summary 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix
+        - 115.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66
+        -×）**。                                                         
+      5 +**M3 剩余漂移（kvk_l1 45.2%）已定罪：GE 静态 OM 图内 AddRmsNorm 
+        +读"在图中间量"时数值被污染（内存计划重叠嫌疑）——同值作 Data 输入
+        + 0.073% 干净（wmm4 决定性实验），去 addrms 0.036% 干净（L1=mm） 
+        +，五类屏障/端口变体逐位不变，小图 [mm→addrms] 干净（wmm5），图形
+        +状强敏感（net 45.2/dbg 24.7/垫M 24.66/MIN 11.0/RES_GOLDEN 78.6）
+        +**。attention 链/gate 宽 N mm/down 大 K mm/MLP 尾组合/权重折叠/G
+        +QA 簇/rope/M 对齐/auto-bind/dual-role 全部洗清；最小脏图 ~13 算 
+        +子（`GEB_OPTEST=attn GEB_ATTN_MIN=1` = 11.041%）。生产影响面 = p
+        +refix 每层 2 处 [add→addrms]×18 + flow（1.6% 同病小 shape）→ kvk
+        +_l17 84%/actions 323%。详见 summary 2026-09-21_ge-addrms-ingraph
+        +-corruption。性能不变：e2e ≈248ms（0.66×）。                    
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+  Thought for 5s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**empty_camera 根因链**（golden v2 混世界：infer-hook
+         - 键 vs 968 全开 replay 键——m0_gold 偏全开 35.31% 偏 causal 94.3
+         -1% 属第三世界 = pad 遮蔽+位置塌缩；修复 GEB_PREFIX_DROP_EMPTY=2
+         -56 + golden v3 + t712 OM）；**修复后指标**（x0_vis 0.1/kvk_l0 0
+         -.3/kvk_l1 45.2 净图 24.7 dbg 图/step0_x1 10.1/actions 323 复合 
+         -）；**剩余定位**（MLP 段：slot_cmp712 槽位判读 m0_vis 0.52 → no
+         -rm2 2.82 → h1(cur) 35.53——图槽判读法 + t712dbg OM + DUMP_MID） 
+         -；**golden v3 键**（x0_vis/m0_vis/h1_vis/kvk_l* 全 712 语义 + i
+         -nfer 侧原键；golden_gen_v3.py，自洽 0.03-0.12%）；**方法论教训*
+         -*（golden 与被测须同 forward 语义；先证 golden 自洽再怪引擎——Ad
+         -dRmsNorm/WCONST/mm/槽位复用四嫌疑全被 golden 不自洽假象浪费排除
+         -）。丢弃：过程性脚本中间版（八件新脚本在 summary 列全）。      
+       9 +聚焦保留：**定罪签名**（[在图中间量→AddRmsNorm] 11-13% 脏 vs 同
+         +值 Data 输入 0.073% 净 vs 去 addrms 0.036% 净；行剖面平坦、通道
+         +结构扁平 4×、逐位确定性）；**16 步洗冤链**（attention 0.229/opr
+         +oj 消费 0.089/MLP 尾组合 0.032/折叠 0.032/gate 宽N 0.057/down  
+         +大K 0.017/wmm5 小图 addrms 0.058——组合矩阵见 summary 表格）；**
+         +内存重叠收敛证据**（五变体逐位相同 max_diff=1.08594 + 大 buffer
+         + 尺寸变化即变值 + `ge.bufferOptimize` 选项已在 libge_compiler.s
+         +o 确认待试）；**复现/裁决旋钮**（GEB_OPTEST=attn 全家 + wmm~wmm
+         +5 + GEB_ATTN_* 变体 + dump 落 /data/apxinf/{attnmin,wmm}/）；**
+         +坑**（图输出按模型 introspection 分配：绑 addrms y 触发 rstd/x_
+         +out 自动补绑 → n_out 不匹配 rc=-3——arm 模式 rc=-3 同根因已结案 
+         +）。丢弃：各中间 dump 与一次性 sed 变体脚本。                  
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         -empty-camera-mask-root-cause.txt（M3 真根因：empty_camera 视图 
+         -语义 + 712 修复 + MLP 段剩余定位）                             
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_ge-
+         +addrms-ingraph-corruption.txt（M3 剩余漂移定罪：GE 图内 AddRmsN
+         +orm 在图中间量污染 + 16 步洗冤 + 内存重叠收敛）                
+      18  
+
+  Thought for 13s (ctrl+o to expand)
+
+● ② 段长行有微妙差异——grep 拿精确原文：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '13p' "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" | head -c
+      300; echo; echo "---"; sed -n '13p'
+      "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" | w…)
+  ⎿  继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自
+     洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差：m0 0.5
+     2% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 summary 2026-09-21_m3-em
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● Bash(sed -n '13p' "D:/compass/APXinf/syx_docs/dev_logs/handoff.md")
+  ⎿  继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golden v3 自
+     洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执行误差：m0 0.5
+     2% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 summary 2026-09-21_m3-em
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 找到了——原文是 [norm1→qkv→rope→GQA→merge]（我漏了 →rope）。重试：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+  Thought for 14s (ctrl+o to expand)
+
+● 还有隐形差异——byte 级查引号：
+
+● Bash(sed -n '13p' "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" | grep -o
+      '.\{4\}槽与消费值不一致.\{4\}' | hexdump -C | head -6)
+  ⎿  /usr/bin/bash: line 1: hexdump: command not found
+
+● Bash(sed -n '13p' "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" | od -c -A
+      d | grep -A1 -B1 '272\|232' | head -10; echo ===; sed -n '13p'
+      "D:/compass/APXinf/syx_d…)
+  ⎿  0000016 207 350 205 276       N   P   U       *   *   C     350 267 25
+     7
+     0000032 347 272 277       M   3 357 274 210   e   m   p   t   y   _
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+● Bash(sed -n '13p' "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" | python -c
+      "
+      import sys…)
+  ⎿  ['0x32', '0x25', '0xff0c', '0x22', '0x69fd', '0x4e0e', '0x6d88', '0x8d
+     39', '0x503c', '0x4e0d', '0x4e00', '0x81f4', '0x22', '0x518d', '0x73b0
+     ', '0xff1b']
+     2%��"��������ֵ��һ��"���֣�
+
+  Thought for 9s (ctrl+o to expand)
+
+● 写临时文件做逐字符 diff：
+
+● Bash(cd /tmp 2>/dev/null || cd "$TEMP"; sed -n '13p'
+      "D:/compass/APXinf/syx_docs/dev_logs/handoff.md" > h13.txt; python -
+      <<'EOF'
+      expect = open('h13.txt', 'rb').read…)
+  ⎿  Error: Exit code 1
+     len: 1258
+     �� 7 first ctx: '[norm1��qkv��r'
+     ���� 2 first ctx: ' 0.03%������ su'
+     �� 1 first ctx: '����ʵ��� �� m0 ��'
+     Traceback (most recent call last):
+       File "<stdin>", line 7, in <module>
+     UnicodeEncodeError: 'gbk' codec can't encode character '\u21d2' in position
+     0: illegal multibyte sequence
+
+  Thought for 26s (ctrl+o to expand)
+
+● 改用分段手术。先验锚点存在性：
+
+● Bash(cd "D:/compass/APXinf/syx_docs/dev_logs"; for pat in 'manual attention
+      链孤立对拍\*\*（真 x0_vis 输入跑 \[norm1→qkv→rope→GQA→merge\]' '②
+      GEB_OPTEST=arm 的 GE run rc=-3 顺手查…)
+  ⎿  manual attention 链孤立对拍\*\*（真 x0_vis 输入跑 \[norm1→qkv→rope→GQA
+     →merge\] => 1
+     ② GEB_OPTEST=arm 的 GE run rc=-3 顺手查 => 1
+
+  Thought for 5s (ctrl+o to expand)
+
+● 锚点都在。分段手术：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         -n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         -行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         -mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         -**manual attention 链孤立对拍**（真 x0_vis 输入跑 [norm1→qkv→ro
+         -pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         -逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         -输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         -向 headsplit/headmerge 重排或 bmm 累加）；② GEB_OPTEST=arm 的 G
+         -E run rc=-3 顺手查。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO 
+         -（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB
+         -_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDE
+         -N=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712db
+         -g + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<
+         -dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH
+         - 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全
+         -路径文件名；goal 时限纪律见全局 CLAUDE.md。                    
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         +n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         +行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         +mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         +**manual attention 链孤立对拍**（真 x0_vis 输入跑 [norm1→qkv→ro
+         +pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         +逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         +输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         +向 headsplit/headmerge 重排或 bmm 累加）；② arm 的 rc=-3 已结案
+         +（addrms y 绑图输出触发 rstd/x_out 自动补绑 → 输出数不匹配）。 
+         +修到 attn 图 kvk1 ≤0.1% → 生产 prefix/flow 全 [add→addrms] 处应
+         +用修复 → kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口 
+         +径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_
+         +OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/g
+         +olden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/
+         +FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp7
+         +12.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；gol
+         +den/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal
+         + 时限纪律见全局 CLAUDE.md。                                    
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+  Thought for 15s (ctrl+o to expand)
+
+● 头段还有差异——逐片 grep -F 定位：
+
+● Bash(cd "D:/compass/APXinf/syx_docs/dev_logs"; printf 'A '; grep -cF '继续
+      APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修' handoff.md; printf 'B
+      '; grep -cF '剩余 = 层内 {o_pro…)
+  ⎿  A 1
+     B 1
+     C 0
+     D 1
+
+  Thought for 18s (ctrl+o to expand)
+
+● C 段不匹配。再细切：
+
+● Bash(cd "D:/compass/APXinf/syx_docs/dev_logs"; printf 'C1 '; grep -cF '：m0
+      0.52% 传播上界仅 0.03%' handoff.md; printf 'C2 '; grep -oF 'm0 0.52%
+      传播上界仅 0.03%、torch 同链 f16 全…)
+  ⎿  C1 1
+     C2 C3 误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%
+     C4 C5 0000000   0   .   0   3   % 342 200 224 342 200 224 350 247 201
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 真相：文件里是 torch 同链 f16 0.03%（无“全程”，那词在状态段）。修正后重试：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         -n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         -行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         -mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         -**manual attention 链孤立对拍**（真 x0_vis 输入跑 [norm1→qkv→ro
+         -pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         -逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         -输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         -向 headsplit/headmerge 重排或 bmm 累加）；② arm 的 rc=-3 已结案
+         -（addrms y 绑图输出触发 rstd/x_out 自动补绑 → 输出数不匹配）。 
+         -修到 attn 图 kvk1 ≤0.1% → 生产 prefix/flow 全 [add→addrms] 处应
+         -用修复 → kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口 
+         -径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_
+         -OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/g
+         -olden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/
+         -FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp7
+         -12.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；gol
+         -den/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal
+         - 时限纪律见全局 CLAUDE.md。                                    
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（剩余漂移已定罪 GE 图内 AddRms
+         +Norm 读在图中间量被污染，见 summary 2026-09-21_ge-addrms-ingrap
+         +h-corruption）**。第一动作：**`GEB_OPT_ge.bufferOptimize=off`  
+         +跑 MIN 复现图**（`GEB_OPTEST=attn GEB_WCONST=1 GEB_ATTN_MIN=1 G
+         +EB_CKPT=... GEB_E2E_GOLDEN=frame0_v3`，判 kvk1 是否从 11.041%  
+         +转净——选项已确认存在于 libge_compiler.so，env 名带点要 `env "GE
+         +B_OPT_...=..."` 包引号）；无效则 ② libge strings 扫全部 ge.* 内
+         +存选项逐一 A/B ③ ReduceSum/Rsqrt 分解 norm 绕开 AddRmsNorm（先 
+         +验 310P GE 注册表）④ 显式 TransData ⑤ MLP 大 buffer 布局扰动二 
+         +分重叠对。〔历史：上轮第一动作 manual attention 链孤立对拍已做—
+         +—**attention 链 0.229% 无罪**〕（真 x0_vis 输入跑 [norm1→qkv→ro
+         +pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         +逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         +输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         +向 headsplit/headmerge 重排或 bmm 累加）；② arm 的 rc=-3 已结案
+         +（addrms y 绑图输出触发 rstd/x_out 自动补绑 → 输出数不匹配）。 
+         +修到 attn 图 kvk1 ≤0.1% → 生产 prefix/flow 全 [add→addrms] 处应
+         +用修复 → kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口 
+         +径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_
+         +OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/g
+         +olden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/
+         +FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp7
+         +12.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；gol
+         +den/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal
+         + 时限纪律见全局 CLAUDE.md。                                    
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+  Thought for 18s (ctrl+o to expand)
+
+● handoff 完成。更新 setup.md（optest 新模式 + 旋钮）：
+
+● Bash(cd "D:/compass/APXinf/syx_docs"; grep -o 'arm = 真数据 AddRmsNorm
+      单算.\{0,60\}' setup.md)
+  ⎿  arm = 真数据 AddRmsNorm 单算**（golden res0 输入；GE 侧 run rc=-3 待查
+     ）——两模式都须配 GEB_E2E_GOLDEN=
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          -真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          - eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          -m 单算**（golden res0 输入；GE 侧 run rc=-3 待查）——两模式都须
+          -配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（oproj））/ GEB_TRACE  
+          -中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          -跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          -QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          -（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          -期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          -_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          -重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          -；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          -ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          -必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          -2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          -套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          -fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          -t/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l{0..17}/step0_x1，**
+          -golden_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义
+          -、自洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、
+          -与 infer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bise
+          -ct 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PRE
+          -FIX 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=pre
+          -fix 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直
+          -拍 kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠  
+          -槽值可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位 
+          -落盘、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMP
+          -TY=256 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera
+          - 走 missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除
+          -该 256 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 
+          -缓存 /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL  …
+          - [+13 chars]                                                  
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          + y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          +明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          + **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          +走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          +、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          +msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          +=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          +e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          +别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          +proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          +观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          +B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          +件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          +m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          +e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          +ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          +onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          +B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          +*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          +_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          +10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          +；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          +SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          +{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          += 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          +键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          + 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          +_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+439 chars]     
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 7s (ctrl+o to expand)
+
+● roadmap 更新 M3 剩余段：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      134    - **✅ M3 第二步（2026-09-20，c8ca41b）——三段 OM 接入真实推
+           理链（`GEB_SEG=e2e`，见 summary/2026-09-20_m3-e2e-chain-wiring
+           ）**。进程内链式 host 中转：x0 = vision_out ‖ token 查表（embe
+           d_prefix 序；state 走离散化进 prompt 不进 prefix）、styles 真
+           值（sinusoidal→time_mlp→style→ascl=1+s0，host f32 每步 h2d 换
+           绑）、pk/pv = prefix 36 输出直连、10 步 flow 换绑（euler 图内
+           ）。chip6 bring-up 全通（GE_E2E_PROBE_OK，|x|max 89.9→34.6 单
+           调收敛，actions 有限）；GEB_E2E_GOLDEN safetensors 对拍钩子就
+           位
+      135    - **✅ M3 对拍偏差定位（2026-09-20 晚，c7db8c8——见 summary/2
+           026-09-20_m3-parity-drift-bisect）**。首帧 314% 拆解三层：① ro
+           pe f16-inv_freq 语义差（torch `.to(f16)` 连 rotary buffer 量化
+           ）已修 `rope_angle()` + t200 重烤，kvk_l0 12.6%→0.4%；② 语义/
+           权重/attention/MLP 全部教科书级洗清（0.03-0.14%，golden v2 + 
+           七分析脚本 + probe bisect 工具链）；③ 剩余 = **GE OM 图内数值
+           级**：同链 x0 输入 0.4% vs golden-h1 输入 18.7%（嫌疑：AddRmsN
+           orm f16 方差大动态范围 / WCONST 烤入 / mm cube 累加；另证中间
+           量输出槽被图内复用覆写）。性能零回归：prefix 138.81ms@968 / fl
+           ow 8.12ms/步 → **稳态 e2e ≈ 275.6ms（378 线 0.73×）**
+      136    - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+           _m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+           部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+            语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+           P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+           1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+            512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+           第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+           ` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+           PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自
+           洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+            step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+           ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+            同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+           性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+            = 378 线 0.66×**
+      137 -  - **M3 剩余**：manual attention 链孤立对拍（oproj 单算 0.000
+          -% + addrms 结构无罪 ⇒ 2.8% 产自图内 attention 真实输出 ≠ m0 槽
+          -回读——通道结构误差指向 headsplit/headmerge/bmm）→ 定罪修复 → k
+          -vk_l1 ≤5% → 全层 → e2e 终态 → 真实 e2e 延迟 bench → LIBERO 对 
+          -标（9/10 基线）；后置：pk/pv 设备直连、懒加载、真 tokenizer   
+      137 +  - **✅ M3 剩余漂移定罪（2026-09-21 上午——见 summary/2026-09-
+          +21_ge-addrms-ingraph-corruption）**：attention 链（最小图 m0sq
+          + 0.229%/res 0.089%）、gate 宽 N mm（0.057%）、down 大 K mm（0.
+          +017%）、MLP 尾组合（0.032%）、权重折叠、GQA 簇、rope、M 对齐、
+          +auto-bind、dual-role **16 步全部洗清**；唯一定罪 = **[在图中间
+          +量 → AddRmsNorm] 数值污染（11-13%）**——同值作 Data 输入 0.073%
+          + 干净（wmm4 决定性实验）、去 addrms 0.036% 干净、五类屏障/端口
+          +变体逐位不变、小图 [mm→addrms] 干净、图形状强敏感（net 45.2/db
+          +g 24.7/垫M 24.66/MIN 11.0）⇒ **GE 静态 OM 内存计划重叠活 buffe
+          +r**（嫌疑；机制待下轮钉死）。最小复现 ~13 算子：`GEB_OPTEST=at
+          +tn GEB_ATTN_MIN=1`。生产影响面 = prefix 每层 2 处 [add→addrms]
+          +×18 + flow（1.6% 同病小 shape）→ kvk_l17 84%/actions 323%     
+      138 +- **M3 剩余**：addrms 污染攻坚——① `GEB_OPT_ge.bufferOptimize=o
+          +ff`（选项已确认）② libge strings 扫 ge.* 内存选项 A/B ③ Reduce
+          +Sum/Rsqrt 分解 norm 绕开 ④ 显式 TransData ⑤ 大 buffer 布局扰动
+          +二分；修好 → attn kvk1 ≤0.1% → 生产全 [add→addrms] 处应用 → kv
+          +k_l1 ≤5% → 全层 → e2e 终态 → 真实 e2e 延迟 bench → LIBERO 对标
+          +（9/10 基线）；后置：pk/pv 设备直连、懒加载、真 tokenizer     
+      139    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      140      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      141    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 20s (ctrl+o to expand)
+
+● 文档全部更新。清理坏中间脚本并两步提交：
+● Bash(rm "D:/compass/APXinf/syx_docs/dev_logs/fold_sim2.py" && cd
+      "D:/compass/APXinf/apxinf" && git status --short | head -5 && git log
+      --oneline -2)
+  ⎿   M crates/apxinf-model/examples/ge_model_probe.rs
+     da456d4 optest: real-data single-op adjudication modes (oproj/arm)
+     451cb4b M3 empty-camera root cause fix: GEB_PREFIX_DROP_EMPTY drops pa
+     d view rows (968->712)
+
+● Bash(cd "D:/compass/APXinf/apxinf" && git add
+      crates/apxinf-model/examples/ge_model_probe.rs \
+        && git commit -m "$(cat <<'EOF'…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port fb60a36] model(probe): pin kvk_l1 drift to AddRmsNorm rea
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Bash(cd "D:/compass/APXinf" && git add apxinf
+      syx_docs/dev_logs/summary/2026-09-21_ge-addrms-ingraph-corruption.md
+      syx_docs/dev_logs/handoff.md syx_docs/setup.md syx…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/plans/npu-port-roadmap.md',
+     … +39 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(cd "D:/compass/APXinf" && git add "syx_docs/dev_logs/chat_exports/2026-09
+      -21_m3-empty-camera-mask-root-cause.txt" \
+        && git commit -m "$(cat <<'EOF'…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/chat_exports/2026-0
+     9-21_m3-empty-camera-mask-root-cause.txt', LF will be replaced by CRLF
+      the next time Git touches it
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 全部收口完成。本轮总结：
+
+  战果：M3 剩余漂移定罪（比预期深得多）
+
+  上轮推断推翻：attention 链无罪——最小图（真 x0_vis 走完整链）m0sq
+  0.229%、o_proj 消费 0.089% 全干净，上轮"norm2 2.82%"槽值是覆写假象。
+
+  16 步洗冤链（全部单算/组合实验）：gate 宽 N mm 0.057% / down K=16384 mm 0.017%
+  / MLP 尾整链组合 0.032% / 权重折叠 0.032% / GQA 簇 / rope / M 对齐 /
+  auto-bind / dual-role——全灭。
+
+  唯一定罪签名：
+  - [在图中间量 → AddRmsNorm] = 11-13% 确定性数值污染
+  - 决定性实验 wmm4：同一份 h1 值作 Data 上传输入 → 0.073% 干净
+  - 去 addrms（L1=mm）→ 0.036% 干净
+  - 五类屏障/端口变体（mul-ones/x1x2 对调/恒等 Reshape/Add 对调/恒等
+    mm）逐位相同 + 图形状强敏感（净图 45.2 / dbg 24.7 / 垫M 24.66 / MIN 11.0）⇒
+    收敛到 GE 静态 OM 内存计划重叠活 buffer
+
+  生产影响面吻合：prefix 每层 2 处 [add→addrms]×18 + flow 1.6% 残差 → kvk_l0
+  净（x0 是 Data 免疫）/ l1 45.2% / l17 84% / actions 323%。最小复现仅 ~13
+  算子。
+
+  顺带结案：arm 的 rc=-3 = 绑 addrms y 作图输出触发 rstd/x_out 自动补绑 →
+  输出数不匹配（新坑入档）。
+
+  下一轮攻坚（handoff 已备）
+
+  第一动作 GEB_OPT_ge.bufferOptimize=off（选项已在 libge_compiler.so 确认）→
+  ge.* 选项扫描 → ReduceSum/Rsqrt 分解 norm 兜底 → 修好后代入生产全 [add→addrms]
+  处 → LIBERO。
+
+  提交
+
+  - 子模块 fb60a36 已推 fork/ascend-port（attn/wmm1-5 六个 optest 模式 +
+    全部变体旋钮，+640 行）
+  - 外层 ea9cf89（新 summary + handoff/setup/roadmap 更新 + 13 个裁决脚本镜像 +
+    你导出的 chat_export）
+
+  goal 的 M3 推进已到自然收口点，攻坚留给下一轮。
+
+✔ Goal achieved (1h · 1 turn · 189.9k tokens) (ctrl+o to expand)
+
+✻ Baked for 9m 33s · done 11:25 AM

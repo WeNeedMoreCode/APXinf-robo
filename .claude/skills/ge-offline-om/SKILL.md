@@ -105,6 +105,7 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 28 | 静态 OM 执行墙钟远大于 kernel 总时（fill ~15%）；执行流上每层多次 MemcopyAsync（每次 ~380µs、前置 4.5-12ms host 停顿），下个 kernel 固定为切片的消费者（TransposeD/PFA/ConcatD）；换算子/换 attention/Const shape 都不动 | **SliceD 列切视图（stride≠连续）的下游 kernel 要连续物理布局 → GE 运行时每次执行插 D2D 物化拷贝，拷贝走 host 慢路径**（aclmdlExecuteAsync 内走走停顿提交）。msprof task_time 邻接分析可定位（MemcopyAsync 的 next kernel 恒定即指纹）。⚠ 动态路径（unknown 拆分）反而不付此税——切片被物化成 kernel | 图组织上消灭列切视图：① qkv 融合+切分 → 3 个独立 mm + 独立权重输入；② rope 的 lo/hi 半宽切+ConcatD → flat 视图行交换（Reshape[p,wd]→[p·h·2,d/2] → GatherV2D Const 索引 swap → mul/mul/add → Reshape back）。实测 vision 723→68 / prefix 750→188 / flow 70.9→17.5 ms |
 | 29 | 改动输入注册集（如 shape 张量 Data→Const 后输入槽消失）后 eager 参考硬编码索引 panic（buffer size 断言，如 [832,256] 读到 [2560,1024]），且可能伪装成 TBE task_distribute 编译崩 | 输入序号整体漂移，索引未同步；段内 const_i32 不占输入槽 | eager 的段级/层内索引与注册序耦合，改注册集必须同步索引（用段头注释记录当前注册序）；先看 panic 的 shape 与实际 buffer 对应哪个输入定位错位量 |
 | 30 | op_statistic 里 **TransData 占大头**（实测 flow 54%，27 次/层）；op_summary 签名 `[n,k] → [k/16,n/16,16,16] [ND→FRACTAL_NZ]`；小 m 段（如 decode/flow）每层 ~0.5ms 白耗 | **MatMulV2 的 b 权重按 ND Data 输入时，GE 每次执行都插设备侧 ND→NZ 转换 kernel**（无跨执行缓存；8MB ≈ 130µs @~63GB/s）。torch_npu 的 TransData 大头同源（TorchAir 靠权重入图逃税） | **权重 Const 入图**（`geb_add_const_raw` fp16 → GE 编译期折叠转换、OM 烤入权重，单算实证 0.3945→0.2945 ms/mm、OM 8.4MB）。代价：OM 变 per-checkpoint。⚠ NZ desc 直入（Data 声明 FRACTAL_NZ + host_nz_reorder 字节）在 310P 编译崩（TBE）——未走通，记开放项。⚠ 权重 Const 化会改变 mm kernel 变体的累加序 → 对拍 worst 微移同档（rel% 不变），非 bug |
+| 31 | 图内 AddRmsNorm 读**在图中间量**时数值确定性错 11-45%（行剖面平坦/通道结构扁平、**同值作 Data 输入 0.073% 干净**、五类屏障与端口对调变体**逐位不变**、改图形状/垫 M 即变值）；`ge.exec.disableReuseMemory=1` 与 `ge.bufferOptimize=off_optimize` 均无效 | **`InplaceAddRmsNormFusionPass` 把 AddRmsNorm 融合成原地版本**（算子注册表 output0 名就叫 `x1`、output2 叫 `x2`——结果写回两个输入 buffer 本体）；原地别名与静态 OM 内存计划的交互在读中间量时污染数值，Data 输入因用户 buffer 全程受保护而免疫（机制细粒度未钉死，推测与别名 buffer 的计划复用有关）。disableReuseMemory 管不到它也自洽——Const 别名/复用不在其管辖 | **`ge.fusionSwitchFile`（init 级）关该 pass**：JSON `{"Switch":{"GraphFusion":{"InplaceAddRmsNormFusionPass":"off"},"UBFusion":{}}}`（第 4 层直接是字符串 "on"/"off"）——实测 MIN 复现图 11.041%→0.159%、全图 45.2%→0.159%。取证链见工具箱 #6/#7 |
 
 ## 环境与自检
 
@@ -128,6 +129,8 @@ GE 内存编译走 **TeFusion 算子编译器**，它依赖 python 子进程栈�
 3. **模型 IO dump**：`aclmdlGetNumInputs/GetInputDims/GetInputSizeByIndex`（加载后、执行前）——验证编译产物带上了正确 shape/dtype/size。
 4. **OM 落盘 strings**：把 ModelBufferData 写文件后 `strings xxx.om | grep -E "matmul|cast|kernel"`。真模型含 `te_<算子>_<hash>__kernel0` 与 `my_kernel_core.cce`；出现 `te_cast` = dtype 配错信号。
 5. **strace 找环境探测失败**：`strace -f -e trace=execve,wait4 ./程序`——第三方库起子进程探测环境（python3-config 等）失败的特征是子进程退出码 127 且主库随后报 init 失败。比读反汇编字符串快。
+6. **编译期逐 pass 图 dump**：env `DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>`——落盘每个优化 pass 前后的图（ge_proto .txt + onnx .pbtxt，目录下按 `pid_*_deviceid_*`）。查融合/插算子/格式决策的 ground truth（陷阱 #31 靠它发现 InplaceAddRmsNormFusionPass）。
+7. **编译选项层级判别**（传错层 rc=-7/-1，与"选项不存在"同症状）：`ge.*` 前缀名是 **init 级**（aclgrphBuildInitialize 的 global_options——socVersion/fusionSwitchFile/bufferOptimize/disableReuseMemory…）；**build 级** map 只收 atc 风格短名（input_shape/input_format…）。合法值要查源码/文档（如 bufferOptimize 是 `off_optimize` 不是 `off`；disableReuseMemory 是 "0"/"1"）。开源 GE 仓（gitee mindspore/ge）的 `compiler/api/aclgrph/ge_ir_build.cc` `CheckGlobalOptions` 与 `api/atc/main_impl.cc` 是选项归属的权威索引。
 
 ## 边界
 
