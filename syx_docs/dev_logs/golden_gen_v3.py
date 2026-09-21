@@ -24,7 +24,7 @@ os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 from apxinf_robo.npu_torch import NpuTorchPi05Policy  # noqa: E402
 
 CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
-OUT = "/data/apxinf/golden/frame0_v3.safetensors"
+OUT = "/data/apxinf/golden/frame0_v3b.safetensors"
 
 pol = NpuTorchPi05Policy(CKPT)
 model = pol.policy.model
@@ -102,5 +102,16 @@ with torch.no_grad():
 golden["step0_x1"] = x1.float().reshape(-1, x1.shape[-1]).cpu().numpy()
 print("[v3] step0_x1 |max|", float(np.abs(golden["step0_x1"]).max()),
       " x0_vis", golden["x0_vis"].shape, " kvk_l0", golden["kvk_l0"].shape)
+
+# ---- v3b 增补：per-step cond（styles bisect 用）----
+# sample_actions 的 time 调度 = 1.0 + step·dt（上面已实证源码）；embed_suffix
+# 返回的 adarms_cond 是 time_mlp 之后的 conditioning（f16 链路——te 在 mlp 前
+# 就 .to(timestep.dtype) 量化成 f16，与引擎 host f32 链是真实语义差）。
+for s in range(int(-1.0 / dt)):
+    with torch.no_grad():
+        t_s = torch.tensor(1.0 + s * dt, dtype=torch.float16, device=noise.device).expand(1)
+        _, _, _, cond_s = model.embed_suffix(noise, t_s)
+        golden[f"cond_s{s}"] = cond_s.float().reshape(-1).cpu().numpy()
+print("[v3b] cond_s0", golden["cond_s0"].shape, "cond_s9", golden["cond_s9"].shape)
 save_file(golden, OUT)
 print("saved:", OUT)
