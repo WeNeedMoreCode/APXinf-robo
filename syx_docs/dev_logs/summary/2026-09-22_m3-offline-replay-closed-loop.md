@@ -45,13 +45,17 @@ tl144 OM（prefix parity worst 1.0% / 103.3ms@656 行；flow 7.62ms/步）落 `/
 - **tl145 第二桶**（prefix 106.6ms@657 / flow 7.60ms）：task0 的 L=145 帧 8 个回放 **rel P50=179.2%（161.6-197.3）**——桶机制验证 ✓
 - **跨任务桶共享**：task1（"put the cream cheese…"）长度分布 145(28)/146(12)——桶心随任务漂移；其 28 个 L=145 帧直接吃 tl145 桶回放 **rel P50=222.5%（160-330）**，同类量级（略宽 = 不同任务/分布）
 - 录制器跨任务复用 ✓（task1 40 调用零崩）；磁盘 1.1T 余量 = 分桶路线便宜（每桶 ≈4.4GB）
-- 覆盖小结：task0 40/40（144+145 两桶）、task1 28/40（差 L=146 一桶）——**闭环 policy 的桶集 = 遇到新长度按需补烤**（bake_one.sh ~4 分钟/桶对）
+- 覆盖小结（终态）：**三桶 tl144/145/146 全验，task0 40/40 + task1 40/40 = 80/80 帧全覆盖回放**——tl146 = task1 ×12 P50=197.7%（161-259）；四组对拍 P50 带 179-223% 全同类（fp16 残差 + 混沌放大，无集成性离群）。**闭环 policy 的桶集 = 遇到新长度按需补烤**（bake_one.sh ~4 分钟/桶对，磁盘 1.1T 余）
 
 ## 下一步（M3 收官路径）
 
-1. **闭环 env 集成**：把三段链包成 policy（pyo3/服务进程），接 eval-libero harness 跑真成功率——变长 token 用「分桶 OM + 按帧挑桶」或先跑单长子集任务
-2. （行为不达标才做）RMSNorm fp32 上浮对齐——194% 的 rel 残差主源
-3. 后置优化不变（pk/pv 直连、styles 设备化、懒加载）
+### 闭环集成施工图（下 session 直开）
+
+1. **引擎常驻驱动**：probe 加 `GEB_E2E_SERVE` 模式（或 pyo3——先用 probe 内加模式，零新构建依赖）：常驻进程，请求文件/FIFO 进（patches+token_ids+noise），actions npy 出。多桶并存 = Seg 槽多实例（ge_builder 多模型槽已预留）——每桶一套 {prefix,flow} OM + vision 共享单实例
+2. **policy 适配层**（Python，镜像 record_rollout.py 语义）：wire obs → `_to_frame`（HWC→CHW /255 + state 8 维 + prompt）→ `pol.preprocess` → token ids（**L = count_nonzero(ids) 选桶 tl{L}**；桶缺失 = lazy 补烤 ~4 min——eval 无墙钟约束可接受；延迟敏感部署再上动态 shape/定宽 state）→ `_preprocess_images` → unfold 14/14 → 引擎调用 → `x_t[:, :, :7]` 返回
+3. **noise**：运行期自采样（回放对拍才需配对 torch）；**actions 反量化不存在**（= x_t 切片，已核清）
+4. 接 `eval-libero --backend in-process`：引擎 policy 注册成 npu-torch 同形 Backend（replan=5 起步，9/10 对照 replan 研究）
+5. （行为不达标才做）RMSNorm fp32 上浮对齐——194% rel 残差主源；后置优化不变（pk/pv 直连、styles 设备化、懒加载）
 
 ## 工具与坑
 
