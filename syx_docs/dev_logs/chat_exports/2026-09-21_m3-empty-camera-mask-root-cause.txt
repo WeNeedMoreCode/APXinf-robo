@@ -1,0 +1,3322 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 补齐了（外层 828c0ea）。性能全貌：
+
+  性能（rope 修复后 t200 OM，今晚实测）
+
+  ┌───────────┬──────────┬──────────────────────────────────────────────────┐
+  │    段     │   延迟   │                       对比                       │
+  ├───────────┼──────────┼──────────────────────────────────────────────────┤
+  │ vision    │ 55.86 ms │ 未重烤（与 token 数无关）                        │
+  │ @768      │          │                                                  │
+  ├───────────┼──────────┼──────────────────────────────────────────────────┤
+  │ prefix    │ 138.81   │ 修复前 138.6——零回归（rope 修复只改 host         │
+  │ @968      │ ms       │ 常量表生成，不碰图）                             │
+  ├───────────┼──────────┼──────────────────────────────────────────────────┤
+  │ flow /步  │ 8.12 ms  │ 修复前 8.09——持平                                │
+  ├───────────┼──────────┼──────────────────────────────────────────────────┤
+  │ 稳态 e2e  │ ≈275.6   │ CUDA 378ms 线的 0.73×；torch_npu TorchAir 稳态   │
+  │           │ ms       │ 374ms 的 0.74×                                   │
+  └───────────┴──────────┴──────────────────────────────────────────────────┘
+
+  参考：d2 隔离小图 8.8ms；DBG_FULL 调试 tap 有 ~40%
+  开销（12.5ms，非产品口径）；e2e 一次性墙钟 10/78/9.7s 是 OM 加载+host
+  组装的冷启动，工程化（懒加载/直连）仍后置。
+
+  文档更新三处
+
+  1. summary 加「性能核对」节（含小图/冷启动参考数）
+  2. setup.md 探针表：补齐今晚 10 个 bisect 旋钮（GEB_DEPTH_PREFIX/GEB_ATTN_PREF
+     IX/GEB_E2E_STOP/GEB_LAYER_OFFSET/GEB_E2E_X0_KEY/GEB_DBG_*/…）+ GEB_SAVE
+     全路径警告 + rope 表 f16 化注记
+  3. handoff/roadmap 各补一行性能基线
+
+  之前漏的原因：重烤时 bench 数据在 /tmp/*.log 里，我当时只 grep 了 OM
+  落盘确认——教训是烤图必带 bench 时应同步提取 GE OM: 行，这次已随文档补上。
+
+✻ Crunched for 2m 10s · done Sunday 11:19 PM
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-parity 
+-drift-bisect                                                                   
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-20_m3-parity-drift-bisect.txt
+
+❯ /compact 聚焦保留：**bisect 裁决链**（vision 0.3%/x0 0.1%/权重                
+0.000%/attention+MLP 复刻 0.03-0.14% 全清；rope f16-inv_freq                    
+根因+修复+rope_angle()；剩余=GE OM 数值：h1 输入同链 18.7% vs x0 0.4%，图 k_l1  
+值随内存计划变 41↔23.7%、中间量输出槽被图内复用覆写 res→norm2 实证）；**golden  
+v2 键**（vision_out/x0/kvk_l{0..17}/m0/h1/step0_x1 +                            
+q0i/k0i/v0i；陷阱：paligemma.language_model 直接 .forward() 绕 hook、GemmaModel 
+None mask 会 create_causal_mask）；**probe 新旋钮**（GEB_DEPTH_VISION/PREFIX、  
+GEB_ATTN_PREFIX、GEB_E2E_STOP、GEB_LAYER_OFFSET、GEB_E2E_X0_KEY、GEB_DBG_MID/FU 
+LL、GEB_E2E_DUMP_MID、GEB_OUT_PAD）；**分析脚本七件**（l0_bisect/rope_probe/att 
+n_scale_probe/attn_l0_h1/weights_cmp/m0_variants/stage_cmp，服务器              
+/data/apxinf/ 有同步副本）。丢弃：过程性烤图/跑批命令（模板在 summary 末尾）。  
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (164 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (18 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-09-20_m3-parity-drift-bisect.md (76 
+     lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ 我们之前有设定过goal到指定时间停止，但我发现你之前要么是估算，没到就停了。我  
+  提醒后你会去查时间，但我又怕你一步一查浪费时间，你觉得这个规则固定在哪里比较  
+  好，就是我goal会给你设置个时间，我要求估算到时间了查一次，不要每次都查        
+
+  Thought for 1m 13s (ctrl+o to expand)
+
+● 先看一眼现在 goal/Stop hook 的实现，再给你一个落点建议。
+
+  Thought for 46s, listed 2 directories (ctrl+o to expand)
+
+● 项目里没有 hooks/commands 配置——/goal 的 Stop hook 是 CLI
+  内置的，我改不了它，所以规则只能落在指令层（CLAUDE.md 或
+  memory）。我的建议是全局 CLAUDE.md，理由：
+
+  1. 必须“每次都生效”。这类“到点前必须查一次”的纪律，靠的是无条件加载，不能靠触
+     发。CLAUDE.md 每个 session 逐字进上下文；memory 靠 description
+     命中才展开，有漏触发风险——而这次的失败模式恰恰是“我没想起来查”。
+  2. 放全局而非项目：/goal 是你跨项目的用法，不是 APXinf
+     特有；且你的全局文件本来就是硬规则清单（禁 sed 那些），风格一致。
+
+  拟插入的条文（3 行）：
+
+  ## 带时限的 goal 时间纪律
+  - 开工先 `date` 记一次锚点；截止时刻尽量写绝对时间（如"23:30 停"），任何一次
+  `date` 都能直接算剩余
+  - 期间不轮询；只在自估"时间快到"**或想提前收尾时**查一次 `date`：没到 →
+  以新读数重估继续工作，两次确认之间不重复查
+  - 长命令（编译/烤图/远程跑批）顺手在命令尾带 `date`，免费校准，不占轮次
+
+  第二条的“或想提前收尾时”是针对你说的“没到就停了”——我的问题是没有内部时钟，两次
+  查表之间只能凭命令耗时猜流逝，猜错了就提前停。所以把“想停”本身也设为强制查表点
+  ：想停 → 先 date → 没到就继续干。
+
+  我直接写进全局 CLAUDE.md：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(C:\Users\素玄\.claude\CLAUDE.md)
+  ⎿  Added 5 lines
+       4  - 禁止 `sed -i`（以及任何原地改写文件内容的命令）
+       5  - 禁止用 Write 工具重写已存在的文件（新建文件可以用）
+       6  - 修改已有文件一律用 Edit 工具：old_string 精确匹配、改动可逐条
+          审查、不匹配直接报错，不会静默误伤
+       7 +                                                               
+       8 +## 带时限的 goal 时间纪律                                      
+       9 +- 开工先 `date` 记一次锚点；截止时刻尽量写绝对时间（如"23:30 停
+         +"），任何一次 `date` 都能直接算剩余                            
+      10 +- 期间不轮询；只在自估"时间快到"**或想提前收尾时**查一次 `date`
+         +：没到 → 以新读数重估继续工作，两次确认之间不重复查            
+      11 +- 长命令（编译/烤图/远程跑批）顺手在命令尾带 `date`，免费校准，
+         +不占轮次                                                       
+
+  Thought for 3s (ctrl+o to expand)
+
+● 已写入全局 CLAUDE.md。规则固定为三条：
+
+  1. 开工锚点：带时限 goal 一开工 date
+     一次（截止写绝对时刻更好，一次读数直接算剩余）
+  2. 单点确认：只在“自估快到了”或“想提前收尾”这两个时机查一次
+     date——没到就以新读数重估继续，两次确认之间不再查
+  3. 免费校准：长命令尾部顺手带 date，不占额外轮次
+
+  这样“每步一查”和“凭感觉提前停”两个失败模式都被封死，而正常工作期间零查询开销（
+  本地 date 本身不到 0.1s，真正省的是轮次和注意力）。下个 session
+  起自动生效，不依赖你提醒。
+
+✻ Brewed for 2m 25s · done Sunday 11:27 PM
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3                                        
+对拍偏差定位，如果过了凌晨两点半还没做完就更新全量文档，然后停止。              
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU **C 路线 M3
+     对拍偏差定位，如果过了凌晨两点半还没做完就更新全量文档，然后停止。
+
+  Thought for 1m 16s (ctrl+o to expand)
+
+● Goal 收到：继续 M3 对拍偏差定位（GE OM 图内数值残留），02:30
+  未完则更新全量文档后停。先记锚点并核对服务器现场。
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-20 23:30:35
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/om_cache/ 2>/dev/null; echo ---; ls
+      -la /data/apx…)
+  ⎿  d2
+     d2off
+     d2pfa
+     … +73 lines (ctrl+o to expand)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 锚点 23:30:35，预算 3h。现场完好（dbg/d2 OM、golden
+  v2、七脚本全在）。第一实验：复用 dbg OM（DBG_FULL 全级 tap + L1 权重 + h1
+  输入，即 23.7% 那个图）做 GEB_E2E_DUMP_MID
+  槽位落盘，逐级对比教科书——定位第一个分岔算子。先读 probe 源码确认旋钮语义：
+
+  Thought for 2m 9s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 图结构清楚了：DBG_FULL 现有 tap 覆盖 m0→h1 段（proj/res/norm2/MLP），但 k 
+  链的中间级（n1=norm1 输出、k pre-rope）没有 tap——而 18.7% 正是
+  h1→norm1→k_proj→rope 这条链。不过先做一个更快的裁决实验（零 NPU、纯
+  Python）：在数值上模拟 AddRmsNorm 各种 f16 内部精度，看哪种能同时复现 "x0 0.4%
+  / h1 18.7%" 的签名。先看现有脚本可复用的加载代码：
+
+  Thought for 1m 8s, read 1 file (ctrl+o to expand)
+
+● 教科书链代码全可复用（fold 约定 kw*(1+w)、norm eps 1e-6、rope_perhead）。看
+  weights_cmp.py 是怎么加载权重的——如果能绕开 torch 模型直接读
+  safetensors，模拟脚本就能纯 CPU 跑：
+  Thought for 1m 29s, read 1 file (ctrl+o to expand)
+
+● 模拟脚本的裁决逻辑成立：norm 是链上唯一幅度依赖的非线性级（norm
+  后各级幅度与输入无关），所以 "x0 0.4% / h1 18.7%" 的 46× 差只能产自 norm
+  内部。写模拟脚本 + 查 probe 的 OM_DIR 语义：
+
+  Thought for 43s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● e2e 只从 OM_DIR 加载不烤图——烤图是独立流程。现在并行推进两条线：①写零 NPU
+  模拟脚本（裁决 AddRmsNorm 内部精度机制）；②probe 加 n1/k2
+  tap（图内真值确认）。先写脚本：
+
+● Write(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Wrote 101 lines to syx_docs\dev_logs\n1_prec_probe.py
+       1 """n1_prec_probe.py — AddRmsNorm f16 内部精度变体模拟（零 NPU 裁
+       2 
+         l1 18.7%。
+       4 RMS norm 后各级幅度与输入基本无关（行 rms 归一）⇒ 幅度依赖的分岔
+       5 norm 内部的 f16 行为。本脚本在 CPU 上枚举 norm 的 f16 实现变体（
+       6 溢出/累加精度），经 f64 mm+rope 传播到 k，与 golden kvk 对拍：能
+       7 两侧签名的变体 = aclnnAddRmsNorm 在 310P 上的实际数值机制。
+       8 权重直读 checkpoint safetensors（engine 折叠约定：kw*(1+w) 后 f1
+       9 g1=ones），无 torch 模型加载。运行：apxinf_npu 容器 CPU（numpy+t
+      10 """
+     … +112 lines (ctrl+o to expand)
+
+  Thought for 1s (ctrl+o to expand)
+
+● 再给 probe 的 DBG_FULL tap 列表加 n1（norm1 输出）与 k2（rope 前 k）两级：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines, removed 2 lines
+      1935          if dbg_mid && i == 0 && std::env::var("GEB_DBG_FULL")
+            .is_ok() {
+      1936              // 全级导出（GEB_DBG_FULL）：逐级与教科书对拍钉 G
+            E 图坏点。
+      1937              // ⚠ 输出槽可能被内存复用覆写（res 槽实测被 n2 覆
+            写）——逐级
+      1938 -            // 对拍时用「值匹配教科书哪一级」判读，勿信槽序  
+      1939 -            for n in [proj.clone(), projb.clone(), res.clone(
+           -), norm2.clone(),                                            
+      1938 +            // 对拍时用「值匹配教科书哪一级」判读，勿信槽序。
+      1939 +            // n1/k2：norm1 输出与 rope 前 k——kvk 漂移链（输 
+           +入→norm→k_proj→                                              
+      1940 +            // rope）的中间级，18.7% 分岔定位用（norm 后幅度 
+           +与输入无关 ⇒                                                 
+      1941 +            // 幅度依赖分岔只可能在 n1 之前产生）            
+      1942 +            for n in [norm1.clone(), k2.clone(), proj.clone()
+           +, projb.clone(), res.clone(), norm2.clone(),                 
+      1943                        gate.clone(), up.clone(), gact.clone(),
+             act.clone(),
+      1944                        down.clone(), downb.clone(), cur.clone(
+            )] {
+      1945                  dbg_outs.push(n);
+
+  Thought for 4s (ctrl+o to expand)
+
+● 同步两份文件到服务器并开跑。先确认烤 prefix 段的深度旋钮读法：
+
+  Thought for 38s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 同步模拟脚本到服务器并跑（npu 容器 CPU，纯 numpy）：
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/n1_prec_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "/data/apxinf/n1_prec_probe.py", line 80, in <module>
+         kw, w1 = get_w(li)
+                  ^^^^^^^^^
+       File "/data/apxinf/n1_prec_probe.py", line 22, in get_w
+         kw = f.get_tensor(f"{PRE}{li}.self_attn.k_proj.weight").float().numpy()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     safetensors_rust.SafetensorError: File does not contain tensor paligemma_wi
+     th_expert.paligemma.model.language_model.layers.0.self_attn.k_proj.weight
+     [ERROR] 2026-09-20-23:41:01 (PID:892877, Device:-1, RankID:-1) ERR99999 
+     UNKNOWN applicaiton exception
+
+  Thought for 4s (ctrl+o to expand)
+
+● 键名少了前导 model.（weights_cmp 的 eng() 是 "model." + pre + k）。修正：
+
+● Update(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Added 1 line, removed 1 line
+      14  
+      15  CKPT = "/data/apxinf/weights/pi05_libero_finetuned/model.safete
+          nsors"
+      16  G = load_file("/data/apxinf/golden/frame0.safetensors")
+      17 -PRE = "paligemma_with_expert.paligemma.model.language_model.lay
+         -ers."                                                          
+      17 +PRE = "model.paligemma_with_expert.paligemma.model.language_mod
+         +el.layers."                                                    
+      18  
+      19  
+      20  def get_w(li):
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/n1_prec_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  Error: Exit code 1
+     /data/apxinf/n1_prec_probe.py:27: RuntimeWarning: overflow encountered in 
+     cast
+       f16 = lambda a: np.asarray(a, dtype=np.float16).astype(np.float64)
+     /data/apxinf/n1_prec_probe.py:42: RuntimeWarning: overflow encountered in 
+     cast
+       sq = (x16 * x16).astype(np.float16)
+
+     [x0] |max|=526.0  |x|>256（平方溢出）占比 0.00%  golden k |max|=10.109
+       [机制] 平方饱和→行 rms 低估：max 0.0%  中位 0.00%
+     Traceback (most recent call last):
+       File "/data/apxinf/n1_prec_probe.py", line 92, in <module>
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● x0 侧已见关键数据：|x|>256 占比 0.00%、平方饱和 rms 低估 max 0.0%——x0 
+  根本不触发饱和（|max|=526 只是孤值，行均方贡献可忽略），与 x0 干净自洽。修
+  keepdims 广播 bug 看 h1 侧：
+
+● Update(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Added 1 line
+      26  
+      27  f16 = lambda a: np.asarray(a, dtype=np.float16).astype(np.float
+          64)
+      28  EPS, F16MAX = 1e-6, 65504.0
+      29 +np.seterr(over="ignore", invalid="ignore")                     
+      30  
+      31  
+      32  def norm_A(x16):  # 全精度 rms（f16 输入）——对照组
+
+● Update(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Added 2 lines, removed 2 lines
+      42  def norm_C(x16):  # 平方 f64、部分和 f16 累加（沿 2048 顺序）
+      43      sq = (x16 * x16).astype(np.float16)
+      44      acc = np.add.accumulate(sq, axis=-1, dtype=np.float16)
+      45 -    return x16 / np.sqrt(acc[:, -1].astype(np.float64) / x16.sh
+         -ape[1] + EPS)                                                  
+      45 +    return x16 / np.sqrt(acc[:, -1:].astype(np.float64) / x16.s
+         +hape[1] + EPS)                                                 
+      46  
+      47  
+      48  def norm_C2(x16):  # 平方 f16 饱和 + 部分和 f16 累加
+      49      sq = np.minimum(x16 * x16, F16MAX).astype(np.float16)
+      50      acc = np.add.accumulate(sq, axis=-1, dtype=np.float16)
+      51 -    return x16 / np.sqrt(acc[:, -1].astype(np.float64) / x16.sh
+         -ape[1] + EPS)                                                  
+      51 +    return x16 / np.sqrt(acc[:, -1:].astype(np.float64) / x16.s
+         +hape[1] + EPS)                                                 
+      52  
+      53  
+      54  P = G["x0"].shape[0]
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/n1_prec_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  [x0] |max|=526.0  |x|>256（平方溢出）占比 0.00%  golden k |max|=10.109
+       [机制] 平方饱和→行 rms 低估：max 0.0%  中位 0.00%
+       A  全精度（f16 输入，对照）: k rel=0.09%
+     … +20 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 3m 28s (ctrl+o to expand)
+
+● 炸裂结果——与饱和假说完全相反：
+
+  - x0 侧：A（全精度 f64 链 + f16 输入）= 0.09% ≈ GE 实测 0.4% ✓
+  - h1 侧：A = 18.71% ——与 GE 图实测 18.7% 完全一致！而所有 norm
+    饱和/累加变体（30-120%）都不匹配
+
+  结论雏形：GE 图本身没病——纯 f64 教科书链在 f16(golden h1) 上同样偏 18.71%。
+  偏差不在 GE 图内数值，而在 golden 数据内部不自洽：h1 键与 kvk_l1
+  键疑似来自不同语义的 forward。而 m0_variants 曾证 "GE-m0→教科书→k_l1 =
+  0.14%"——两者矛盾，除非 h1 键 ≠ 真实 replay h1。立刻做三个裁决测量：①纯 f64
+  链（无 f16）在 H 上是否同样 18.7%（排除量化因素）；②H 是否在 f16 网格上；③从
+  golden m0 + checkpoint 权重重构 h1_from_m0，直接对比 H 并复算 0.14% 那条链：
+
+● Update(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Added 23 lines, removed 4 lines
+      17  PRE = "model.paligemma_with_expert.paligemma.model.language_mod
+          el.layers."
+      18  
+      19  
+      20 -def get_w(li):                                                 
+      20 +def get_w(li, *names):                                         
+      21      with safe_open(CKPT, framework="pt") as f:
+      22 -        kw = f.get_tensor(f"{PRE}{li}.self_attn.k_proj.weight")
+         -.float().numpy()                                               
+      23 -        w1 = f.get_tensor(f"{PRE}{li}.input_layernorm.weight").
+         -float().numpy()                                                
+      24 -    return kw, w1                                              
+      22 +        out = [f.get_tensor(f"{PRE}{li}.{n}").float().numpy() f
+         +or n in names]                                                 
+      23 +    return out                                                 
+      24  
+      25  
+      26 +def get(li):                                                   
+      27 +    return get_w(li,                                           
+      28 +                 "self_attn.k_proj.weight", "input_layernorm.we
+         +ight",                                                         
+      29 +                 "self_attn.o_proj.weight", "post_attention_lay
+         +ernorm.weight",                                                
+      30 +                 "mlp.gate_proj.weight", "mlp.up_proj.weight", 
+         +"mlp.down_proj.weight")                                        
+      31 +                                                               
+      32 +                                                               
+      33 +def gelu_tanh(x):                                              
+      34 +    return 0.5 * x * (1 + np.tanh(0.7978845608028654 * (x + 0.0
+         +44715 * x ** 3)))                                              
+      35 +                                                               
+      36 +                                                               
+      37 +def layer0_out(x, m0, w):                                      
+      38 +    """f64 全块：x + o_proj(m0) + mlp——从 golden m0 重构 h1（m0
+         +_variants 同款）"""                                            
+      39 +    _, _, ow, w2, gw, uw, dw = w                               
+      40 +    res = x + m0 @ ow.T                                        
+      41 +    sc = (1.0 + w2)[None, :]                                   
+      42 +    n2 = res / np.sqrt((res * res).mean(-1, keepdims=True) + EP
+         +S)                                                             
+      43 +    return res + (gelu_tanh(n2 @ (gw * sc).T) * (n2 @ (uw * sc)
+         +.T)) @ dw.T                                                    
+      44 +                                                               
+      45 +                                                               
+      46  f16 = lambda a: np.asarray(a, dtype=np.float16).astype(np.float
+          64)
+      47  EPS, F16MAX = 1e-6, 65504.0
+      48  np.seterr(over="ignore", invalid="ignore")
+
+● Update(syx_docs\dev_logs\n1_prec_probe.py)
+  ⎿  Added 23 lines, removed 19 lines
+       95  
+       96  
+       97  for tag_in, key_in, li, key_out in (("x0", "x0", 0, "kvk_l0"),
+            ("h1", "h1", 1, "kvk_l1")):
+       98 -    x16 = f16(G[key_in])                                      
+       98 +    x = G[key_in].astype(np.float64)                          
+       99 +    x16 = f16(x)                                              
+      100      gold = G[key_out].astype(np.float64)
+      100 -    kw, w1 = get_w(li)                                        
+      101 -    sat = (np.abs(x16) > 256).mean() * 100                    
+      102 -    print(f"\n[{tag_in}] |max|={np.abs(x16).max():.1f}  |x|>25
+          -6（平方溢出）占比 {sat:.2f}%  golden k |max|={np.abs(gold).max
+          -():.3f}")                                                     
+      103 -    # 机制量：饱和导致的行 rms 低估                           
+      104 -    sq_t = (x16 * x16).mean(-1, keepdims=True)                
+      105 -    sq_c = np.minimum(x16 * x16, F16MAX).mean(-1, keepdims=Tru
+          -e)                                                            
+      106 -    r = np.sqrt(sq_t / sq_c)                                  
+      107 -    print(f"  [机制] 平方饱和→行 rms 低估：max {(1 - r.min()) 
+          -* 100:.1f}%  中位 {abs(1 - np.median(r)) * 100:.2f}%")        
+      101 +    kw, w1 = get_w(li, "self_attn.k_proj.weight", "input_layer
+          +norm.weight")                                                 
+      102 +    # 网格检查：golden 值是否本来就在 f16 网格上（f16 模型中间
+          +量应在）                                                      
+      103 +    qerr = np.abs(x16 - x).max() / np.abs(x).max() * 100      
+      104 +    print(f"\n[{tag_in}] |max|={np.abs(x16).max():.1f}  f16 网
+          +格偏差 {qerr:.4f}%  golden k |max|={np.abs(gold).max():.3f}") 
+      105      for name, n1 in (
+      109 -        ("A  全精度（f16 输入，对照）", norm_A(x16)),         
+      110 -        ("B  平方 f16 饱和 clip", norm_B(x16, clip=True)),    
+      111 -        ("B2 平方 f16 溢出 inf", norm_B(x16, clip=False)),    
+      112 -        ("C  累加 f16（平方 f64）", norm_C(x16)),             
+      113 -        ("C2 平方饱和 + 累加 f16", norm_C2(x16)),             
+      106 +        ("A0 纯 f64（原值直入）", x / np.sqrt((x * x).mean(-1,
+          + keepdims=True) + EPS)),                                      
+      107 +        ("A  f16 输入 + f64 链", norm_A(x16)),                
+      108          ("D  输出 f16 量化", f16(norm_A(x16))),
+      115 -        ("E  尺度修复：x/16 + B", norm_B(f16(x16 / 16.0), clip
+          -=True)),                                                      
+      109      ):
+      117 -        if not np.isfinite(n1).all():                         
+      118 -            print(f"  {name}: n1 非有限（nan×{int(np.isnan(n1)
+          -.sum())}）→ 输出崩，非 18.7% 机制")                           
+      119 -            continue                                          
+      110          print(f"  {name}: k rel={rel(k_of(n1, kw, w1), gold):.
+           2f}%")
+      121 -print("\n[判读] GE 实测签名 = x0 侧 ~0.4% / h1 侧 ~18.7%；复现
+          -该不对称性的变体即机制。")                                    
+      111 +                                                              
+      112 +# ---- golden 内部自洽性裁决：h1 键 vs「x0+o_proj(m0)+mlp」重 
+          +构 ----                                                       
+      113 +w0 = get(0)                                                   
+      114 +w1_ = get(1)                                                  
+      115 +h1 = G["h1"].astype(np.float64)                               
+      116 +x0 = G["x0"].astype(np.float64)                               
+      117 +m0 = G["m0"].astype(np.float64)                               
+      118 +h1_rec = layer0_out(x0, m0, w0)                               
+      119 +print(f"\n[自洽] h1(键) vs x0+o_proj(m0)+mlp 重构: rel={rel(h1
+          +_rec, h1):.2f}%")                                             
+      120 +print(f"[自洽] |h1键| max={np.abs(h1).max():.1f}  |重构| max={
+          +np.abs(h1_rec).max():.1f}")                                   
+      121 +kw1, w11 = w1_[0], w1_[1]                                     
+      122 +gold1 = G["kvk_l1"].astype(np.float64)                        
+      123 +n_rec = h1_rec / np.sqrt((h1_rec * h1_rec).mean(-1, keepdims=T
+          +rue) + EPS)                                                   
+      124 +print(f"[自洽] chain(重构 h1) vs kvk_l1: rel={rel(k_of(n_rec, 
+          +kw1, w11), gold1):.2f}%  （m0_variants 实测 0.14%）")         
+      125 +print("\n[判读] A0≈A ⇒ 与 f16 无关，golden h1↔kvk_l1 本就不自 
+          +洽；重构≈h1键 则键全对、矛盾另寻。")                          
+
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/n1_prec_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  [x0] |max|=526.0  f16 网格偏差 0.0000%  golden k |max|=10.109
+       A0 纯 f64（原值直入）: k rel=0.09%
+       A  f16 输入 + f64 链: k rel=0.09%
+     … +14 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 22s (ctrl+o to expand)
+● 裁决结果再深一层：
+
+  - A0（纯 f64、零 f16）= 18.71% ——与 f16 完全无关，norm/量化全线洗清
+  - h1 键 ↔ x0+o_proj(m0)+mlp 重构 = 0.03% ——golden 的 m0/h1 键互相自洽
+  - 但同样的链从 golden m0 重构 h1 → 18.69%，而 m0_variants 当时从 ge_m0（GE 图
+    m0 槽 dump）→ 0.14%
+
+  两条链只差 m0 的来源，k 差却 18.5%——k 链对小扰动无放大可能，唯一解释：golden 
+  的 m0/h1 键与 kvk_l1 键来自不同 attention 语义的 forward（全开 vs
+  causal！）。如果 infer 侧 prefix 真实跑的是 causal（GemmaModel 默认
+  create_causal_mask），那引擎全开 attention 就是语义错而非数值漂移——314%
+  的真正来源。做四方矩阵裁决 + 读 infer 侧真实调用：
+
+● Write(syx_docs\dev_logs\m0_world_probe.py)
+  ⎿  Wrote 112 lines to syx_docs\dev_logs\m0_world_probe.py
+       1 """m0_world_probe.py — golden 各键的 attention 语义世界裁决
+       3 n1_prec_probe 已证：chain(h1键) 偏 kvk_l1 18.7%（纯 f64，与 f16 
+         无关），
+         处 m0 来源
+       5 分属不同 attention 语义（全开 mask vs causal）。本脚本构造四方矩
+       6   m0_full  = q0i/k0i/v0i 全开 attention（引擎语义）
+       7   m0_causal = 同输入 causal attention（GemmaModel None-mask 默认
+       8   m0_gold  = frame0 m0 键    ge_m0 = /data/apxinf/ge_m0.f16（GE 
+         图槽 dump）
+      10 """
+     … +129 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\m0_world_probe.py)
+  ⎿  Removed 2 lines
+      55      for h in range(8):
+      56          qh = q_r[:, h * 256:(h + 1) * 256] * scale
+      57          sc = qh @ k_r.T
+      58 -        if causal:                                             
+      59 -            sc[np.tril_indices(P, -1)[::-1][0].reshape(1, -1)[0
+         -].size:] = 0  # placeholder no-op                              
+      58          sc = sc - sc.max(-1, keepdims=True)
+      59          e = np.exp(sc)
+      60          if causal:
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/m0_world_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docke…)
+  ⎿  [m0 四方] 两两 rel%（以分母=被比较方的 max）:
+       m0_gold: vs_gold=0.00%  vs_ge=35.31%  vs_full=35.31%  vs_causal=94.3
+     1%
+     … +14 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 4s (ctrl+o to expand)
+
+● 四方矩阵铁证：
+
+  ┌───────────┬───────────────────────┬─────────┬────────────────────────────┐
+  │    量     │        vs 全开        │   vs    │            归属            │
+  │           │                       │ causal  │                            │
+  ├───────────┼───────────────────────┼─────────┼────────────────────────────┤
+  │ m0_gold   │ 35.31%                │ 94.31%  │ 两个世界都不是——第三语义！ │
+  ├───────────┼───────────────────────┼─────────┼────────────────────────────┤
+  │ ge_m0     │ 0.52%                 │ 94%     │ 全开世界（引擎一致）       │
+  ├───────────┼───────────────────────┼─────────┼────────────────────────────┤
+  │ kvk_l1    │ 0.11%（m0_full→h1→k） │ —       │ 全开世界（replay cache）   │
+  │ 的链主    │                       │         │                            │
+  └───────────┴───────────────────────┴─────────┴────────────────────────────┘
+
+  m0/h1 键属于第三世界——极可能是 PaliGemma 真实 mask（图像 token 全双向 + 文本 
+  token causal），即 infer 侧真实语义。若属实：引擎全开 prefix attention 
+  是语义错（不是数值漂移），golden kvk 键（全开
+  replay）恰好跟当前错误的引擎同世界所以 l1 前看不出来。验证第三世界 + 读 infer
+  侧源码：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n "att_masks\|attention_mask\|create_causal"
+      /data/apxinf/r…)
+  ⎿  grep: /data/apxinf/robo_src/lerobot/common/policies/pi05/modeling_pi05
+     .py: No such file or directory
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'find /data/apxinf/robo_src -name "modeling_pi05.py"
+      2>/dev/null |…)
+  ⎿  (No output)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/robo_src/ 2>/dev/null | head; find
+      /data/apxinf -…)
+  ⎿  apxinf_robo
+     /data/apxinf/profile_pi05_npu.py
+     /data/apxinf/lerobot/tests/policies/pi0_pi05/test_pi0_original_vs_lero
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 1s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'find /data/apxinf/lerobot -name "modeling_pi05.py"
+      2>/dev/null |…)
+  ⎿  /data/apxinf/lerobot/src/lerobot/policies/pi05/modeling_pi05.py
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n
+      "att_masks\|attention_mask\|causal\|bidirectional\|arange…)
+  ⎿  130:def make_att_2d_masks(pad_masks, att_masks):  # see openpi `make_a
+     tt_2d_masks` (exact copy)
+     137:      [[1 1 1 1 1 1]]: pure causal attention.
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "125,170p;660,715p"
+      /data/apxinf/lerobot/src/lerobot/polic…)
+  ⎿      beta_t = torch.as_tensor(beta, dtype=torch.float32, device=device)
+         dist = torch.distributions.Beta(alpha_t, beta_t)
+         return dist.sample((bsize,))
+     … +99 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● embed_prefix 里图像/文本 att_masks 全是 0（π0.5 与 π0 的差异：prefix
+  全双向）——全开没错？那 m0_gold 的第三世界从哪来。看 prefix forward
+  传入的到底是什么 mask：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "455,545p"
+      /data/apxinf/lerobot/src/lerobot/policies/pi05/…)
+  ⎿              self.paligemma.vision_tower.eval()
+             if self.train_expert_only:
+                 self.paligemma.eval()
+     … +88 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "760,830p"
+      /data/apxinf/lerobot/src/lerobot/policies/pi05/…)
+  ⎿      def forward(self, images, img_masks, tokens, masks, actions, noise
+     =None, time=None) -> Tensor:
+             """Do a full training forward pass and compute the loss."""
+     … +66 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "824,905p"
+      /data/apxinf/lerobot/src/lerobot/policies/pi05/…)
+  ⎿          num_steps=None,
+             **kwargs: Unpack[ActionSelectKwargs],
+         ) -> Tensor:
+     … +78 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● sample_actions 推理路径确认：prefix att_masks 全 0 → 理论全开。但 m0_gold
+  实测不是全开——嫌疑集中在类内自定义的 _prepare_attention_masks_4d（line 647，非
+  transformers 版）。读它：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "640,672p"
+      /data/apxinf/lerobot/src/lerobot/policies/pi05/…)
+  ⎿          """Helper method to apply gradient checkpointing if enabled.""
+     "
+             if self.gradient_checkpointing_enabled and self.training:
+     … +30 lines (ctrl+o to expand)
+
+  Thought for 1m 7s (ctrl+o to expand)
+
+● 源码链确认：embed_prefix 全 0 → make_att_2d_masks 全 True → where(True, 0.0, 
+  MASK_VALUE) 全零加性 mask = 全开。但 m0_gold 实测 35%
+  偏离全开世界——源码与数据矛盾。不猜了，直接从数据反推：按行剖析 m0_gold vs
+  m0_full 的偏差分布（图像行 vs 文本行）+ 枚举候选 mask 结构：
+● Write(syx_docs\dev_logs\mask_recover_probe.py)
+  ⎿  Wrote 90 lines to syx_docs\dev_logs\mask_recover_probe.py
+       1 """mask_recover_probe.py — 从 m0_gold 数据反推真实 attention 可
+       2 
+       3 源码链（sample_actions→embed_prefix 全 0→make_att_2d 全 True→全
+         零加性）说
+         差分布
+       5 （768 图像行 vs 200 文本行）并枚举候选 mask，钉死第三世界的结构
+       6 """
+       7 import numpy as np
+       8 from safetensors.numpy import load_file
+      10 G = load_file("/data/apxinf/golden/frame0.safetensors")
+     … +91 lines (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/mask_recover_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'd…)
+  ⎿  [候选] vs m0_gold（max-rel%）+ 分行块平均偏差（|diff|行max 的均值/全局
+     max）
+       full 全开: 35.31%  行偏差均值 img=14.64% txt=2.15%
+     … +21 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 44s (ctrl+o to expand)
+
+● 行画像炸出结构：文本行几乎干净（2%），图像行 8-24% 偏离、中段最差——不是 mask
+  结构问题，更像图像 token attention 极尖锐（argmax 型），任何数学等价实现的 f16
+  差异都会翻转赢家。验证：算 score 尖锐度 + 模拟 f16 score/softmax 变体 +
+  补测“图像行看不到文本”mask：
+
+● Bash(cat >> /dev/null <<'EOF'
+      placeholder…)
+  ⎿  (No output)
+
+● Update(syx_docs\dev_logs\mask_recover_probe.py)
+  ⎿  Added 48 lines
+       88  for s in range(0, P, 64):
+       89      seg = rowmax[s:s + 64]
+       90      print(f"  行 {s:4d}-{min(s + 63, P - 1):4d}: {seg.mean():6
+           .2f}%  max {seg.max():6.2f}%")
+       91 +                                                              
+       92 +# ---- score 尖锐度 + f16 数值变体：图像行偏离是否为 argmax 型
+          +注意力对                                                      
+       93 +# 数学等价实现的 f16 差异敏感（赢家翻转）----                 
+       94 +print("\n[尖锐度] 每行 top1-top2 score 差（越大越接近 argmax）
+          +：")                                                          
+       95 +for h in range(2):                                            
+       96 +    sc = SC[h]                                                
+       97 +    top2 = np.sort(sc, axis=-1)[:, -2:]                       
+       98 +    gap = top2[:, 1] - top2[:, 0]                             
+       99 +    print(f"  head{h}: img 行 gap 中位 {np.median(gap[:NIMG]):
+          +.2f}  txt 行 gap 中位 {np.median(gap[NIMG:]):.2f}"            
+      100 +          f"  |sc| 量级 img={np.abs(sc[:NIMG]).max():.1f} txt=
+          +{np.abs(sc[NIMG:]).max():.1f}")                               
+      101 +                                                              
+      102 +f16a = lambda a: np.asarray(a, dtype=np.float16).astype(np.flo
+          +at64)                                                         
+      103 +                                                              
+      104 +                                                              
+      105 +def m0_num(sc_f, softmax_f16):                                
+      106 +    out = np.empty((P, 2048))                                 
+      107 +    for h in range(8):                                        
+      108 +        sc = sc_f(SC[h])                                      
+      109 +        sc = sc - sc.max(-1, keepdims=True)                   
+      110 +        if softmax_f16:                                       
+      111 +            e = np.exp(sc).astype(np.float16).astype(np.float6
+          +4)                                                            
+      112 +            p = (e / e.sum(-1, keepdims=True).astype(np.float1
+          +6).astype(np.float64))                                        
+      113 +        else:                                                 
+      114 +            e = np.exp(sc)                                    
+      115 +            p = e / e.sum(-1, keepdims=True)                  
+      116 +        out[:, h * 256:(h + 1) * 256] = p @ v0i               
+      117 +    return out                                                
+      118 +                                                              
+      119 +                                                              
+      120 +print("\n[数值变体] vs m0_gold（full mask）:")                
+      121 +for name, m in (                                              
+      122 +    ("S1 f64 全程（基线）", m0_num(lambda s: s, False)),      
+      123 +    ("S2 score f16 舍入", m0_num(lambda s: f16a(s), False)),  
+      124 +    ("S4 softmax f16", m0_num(lambda s: s, True)),            
+      125 +    ("S5 score f16 + softmax f16", m0_num(lambda s: f16a(s), T
+          +rue)),                                                        
+      126 +):                                                            
+      127 +    dd = np.abs(m - m0_gold)                                  
+      128 +    rm = dd.max(-1)                                           
+      129 +    print(f"  {name}: {dd.max() / gm * 100:.2f}%  行均值 img={
+          +rm[:NIMG].mean() / gm * 100:.2f}% txt={rm[NIMG:].mean() / gm *
+          + 100:.2f}%")                                                  
+      130 +                                                              
+      131 +# 补测：图像行看不到文本（文本行全开）——画像驱动的新候选      
+      132 +imgblind = np.zeros((P, P))                                   
+      133 +imgblind[:NIMG, :NIMG] = 1.0                                  
+      134 +imgblind[NIMG:, :] = 1.0                                      
+      135 +m_ib = m0_with(imgblind)                                      
+      136 +dd = np.abs(m_ib - m0_gold)                                   
+      137 +rm = dd.max(-1)                                               
+      138 +print(f"  [mask] 图像行不可见文本: {dd.max() / gm * 100:.2f}% 
+          + 行均值 img={rm[:NIMG].mean() / gm * 100:.2f}% txt={rm[NIMG:].
+          +mean() / gm * 100:.2f}%")                                     
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/mask_recover_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'd…)
+  ⎿    文本不可见图像: 35.31%  行偏差均值 img=16.37% txt=7.57%
+
+     [画像] m0_full vs gold 逐行 max 偏差%（按 64 行分桶平均）:
+     … +27 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 28s (ctrl+o to expand)
+
+● 数值变体全军覆没（全部 35.30% 不动）且尖锐度方向相反（图像行 gap
+  小=弥散、文本行尖锐但干净）。别猜了——直接读 golden_gen.py 里 m0/h1 的 hook
+  挂载与捕获逻辑，确定它们到底在哪个 forward、哪次调用里抓的：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n
+      "m0\|h1\|o_proj\|layers\[1\]\|layers\[0\]\|hook\|def mk\|…)
+  ⎿  10:注意：paligemma.language_model.forward / gemma_expert.model.forward
+      在
+     11:modeling_pi05 里是直接 .forward() 调用（绕过 __call__，模块 hook 不
+     … +38 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "108,262p" /data/apxinf/golden_gen.py')
+  ⎿  handles.append(lm0.layers[0].self_attn.q_proj.register_forward_hook(ma
+     ke_hook("q0i"), with_kwargs=True))
+     handles.append(lm0.layers[0].self_attn.k_proj.register_forward_hook(ma
+     … +136 lines (ctrl+o to expand)
+
+  Thought for 1m 37s (ctrl+o to expand)
+
+● golden_gen.py 主流程读完——找到了世界分裂点：
+
+  - infer（m0/h1/q0i 的来源）：pol.infer() → sample_actions line 849 先设 
+    _attn_implementation="eager" 再跑 prefix
+  - replay（kvk cache 的来源）：line 195 的 prefix 重放没设 eager → 跑的是默认
+    sdpa（eager 设置在 line 230，只对 suffix replay 生效）
+
+  即 golden v2 的键混了两个 attention kernel 世界，而 sdpa≈f64
+  教科书（0.11%）、GE 引擎也≈f64（0.52%）——引擎可能一直是对的，golden 
+  参考自己打架。还剩一个反直觉点要钉死：eager（真 LIBERO 9/10
+  基线的路径！）为何偏 f64 35%。看容器里 fix 分支 Gemma 的 eager 实现有没有鬼：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu grep -n "def
+      eager_attention_forward" -A 4…)
+  ⎿  230:def eager_attention_forward(
+     231-    module: nn.Module,
+     232-    query: torch.Tensor,
+     … +38 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● eager 实现是教科书式的（scale 后乘、f32
+  softmax）——代码无鬼。直接实验钉死两个世界：同一 x0 分别用 sdpa / eager 跑
+  prefix，各自抓 m0，与 m0_gold / m0_full 对号入座：
+
+● Write(syx_docs\dev_logs\attn_impl_probe.py)
+  ⎿  Wrote 65 lines to syx_docs\dev_logs\attn_impl_probe.py
+       1 """attn_impl_probe.py — eager vs sdpa 世界裁决
+       2 
+       3 golden v2 的键混世界：m0/h1/q0i 来自 infer（sample_actions 先设 
+       4 kvk cache 来自手工重放（未设 eager → sdpa）。本脚本同一 x0 分别
+         跑两种
+       5 implementation 抓层 0 o_proj 输入（m0），对号入座：
+       6   m0_eager ≈ m0_gold 且 m0_sdpa ≈ f64 教科书 ⇒ 世界分裂实锤。
+       8 import numpy as np
+       9 import torch
+      10 import torch_npu  # noqa: F401
+     … +71 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/attn_impl_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'dock…)
+  ⎿           [-0.2922, -0.7549, -0.6562,  ...,  0.3293,  0.8975, -0.7559],
+              [-0.4583, -0.6108, -0.5039,  ...,  0.2366,  0.1078, -0.5381],
+              ...,
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 出错被截断，取完整 traceback：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "cd /data/apxinf &&
+      ASCEND_RT_VISI…)
+  ⎿  ✅  converted:  model.action_in_proj -> FRACTAL_NZ
+     ✅  converted:  model.action_out_proj -> FRACTAL_NZ
+     ✅  converted:  model.time_mlp_in -> FRACTAL_NZ
+     … +28 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● [init] lm.config._attn_implementation = sdpa——默认确认 sdpa（replay
+  世界）。eager 路径在 self_attn 里抛异常，看栈底：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "cd /data/apxinf &&
+      ASCEND_RT_VISI…)
+  ⎿    File "/usr/local/lib/python3.11/site-packages/torch/nn/modules/modul
+     e.py", line 1775, in _wrapped_call_impl
+         return self._call_impl(*args, **kwargs)
+     … +32 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● pre-hook lambda 返回了 tensor（须返回 None）。修正：
+● Update(syx_docs\dev_logs\attn_impl_probe.py)
+  ⎿  Added 5 lines, removed 3 lines
+      36      pwe.paligemma.language_model.config._attn_implementation = 
+          impl
+      37      lm.config._attn_implementation = impl
+      38      cap = {}
+      39 -    mk = lambda n: (lambda mod, args, kwargs, out: cap.setdefau
+         -lt(n, out if not hasattr(out, "__getitem__") else out))        
+      40 -    h = lm.layers[0].self_attn.o_proj.register_forward_pre_hook
+         -(                                                              
+      41 -        lambda mod, args, kwargs: cap.setdefault("m0", args[0].
+         -detach().clone()), with_kwargs=True)                           
+      39 +                                                               
+      40 +    def pre(mod, args, kwargs):                                
+      41 +        cap.setdefault("m0", args[0].detach().clone())         
+      42 +                                                               
+      43 +    h = lm.layers[0].self_attn.o_proj.register_forward_pre_hook
+         +(pre, with_kwargs=True)                                        
+      44      with torch.no_grad():
+      45          pos = torch.arange(P, device=x0.device).unsqueeze(0)
+      46          pmask = model._prepare_attention_masks_4d(torch.ones(1,
+           P, P, dtype=torch.bool, device=x0.device))
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/attn_impl_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'dock…)
+  ⎿                                  ^^^^^^^^^^^^^^^^^^^^
+       File "/usr/local/lib/python3.11/site-packages/transformers/integrati
+     ons/sdpa_attention.py", line 66, in sdpa_attention_forward
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 1m 21s (ctrl+o to expand)
+
+● sdpa 在 NPU 上根本跑不了 f32 mask + f16 query（这就是 openpi 在 sample_actions
+  里强制 eager 的原因）——所以 infer 和 replay 都是 eager，impl
+  不是分裂点。剩最后一个结构性嫌疑：pol.infer 是否走了 TorchAir 编译图（replay
+  直调子模块 forward 会绕开编译图 → 两个世界的 kernel 不同）。查 npu_torch.py：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n "torchair\|npu_backend\|compile\|def
+      infer\|def warmup\|i…)
+  ⎿  92:        torch_npu.npu.set_compile_mode(jit_compile=False)
+     275:    def infer(
+     343:    def infer_step(self, observation: Mapping[str, Any]) -> np.nda
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 42s (ctrl+o to expand)
+
+● npu_torch 无 torchair——infer 也是纯 eager。两个 forward
+  理论上应逐位一致，矛盾只剩一个出口：我的 numpy 复刻或 infer 
+  本身有一方异常。改实验：同一 x0 跑一次全新 eager replay，直接与
+  m0_gold、m0_full 三方对比（不经 numpy 复刻中转），同时打印 replay 实际用的
+  mask/position：
+
+● Update(syx_docs\dev_logs\attn_impl_probe.py)
+  ⎿  Added 10 lines, removed 4 lines
+      56  
+      57  print("[init] lm.config._attn_implementation =", lm.config._att
+          n_implementation)
+      58  m0_eager, k1_eager = run_prefix("eager")
+      59 -m0_sdpa, k1_sdpa = run_prefix("sdpa")                          
+      59 +m0_eager2, _ = run_prefix("eager")  # 确定性对照（aclnn 非确定 
+         +性量级）                                                       
+      60  
+      61 -for tag, m in (("eager", m0_eager), ("sdpa", m0_sdpa)):        
+      61 +                                                               
+      62 +def prof(tag, m):                                              
+      63      d = np.abs(m - m0_gold)
+      64      row = d.max(-1) / np.abs(m0_gold).max() * 100
+      65      print(f"[m0] {tag}: vs_gold={d.max() / np.abs(m0_gold).max(
+          ) * 100:.2f}%"
+      66            f"  行均值 img={row[:NIMG].mean():.2f}% txt={row[NIMG
+          :].mean():.2f}%")
+      66 -print(f"[m0] eager vs sdpa: {rel(m0_eager, m0_sdpa):.2f}%")    
+      67 -print(f"[k1] eager vs sdpa: {rel(k1_eager, k1_sdpa):.2f}%  (k1_
+         -eager vs golden kvk_l1: {rel(k1_eager, G['kvk_l1'].astype(np.fl
+         -oat64)):.2f}%)")                                               
+      67 +                                                               
+      68 +                                                               
+      69 +prof("replay-eager#1", m0_eager)                               
+      70 +prof("replay-eager#2", m0_eager2)                              
+      71 +print(f"[m0] replay#1 vs #2（自确定性）: {rel(m0_eager, m0_eage
+         +r2):.4f}%")                                                    
+      72 +print(f"[k1] replay k1 vs golden kvk_l1: {rel(k1_eager, G['kvk_
+         +l1'].astype(np.float64)):.2f}%")                               
+      73 +print(f"[k1] replay k1 vs golden kvk_l0 位置校验——k1 shape {k1_
+         +eager.shape}")                                                 
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/attn_impl_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'dock…)
+  ⎿  [init] lm.config._attn_implementation = sdpa
+     [m0] replay-eager#1: vs_gold=35.31%  行均值 img=14.64% txt=2.15%
+     [m0] replay-eager#2: vs_gold=35.31%  行均值 img=14.64% txt=2.15%
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 决定性进展：
+
+  - fresh replay 完美自确定（0.0000%）且逐位复现 golden 
+    kvk_l1（0.00%）——replay/我的复刻/GE 引擎/f64 数学同属一个世界
+  - m0_gold（infer 抓的）孤立在 35% 外——infer 那次 forward 的 attention
+    输入必有不同
+
+  最后一步取证：hook 层 0（decoder layer 是正常 __call__ 调用，hook
+  会触发），直接记录 infer 实际传进层的 attention_mask 与 position_ids：
+
+● Write(syx_docs\dev_logs\infer_mask_probe.py)
+  ⎿  Wrote 96 lines to syx_docs\dev_logs\infer_mask_probe.py
+       1 """infer_mask_probe.py — 抓 infer 实际传入 decoder layer 的 mask
+       2 
+       3 replay-eager 完美自确定且逐位复现 kvk，但 m0_gold（infer 抓）偏 
+         replay 35%
+         异。层是
+       5 __call__ 调用（hook 可触发），直接记录第一层收到的 attention_mas
+       6 position_ids，与 replay 的（全零加性 mask / arange）对比。
+       7 """
+       8 import numpy as np
+      10 import torch_npu  # noqa: F401
+     … +110 lines (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/infer_mask_probe.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  ✅  converted:  model.paligemma_with_expert.gemma_expert.model.layers.
+     17.self_attn.k_proj -> FRACTAL_NZ
+     ✅  converted:  model.paligemma_with_expert.gemma_expert.model.layers.
+     … +24 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 14s (ctrl+o to expand)
+
+● obs 需要显式带 empty_camera 键（stage-1 mask 修复后 _to_frame 要求 wire
+  提供、自己剔除）。看 _to_frame 接受什么形态：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "215,250p"
+      /data/apxinf/robo_src/apxinf_robo/npu_torch.py')
+  ⎿          return self._action_dim
+
+         @property
+     … +33 lines (ctrl+o to expand)
+
+  Thought for 14s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "112,132p" /data/apxinf/golden_gen.py; grep
+      -n "image_keys…)
+  ⎿  # 确定性合成帧（对拍只要求两路同张量；真 LIBERO 渲染非必需）
+     rng = np.random.default_rng(20260920)
+     obs = {
+     … +23 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "160,185p"
+      /data/apxinf/robo_src/apxinf_robo/npu_torch.py')
+  ⎿              elif feat.type == "STATE" and self._state_feature is None:
+                     self._state_feature = name
+                     shape = getattr(feat, "shape", None)
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls -la --time-style=full-iso
+      /data/apxinf/robo_src/apxinf_robo/np…)
+  ⎿  Error: Exit code 128
+     -rw-r--r-- 1 root   root   85432712 2026-09-20 13:41:27.064000000 +0000 
+     /data/apxinf/golden/frame0.safetensors
+     -rw-r--r-- 1 root   root      11584 2026-09-20 13:35:50.496000000 +0000 
+     /data/apxinf/golden_gen.py
+     -rw-r--r-- 1 197609 197121    18226 2026-09-17 03:24:32.000000000 +0000 
+     /data/apxinf/robo_src/apxinf_robo/npu_torch.py
+
+  Thought for 15s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "cd /data/apxinf &&
+      ASCEND_RT_VISI…)
+  ⎿  ✅  converted:  model.time_mlp_in -> FRACTAL_NZ
+     ✅  converted:  model.time_mlp_out -> FRACTAL_NZ
+     image_keys: ('observation.images.image', 'observation.images.image2',
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 17s (ctrl+o to expand)
+
+● image_keys 是三个全量（含 empty_camera_0）——golden_gen 的 obs 
+  只给了两个键，pol.infer 本应像我的脚本一样 KeyError，但 frame0
+  产出成功——矛盾。找 golden 运行的实际日志验证：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls -la --time-style=full-iso /data/apxinf/*.log
+      2>/dev/null | tai…)
+  ⎿  -rw-r--r-- 1 root root  56276 2026-09-16 12:44:38.984000000 +0000 /dat
+     a/apxinf/serve.log
+     -rw-r--r-- 1 root root  56248 2026-09-18 02:43:45.388000000 +0000 /dat
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'sed -n "1,40p;60,112p" /data/apxinf/golden_gen.py')
+  ⎿  """golden_gen.py — M3 e2e golden 一帧 dump（probe GEB_E2E_GOLDEN
+     对拍源
+     ）
+     … +88 lines (ctrl+o to expand)
+
+  Thought for 1m 32s (ctrl+o to expand)
+
+● 根因找到了——golden_gen.py 第 31-36 行：
+
+  # 9/10 语义：只喂 2 真实视图，empty_camera 缺省
+  pol.image_keys = tuple(pol._image_features[:2])   # 强制前 2，empty_camera_0 
+  缺席
+
+  infer 侧 empty_camera 视图走 missing 路径：-1 pad 图进 SigLIP（768 行 x0 
+  照旧）但 pad_mask=0 → make_att_2d_masks 的 pad_2d 把这 256 个 key
+  对所有人遮蔽，且 position_ids=cumsum(pad)-1 使文本 token 位置变成
+  512..711（不是 768..967）。而 replay（kvk 来源）和引擎都在 968 全开 + arange
+  位置上算——第三世界 = 真实 9/10 语义。
+
+  数学等价推论（可验证）：pad 列在 softmax 里贡献恰为 0、visible token 位置恰为
+  arange(712)——infer 语义 ≡ 712 个可见 token 全开 attention + arange 
+  位置。引擎的修法因此极简：x0 组装时丢弃 empty view 的 256 
+  行（968→712），其余不变。先用 python 证明等价（replay-712 vs m0_gold
+  的对应行）：
+
+● Write(syx_docs\dev_logs\theory_check.py)
+  ⎿  Wrote 68 lines to syx_docs\dev_logs\theory_check.py
+       1 """theory_check.py — 「infer ≡ 712 可见 token 全开 + arange」等
+       2 
+       3 根因链：golden_gen 强制 2 视图 → empty_camera 走 missing 路径（-
+       4 进 SigLIP 但 pad_mask=0）→ pad_2d 遮蔽 + cumsum 位置塌缩。数学推
+       5 pad 列 softmax 贡献恰 0、visible 位置恰 arange(712) ⇒ infer 语义
+         等价于
+         ge(712)。
+       7 验证：replay-712 的 m0 行 vs m0_gold（infer 真值）对应行 ≈ f16 
+       8 """
+      10 import torch
+     … +77 lines (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/theory_check.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  [m0] replay712 vs m0_gold 对应行: 13.196%
+     [h1] replay712 vs h1_gold 对应行: 0.128%
+     [m0] 分块行偏差: 前 512(真视图) 0.203%  后 200(文本) 0.829%
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 45s (ctrl+o to expand)
+
+● 等价性证明成立：h1（层 0 完整输出，引擎复刻的段边界）对应行 0.128% ✓✓——infer
+  语义 ≡ 712 可见 token 全开 + arange。m0 的 13% 单点离群（行均值仅 0.2/0.8%，h1
+  却 0.128%）是尖锐行 f16 数值噪声级别 curiosities，不阻塞。
+
+  结论定型——M3 真根因：
+  - 引擎/replay 都把 empty_camera 的 256 个 pad token 当一等公民（可见 key +
+    占位 512-767），真实 9/10 语义里它们被 mask=0 遮蔽且文本位置是 512..711
+  - 修法 = x0 组装丢弃 pad view 行（968→712），全开+arange
+    语义天然正确，无需给图加 mask
+
+  现在改 probe 引擎侧。先看 e2e 的 x0 组装与 p 的来源：
+
+  Thought for 26s, read 1 file (ctrl+o to expand)
+
+● p = VT + tokens（768+200）。需要改的点：prefix 的 p 计算、x0 组装截断、以及
+  flow 段的 prefix 长度引用。看 flow 段怎么用 prefix 长度：
+
+● Bash(grep -n "VT + tokens\|VT + \|fn seg_flow\|rope_flat_const(\|offset"
+      /d/compass/APXinf/apxinf/crates/apxinf-model/examples/ge_model_probe.rs |
+      sed -n '1,40p')
+  ⎿  10://!   SliceD        x→y, offsets/size(ListInt)
+     227:/// pos_offset + t。cosF 半维重复自然成；sinF 折叠 rotate-half
+     符号
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 21s, read 1 file (ctrl+o to expand)
+
+● 改引擎侧 probe（两处 p 计算 + x0 组装截断 + cmp 键切换）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 10 lines, removed 1 line
+      1651      let stream = be.stream();
+      1652      let depth = envi("GEB_DEPTH_PREFIX", envi("GEB_DEPTH", 18
+            )) as usize;
+      1653      let tokens = envi("GEB_TOKENS", 64);
+      1654 -    let p = VT + tokens; // prefix 长度（16 倍数纪律）       
+      1654 +    // GEB_PREFIX_DROP_EMPTY：尾部空视图行数（9/10 语义根因修
+           +复，2026-09-21）。                                           
+      1655 +    // golden_gen 按 LIBERO 语义只喂 2 真实视图，empty_camera
+           + 走 missing 路径                                             
+      1656 +    // （-1 pad 图进 SigLIP 但 pad_mask=0）：make_att_2d_mask
+           +s 的 pad_2d 把该                                             
+      1657 +    // 256 个 key 对所有人遮蔽，position_ids=cumsum(pad)-1 使
+           +文本位置塌缩到                                               
+      1658 +    // 512..711。pad 列 softmax 贡献恰为 0、可见 token 位置恰
+           +为 arange ⇒                                                  
+      1659 +    // 数学上等价于直接剔除该视图行（968→712，全开+arange 语 
+           +义不变）——                                                   
+      1660 +    // theory_check.py 实证 h1 对应行 0.128%。引擎此前把 pad 
+           +视图当一等                                                   
+      1661 +    // 公民（可见 key + 占位 512..767）＝ e2e 314% 漂移的真根
+           +因                                                           
+      1662 +    let drop_v = envi("GEB_PREFIX_DROP_EMPTY", 0);           
+      1663 +    let p = VT + tokens - drop_v; // prefix 长度（16 倍数纪律
+           +）                                                           
+      1664      let mut seed = 0xBEEFu32;
+      1665      // GEB_QKV3：q/k/v 独立投影（同 vision 段——SliceD 列切视
+            图的运行时
+      1666      // MemcopyAsync 物化是 prefix 750ms 的主源，取证见 vision
+             段注记）
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 5 lines, removed 2 lines
+      1706              let emb = w.vision.token_embedding.to_f32_vec().u
+            nwrap();
+      1707              let vocab_w = PW as usize;
+      1708              // LeRobot embed_language_tokens 语义：查表行 × √
+            width（gemma
+      1709 -            // embed scale，modeling_pi05 L695；vision 段无此
+           -缩放）                                                       
+      1709 +            // embed scale，modeling_pi05 L695；vision 段无此
+           +缩放）。                                                     
+      1710 +            // 空视图剔除：vision_out 只取前 (VT-drop_v) 行（
+           +视图主序，empty                                              
+      1711 +            // 在尾），golden 对拍键 x0_vis 同序             
+      1712              let lang_scale = (PW as f32).sqrt();
+      1711 -            let mut x0 = st.vision_out.clone();              
+      1713 +            let vis_rows = ((VT - drop_v) * PW) as usize;    
+      1714 +            let mut x0 = st.vision_out[..vis_rows].to_vec(); 
+      1715              x0.reserve(st.token_ids.len() * vocab_w);
+      1716              for &id in &st.token_ids {
+      1717                  let r = id as usize * vocab_w;
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 7 lines, removed 2 lines
+      1725      };
+      1726      s.data(ctx, "x0", &[p, PW], &x0_h);
+      1727      // bisect：x0 = cat(vision_out, 查表×√PW) 组装后即比（idx
+             域 [0,VT*PW)
+      1728 -    // = 视觉行 / 其后 = 语言行——分岔落哪个段一眼可辨）      
+      1728 +    // = 视觉行 / 其后 = 语言行——分岔落哪个段一眼可辨）。剔除
+           +空视图时                                                     
+      1729 +    // golden 参考键为 x0_vis（712 行同序）                  
+      1730      if let Some(st) = e2e.as_ref() {
+      1730 -        st.cmp_mid("x0", &x0_h);                             
+      1731 +        if drop_v > 0 {                                      
+      1732 +            st.cmp_mid("x0_vis", &x0_h);                     
+      1733 +        } else {                                             
+      1734 +            st.cmp_mid("x0", &x0_h);                         
+      1735 +        }                                                    
+      1736      }
+      1737      s.data_zeros(ctx, "zeros", p, PW);
+      1738      let (qc, qs, qi) = rope_flat_const(p, HEADS, 0);
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 3 lines, removed 1 line
+      2066      let stream = be.stream();
+      2067      let depth = envi("GEB_DEPTH", 18) as usize;
+      2068      let tokens = envi("GEB_TOKENS", 64);
+      2069 -    let p = VT + tokens;                                     
+      2069 +    // prefix 可见长度（空视图剔除须与 prefix 段一致——suffix 
+           +rope 偏移与                                                  
+      2070 +    // pk/pv 形状都取此值；infer 侧 pos_s = sum(prefix_pad)+c
+           +umsum-1 = 712 起）                                           
+      2071 +    let p = VT + tokens - envi("GEB_PREFIX_DROP_EMPTY", 0);  
+      2072      let mut seed = 0xF00Du32;
+      2073      // 同 vision/prefix 段三件套（取证见各段注记）：q/k/v 独
+            立投影 /
+      2074      // flat rope（免列切物化）/ 手工 cross-GQA attention（免 
+            PFA host
+
+  Thought for 16s (ctrl+o to expand)
+
+● 再补 probe 的 golden 键列表（加 x0_vis）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1182              // 中间量（可选键，名对齐 golden_gen.py 落盘键）
+            ：vision_out / x0 /
+      1183              // kvk_l{i} 全 18 层（prefix k cache）/ step0_x1—
+            —段边界 bisect
+      1184              let mut keys: Vec<String> = Vec::new();
+      1185 -            for k in ["vision_out", "x0", "step0_x1", "m0", "
+           -h1"] {                                                       
+      1185 +            for k in ["vision_out", "x0", "x0_vis", "step0_x1
+           +", "m0", "h1"] {                                             
+      1186                  if t.contains_key(k) {
+      1187                      keys.push(k.to_string());
+      1188                  }
+
+  Thought for 5s (ctrl+o to expand)
+
+● 写 golden v3 生成脚本（712 语义 replay + v2 infer 真值键合并）：
+
+● Write(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Wrote 84 lines to syx_docs\dev_logs\golden_gen_v3.py
+       1 """golden_gen_v3.py — 修正语义的 golden 一帧（空视图剔除，712 pr
+       2 
+         lay——把
+         ..767），
+         ..711。
+         en 全开
+         /actions/
+         ：
+         除同序）/
+         的 suffix）
+     … +105 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 三线并发：golden v3 生成（npu 容器）+ probe 同步编译（rust 容器）：
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿    File "/usr/local/lib/python3.11/site-packages/transformers/integrati
+     ons/sdpa_attention.py", line 66, in sdpa_attention_forward
+         attn_output = torch.nn.functional.scaled_dot_product_attention(
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(tar -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  warning: `apxinf-model` (example "ge_model_probe") generated 34 warnin
+     gs (run `cargo fix --example "ge_model_probe"` to apply 1 suggestion)
+         Finished `release` profile [optimized] target(s) in 25.89s
+  ⎿  (timeout 10m)
+
+  Thought for 18s (ctrl+o to expand)
+
+● v3 的 suffix replay 在 expert 上踩了 sdpa+f32mask 崩溃——v2
+  之所以没踩是因为它先跑了 pol.infer（infer 路径会把 expert 也置 eager）。给 v3
+  显式补上：
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n "_attn_implementation"
+      /data/apxinf/lerobot/src/lerobot/p…)
+  ⎿  397:        vlm_config_hf.vision_config._attn_implementation = "eager"
+     848:        self.paligemma_with_expert.paligemma.language_model.config
+     ._attn_implementation = "eager"  # noqa: SLF001
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 1 line
+      30  model = pol.policy.model
+      31  pwe = model.paligemma_with_expert
+      32  pwe.paligemma.language_model.config._attn_implementation = "eag
+          er"
+      33 +pwe.gemma_expert.model.config._attn_implementation = "eager"  #
+         + denoise_step L918 同款（sdpa 吃不了 f32 mask + f16 q）        
+      34  
+      35  g = load_file("/data/apxinf/golden/frame0.safetensors")
+      36  golden = {k: v for k, v in g.items() if not (k.startswith("kvk_
+          l") or k.startswith("kvv_l")
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  ✅  converted:  model.time_mlp_out -> FRACTAL_NZ
+     [v3] prefix 712 replay cache layers: 18 k0 (1, 1, 712, 256)
+     [v3] step0_x1 |max| 2.953125  x0_vis (712, 2048)  kvk_l0 (712, 256)
+     saved: /data/apxinf/golden/frame0_v3.safetensors
+  ⎿  (timeout 7m)
+
+  Thought for 9s (ctrl+o to expand)
+
+● golden v3 就位（712 全套）。烤 t712 OM（prefix 全深 18 + flow，vision 复用
+  t200）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  parity[prefix out35] max_diff=36.87500 (ref |max|=36.875, rel=100.0%)
+     prefix parity drift 100.0% (>=20%, oracle 对拍待做；bench 继续)
+     prefix_PARITY_OK n_in=138 worst=36.87500 rel=100.0%
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● prefix OM 712 版烤好（115.62ms，比 968 版 138.81 还快 17%——剔除死 token
+  白赚）。OM-vs-eager 的 100% parity 是已知累积序差（e2e golden
+  判定才是裁判）。烤 flow：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  flow parity drift 37.2% (>=20%, oracle 对拍待做；bench 继续)
+     flow_PARITY_OK n_in=216 worst=0.37817 rel=37.2%
+     OM saved: /data/apxinf/om_cache/t712/flow_real.om
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● flow 7.64ms/步。跑修正语义的 e2e 全链对拍（golden v3）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  [e2e] BISECT kvk_l1: max_diff=4.44531 @idx140905 (golden |max|=9.836,
+     rel=45.2%)
+     [e2e] BISECT kvk_l2: max_diff=7.95117 @idx180973 (golden |max|=9.500,
+     … +27 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 43s (ctrl+o to expand)
+
+● 修不修看数据——step0_x1 从旧口径大幅收敛到 10.1%，但 prefix kv 层间漂移 45-88%
+  仍在（final actions 323%——10 步 euler 把 v_t
+  误差复合放大）。取被截断的头部指标（x0_vis/kvk_l0/vision_out）完成拼图：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  [e2e] BISECT vision_out: max_diff=0.50000 @idx191138 (golden |max|=182
+     .375, rel=0.3%)
+     [e2e] BISECT x0_vis: max_diff=0.50000 @idx191138 (golden |max|=526.000
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 29s (ctrl+o to expand)
+
+● 修复落地实证：x0_vis 0.1% / kvk_l0 0.3%（输入链完美）→ 分岔精确出现在
+  kvk_l1（45%）= 引擎图层 0 整块（attention+MLP）的 f16 数值 vs 
+  torch——语义已修净，剩下的是纯数值级（C2 时代"累积序"一类，现在终于有自洽
+  golden 可量）。给明晚留好定位武器：v3 补 m0_vis/h1_vis 键 + 烤 DBG_FULL 图 +
+  槽位 dump。先并行改 v3 脚本与烤图：
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 20 lines
+      41  Pv = x0_vis.shape[1]
+      42  golden["x0_vis"] = x0_vis[0].float().cpu().numpy()
+      43  
+      44 +# 712 replay 侧层内中间量（引擎 DBG_FULL 槽位对拍用——与 cache  
+         +同 forward，                                                   
+      45 +# 自洽）：m0_vis = 层0 attention 合并输出（o_proj 前）、h1_vis 
+         += 层0 完整输出                                                 
+      46 +lm0 = pwe.paligemma.model.language_model                       
+      47 +capv = {}                                                      
+      48 +                                                               
+      49 +                                                               
+      50 +def _pre(name):                                                
+      51 +    def f(mod, args, kwargs):                                  
+      52 +        if name not in capv and args and torch.is_tensor(args[0
+         +]):                                                            
+      53 +            capv[name] = args[0].detach().clone()              
+      54 +    return f                                                   
+      55 +                                                               
+      56 +                                                               
+      57 +hh = [lm0.layers[0].self_attn.o_proj.register_forward_pre_hook(
+         +_pre("m0_vis"), with_kwargs=True),                             
+      58 +      lm0.layers[1].input_layernorm.register_forward_pre_hook(_
+         +pre("h1_vis"), with_kwargs=True)]                              
+      59  with torch.no_grad():
+      60      pos = torch.arange(Pv, device=x0_vis.device).unsqueeze(0)
+      61      pmask = model._prepare_attention_masks_4d(torch.ones(1, Pv,
+           Pv, dtype=torch.bool, device=x0_vis.device))
+      62      pv_out = pwe.paligemma.language_model.forward(
+      63          inputs_embeds=x0_vis, attention_mask=pmask, position_id
+          s=pos,
+      64          past_key_values=None, use_cache=True, adarms_cond=None)
+      65 +for x in hh:                                                   
+      66 +    x.remove()                                                 
+      67 +for k in ("m0_vis", "h1_vis"):                                 
+      68 +    golden[k] = capv[k][0].float().reshape(-1, 2048).cpu().nump
+         +y()                                                            
+      69 +    print(f"[v3] {k}", golden[k].shape)                        
+      70  pkv = pv_out.past_key_values
+      71  kcs = pkv.key_cache if hasattr(pkv, "key_cache") else [kv[0] fo
+          r kv in pkv]
+      72  vcs = pkv.value_cache if hasattr(pkv, "value_cache") else [kv[1
+          ] for kv in pkv]
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  ✅  converted:  model.time_mlp_out -> FRACTAL_NZ
+     [v3] m0_vis (712, 2048)
+     [v3] h1_vis (712, 2048)
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  OM saved: /data/apxinf/om_cache/t712dbg/prefix_real.om
+     prefix GE OM: 116.9102 ms (median/3, rounds=5)
+     GE_PREFIX_PROBE_OK
+  ⎿  (timeout 10m)
+
+  Thought for 9s (ctrl+o to expand)
+
+● e2e 跑 dbg 图前先修 cmp 键（drop 模式下比 m0_vis/h1_vis，否则 968
+  键长度断言崩）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 8 lines, removed 2 lines
+      2024          let nkv = depth * 2;
+      2025          assert!(outs.len() >= nkv, "prefix OM 输出 {} < kv {}
+            ", outs.len(), nkv);
+      2026          if outs.len() > nkv {
+      2027 -            st.cmp_mid("m0", &outs[nkv]);                    
+      2028 -            st.cmp_mid("h1", &outs[nkv + 1]);                
+      2027 +            // 剔除空视图时 golden 参考键为 _vis（712 行，与 
+           +图槽同形）                                                   
+      2028 +            if drop_v > 0 {                                  
+      2029 +                st.cmp_mid("m0_vis", &outs[nkv]);            
+      2030 +                st.cmp_mid("h1_vis", &outs[nkv + 1]);        
+      2031 +            } else {                                         
+      2032 +                st.cmp_mid("m0", &outs[nkv]);                
+      2033 +                st.cmp_mid("h1", &outs[nkv + 1]);            
+      2034 +            }                                                
+      2035              // GEB_E2E_DUMP_MID=<dir>：全部调试槽位原始 f16 
+            落盘
+      2036              //（ge_slot{i}.f16，i 与图输出序一致——槽值可能被
+            复用覆写，
+      2037              // 判读用「值匹配教科书哪级」而非槽序）
+
+● Bash(tar -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿      Finished `release` profile [optimized] target(s) in 26.04s
+     [e2e] 调试槽位已落盘 /data/apxinf/dump712/ge_slot{nkv+}.f16 ×19
+     [e2e] BISECT kvk_l0: max_diff=0.03516 @idx24061 (golden |max|=10.086,
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 槽位已落盘（19 个；m0_vis/h1_vis 的 cmp 键没进 loader
+  清单——离线对拍补上）。写槽位判读脚本，钉死分岔在 attention 段还是 MLP 段：
+
+● Write(syx_docs\dev_logs\slot_cmp712.py)  ⎿  Wrote 80 lines to syx_docs\dev_logs\slot_cmp712.py
+       1 """slot_cmp712.py — t712dbg 图槽位 vs golden v3 层内真值判读
+       2 
+         岔在
+       4 引擎图层 0 块内（attention 段 vs MLP 段）。槽值可能被图内复用覆
+         写，
+         值，
+       6 f64 教科书从 m0_vis 续算 res/norm2/cur(=h1) 各级。
+       7 """
+       9 from safetensors import safe_open
+      10 from safetensors.numpy import load_file
+     … +87 lines (ctrl+o to expand)
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/slot_cmp712.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker e…)
+  ⎿  [torch 自洽] h1_f(m0_vis 续算) vs h1_vis: 0.03%
+     [链核对] k_l1(h1_vis) vs golden kvk_l1: 0.10%
+     [链核对] k_l1(h1_f) vs golden kvk_l1: 0.12%
+     … +32 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 分岔定位完成：
+
+  ┌──────────────────────────┬────────┬─────────────────────────────────────┐
+  │            级            │  rel   │                判读                 │
+  ├──────────────────────────┼────────┼─────────────────────────────────────┤
+  │ m0_vis（attention        │ 0.52%  │ attention 段干净                    │
+  │ 合并输出）               │        │                                     │
+  ├──────────────────────────┼────────┼─────────────────────────────────────┤
+  │ norm2                    │ 2.82%  │ o_proj+残差+norm 后开始漂           │
+  ├──────────────────────────┼────────┼─────────────────────────────────────┤
+  │ h1（层 0 完整输出）      │ 35.53% │ MLP 段（K=16384 down_proj）把 2.8%  │
+  │                          │        │ 放大到 35.5%                        │
+  └──────────────────────────┴────────┴─────────────────────────────────────┘
+
+  golden v3 自洽（h1_f vs h1_vis 0.03%、k_l1 链 0.10%）✓。剩余问题 = 引擎 MLP 段
+  f16 数值（注意力无罪）。01:45，转入文档收口：
+
+● Write(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md)
+  ⎿  Wrote 69 lines to syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera
+     -mask-root-cause.md
+      1 # M3 真根因：empty_camera 视图语义（314% 漂移定位终结 + 修复）
+      3 日期：2026-09-21（夜班）　前置：[M3 对拍偏差定位](2026-09-20_m3-p
+      4 
+      6 
+         9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 pad 
+        图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把这 256
+         512..711；引擎（和 golden v2 的 replay）都把它们当一等公民（可见
+        学等价（theory_check 实证 h1 0.128%）。修复后 x0_vis 0.1% / kvk_l
+        → h1 35.5%）。**
+      9 ## 定位链（当晚五步裁决，全部实测）
+     … +104 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 6 lines, removed 5 lines
+       1 -# Handoff（2026-09-20 晚 M3 对拍偏差定位 / 压缩用）            
+       1 +# Handoff（2026-09-21 凌晨 M3 empty_camera 语义根因 / 压缩用） 
+       2  
+       3  ## 状态一句话
+       4  
+       5 -**M3 314% 漂移已拆解定位：① rope f16-inv_freq 语义差已修（kvk_l
+         -0 12.6%→0.4%，t200 OM 重烤，子模块 c7db8c8）；② 引擎语义/权重/a
+         -ttention/MLP 全部教科书级洗清（0.03-0.14%）；③ 剩余偏差钉死在 G
+         -E OM 图内数值行为——同一算子链 x0 输入 0.4% vs golden-h1 输入 18
+         -.7%（数据依赖、数值级非结构级）**。详见 summary 2026-09-20_m3-p
+         -arity-drift-bisect（裁决表 + 已排除清单 + 工具链用法）。       
+       5 +**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2  
+         +真实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/re
+         +play 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除 
+         +空视图行 968→712，数学等价 theory_check 0.128%）；golden v3 自 
+         +洽重产（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0
+         +_x1 10.1%；**剩余漂移精确定位：引擎 MLP 段（m0 0.52% → norm2 2.
+         +82% → h1 35.5%——attention 无罪，gate/up→gelu→mul→down(K=16384) 
+         +段放大）**，逐层复合至 l17 84% → final actions 323%。详见 summa
+         +ry 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix 115
+         +.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66×）
+         +**。                                                           
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**bisect 裁决链**（vision 0.3%/x0 0.1%/权重 0.000%/at
+         -tention+MLP 复刻 0.03-0.14% 全清；rope f16-inv_freq 根因+修复+r
+         -ope_angle()；剩余=GE OM 数值：h1 输入同链 18.7% vs x0 0.4%，图 
+         -k_l1 值随内存计划变 41↔23.7%、中间量输出槽被图内复用覆写 res→no
+         -rm2 实证）；**golden v2 键**（vision_out/x0/kvk_l{0..17}/m0/h1/
+         -step0_x1 + q0i/k0i/v0i；陷阱：paligemma.language_model 直接 .fo
+         -rward() 绕 hook、GemmaModel None mask 会 create_causal_mask）；
+         -**probe 新旋钮**（GEB_DEPTH_VISION/PREFIX、GEB_ATTN_PREFIX、GEB
+         -_E2E_STOP、GEB_LAYER_OFFSET、GEB_E2E_X0_KEY、GEB_DBG_MID/FULL、
+         -GEB_E2E_DUMP_MID、GEB_OUT_PAD）；**分析脚本七件**（l0_bisect/ro
+         -pe_probe/attn_scale_probe/attn_l0_h1/weights_cmp/m0_variants/st
+         -age_cmp，服务器 /data/apxinf/ 有同步副本）。丢弃：过程性烤图/跑
+         -批命令（模板在 summary 末尾）。                                
+       9 +聚焦保留：**empty_camera 根因链**（golden v2 混世界：infer-hook
+         + 键 vs 968 全开 replay 键——m0_gold 偏全开 35.31% 偏 causal 94.3
+         +1% 属第三世界 = pad 遮蔽+位置塌缩；修复 GEB_PREFIX_DROP_EMPTY=2
+         +56 + golden v3 + t712 OM）；**修复后指标**（x0_vis 0.1/kvk_l0 0
+         +.3/kvk_l1 45.2 净图 24.7 dbg 图/step0_x1 10.1/actions 323 复合 
+         +）；**剩余定位**（MLP 段：slot_cmp712 槽位判读 m0_vis 0.52 → no
+         +rm2 2.82 → h1(cur) 35.53——图槽判读法 + t712dbg OM + DUMP_MID） 
+         +；**golden v3 键**（x0_vis/m0_vis/h1_vis/kvk_l* 全 712 语义 + i
+         +nfer 侧原键；golden_gen_v3.py，自洽 0.03-0.12%）；**方法论教训*
+         +*（golden 与被测须同 forward 语义；先证 golden 自洽再怪引擎——Ad
+         +dRmsNorm/WCONST/mm/槽位复用四嫌疑全被 golden 不自洽假象浪费排除
+         +）。丢弃：过程性脚本中间版（八件新脚本在 summary 列全）。      
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3 对拍偏差定位（rope 已修、语义 
+         -全清，剩 GE OM 图内数值级偏差：golden h1 直入同链 18.7% vs x0 0
+         -.4%——见 summary 2026-09-20_m3-parity-drift-bisect 裁决表）**。 
+         -性能基线（rope 修复后 t200，零回归）：prefix 138.81ms@968 / flo
+         -w 8.12ms/步 / vision 55.86ms → **稳态 e2e ≈ 275.6ms = CUDA 378m
+         -s 线的 0.73×**。第一动作（按嫌疑序）：① **AddRmsNorm f16 方差/ 
+         -累加在大动态范围输入的精度**——optest 单算子复测（真权重、真 x0/
+         -h1 输入，golden h1 已在 frame0.safetensors）；② **WCONST vs Dat
+         -a 权重数值差**——同图关 WCONST 重烤 d2 对比（GEB_WCONST 不设 +  
+         -手动喂权重 Data）；③ mm cube 累加精度——GE vs aclnn eager 单算对
+         -拍；④ 输出槽复用覆写——需观测节点防复用。修到 kvk 全层 ≤5% → e2e
+         - 终态复测 → 延迟 bench → LIBERO（9/10）。⚠ 纪律：不估时间只看 d
+         -ate；PYTHONPATH 追加勿覆盖；golden/分析脚本 syx_docs/dev_logs/ 
+         -有镜像；GEB_SAVE 要全路径文件名。                              
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         +n v3 自洽，剩余 = 引擎 MLP 段 f16 数值：m0 0.52% → h1 35.5%，嫌
+         +疑 down_proj K=16384 累加——见 summary 2026-09-21_m3-empty-camer
+         +a-mask-root-cause）**。第一动作：① **down_proj 单算对拍**（真权
+         +重真 act 输入：GE mm vs aclnn eager vs f64——GEB_OPTEST 扩展或隔
+         +离图）；② gate/up mm 同测；③ |act| 幅值分布检查（gelu·mul 中间 
+         +量可能进 f16 精度差区）；④ 修复候选：split-K down（2×8192 mm+ad
+         +d）/ act 预除尺度 / WCONST 开关对比。修到 kvk_l1 ≤5% → 全层 → e
+         +2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DR
+         +OP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t7
+         +12 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`； 
+         +槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_DUMP_MID + slot
+         +_cmp712.py。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs
+         +/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 C
+         +LAUDE.md。                                                     
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-20_m3-
+         -parity-drift-bisect.txt（M3 偏差定位：bisect 工具链 + rope 根因
+         -修复 + GE OM 数值残留）                                        
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         +empty-camera-mask-root-cause.txt（M3 真根因：empty_camera 视图 
+         +语义 + 712 修复 + MLP 段剩余定位）                             
+      18 +                                                               
+
+  Thought for 4s (ctrl+o to expand)
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 
+          -中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          -跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          -QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          -（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          -期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          -_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          -重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          -；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          -ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          -必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          -2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          -套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          -fetensors> 对拍——**golden v2 中间量逐段 BISECT**（键 vision_ou
+          -t/x0/kvk_l{0..17}/m0/h1/step0_x1，golden_gen.py 产）/ **bisect
+          - 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFI
+          -X 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefi
+          -x 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍
+          - kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽 
+          -值可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落 
+          -盘、GEB_OUT_PAD 用户 buffer 占位取证）） |                    
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 
+          +中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          +跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          +QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          +（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          +期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          +_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          +重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          +；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          +ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          +必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          +2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          +套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          +fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          +t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          +n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          +洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          +nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          +隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          + 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          + 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          +kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          +可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          +、GEB_OUT_PAD 用户 buffer 占位取证）） |                      
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+● Update(syx_docs\setup.md)
+  ⎿  Error editing file
+
+  Thought for 2s, searched for 1 pattern (ctrl+o to expand)
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 
+          -中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          -跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          -QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          -（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          -期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          -_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          -重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          -；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          -ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          -必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          -2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          -套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          -fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          -t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          -n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          -洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          -nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          -隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          - 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          - 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          -kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          -可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          -、GEB_OUT_PAD 用户 buffer 占位取证）） |                      
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 
+          +中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          +跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          +QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          +（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          +期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          +_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          +重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          +；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          +ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          +必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          +2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          +套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          +fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          +t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          +n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          +洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          +nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          +隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          + 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          + 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          +kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          +可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          +、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMPTY=2
+          +56 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera 走 
+          +missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除该 2
+          +56 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 缓存
+          + /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL tap 图
+          +））**）） |                                                  
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      133    - **✅ M3 起跑第一动作（2026-09-20，281d703）——真 checkpoint
+            权重接入三段 OM（`GEB_CKPT`）**。复用 `Pi05Weights::from_safe
+           tensors` host 解析管线（LeRobot 前缀归一、[in,out] 物理转置、*
+           *Gemma 1+w scale 折叠**——g1/g2=ones、折叠进 q/k/v/gate/up，pro
+           be 图直接消费该约定）→ bf16→f16 → 既有 `wt()` Const 路径烤入 O
+           M。映射面：vision 全 LN/bias 有值（SigLIP 块 + patch/pos/proj
+           ）；prefix/flow 的 Gemma 投影无 bias（真权重=zeros）；ada-norm
+            条件向量（ascl/ash/mscl/msh/fsc/fsh）与 x0/state/pk/pv 保持合
+           成运行时输入（两路同值对拍不受影响）。**真 OM 三件套 `{vision,
+           prefix,flow}_real.om`（字节数与 _r3 逐位同 = 同拓扑），bench 
+           与合成 r3 打平：vision 55.86 / prefix 124.61 / flow 7.89 ms/步
+           （全模型 ~259ms），GEB_LOAD 加载路径验证通过——真权重零延迟代价
+           **。**真权重 parity**：vision 0.1%（同合成）；prefix 深度曲线 
+           **16.8/59.7/100/100%**（d=2/4/8/18；合成时 6.0→25.1%）——layer0
+            K/V 仍逐位一致、绝对 max_diff 次线性（5.5→36.7）平滑饱和，fp1
+           6 累加序机制被真 Gemma outlier 通道放大，非 bug，e2e 判定；flo
+           w 37.4%（输出 |max|≈1.1 小分母 + 同机制）。checkpoint 加载 61s
+           /进程（全量 mmap+解析，可后置优化为按段懒加载）。⚠ GEB_LOAD 真
+            OM 必须配 GEB_CKPT（eager 参考从 binds 取权重）
+      134    - **✅ M3 第二步（2026-09-20，c8ca41b）——三段 OM 接入真实推
+           理链（`GEB_SEG=e2e`，见 summary/2026-09-20_m3-e2e-chain-wiring
+           ）**。进程内链式 host 中转：x0 = vision_out ‖ token 查表（embe
+           d_prefix 序；state 走离散化进 prompt 不进 prefix）、styles 真
+           值（sinusoidal→time_mlp→style→ascl=1+s0，host f32 每步 h2d 换
+           绑）、pk/pv = prefix 36 输出直连、10 步 flow 换绑（euler 图内
+           ）。chip6 bring-up 全通（GE_E2E_PROBE_OK，|x|max 89.9→34.6 单
+           调收敛，actions 有限）；GEB_E2E_GOLDEN safetensors 对拍钩子就
+           位
+      135    - **✅ M3 对拍偏差定位（2026-09-20 晚，c7db8c8——见 summary/2
+           026-09-20_m3-parity-drift-bisect）**。首帧 314% 拆解三层：① ro
+           pe f16-inv_freq 语义差（torch `.to(f16)` 连 rotary buffer 量化
+           ）已修 `rope_angle()` + t200 重烤，kvk_l0 12.6%→0.4%；② 语义/
+           权重/attention/MLP 全部教科书级洗清（0.03-0.14%，golden v2 + 
+           七分析脚本 + probe bisect 工具链）；③ 剩余 = **GE OM 图内数值
+           级**：同链 x0 输入 0.4% vs golden-h1 输入 18.7%（嫌疑：AddRmsN
+           orm f16 方差大动态范围 / WCONST 烤入 / mm cube 累加；另证中间
+           量输出槽被图内复用覆写）。性能零回归：prefix 138.81ms@968 / fl
+           ow 8.12ms/步 → **稳态 e2e ≈ 275.6ms（378 线 0.73×）**
+      136 -  - **M3 剩余**：GE OM 数值残留定位（optest 单算子级：addrms  
+          -真权重真输入 → WCONST 开关对比 → mm 对拍）→ kvk 全层 ≤5% → e2e
+          - 终态复测 → 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）；后
+          -置：pk/pv 设备直连、懒加载、真 tokenizer                      
+      136 +  - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+          +_m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+          +部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+          + 语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+          +P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+          +1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+          + 512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+          +第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+          +` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+          +PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自 
+          +洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+          + step0_x1 10.1%；**剩余漂移精确定位到引擎 MLP 段**（slot 槽位 
+          +判读：m0 0.52% → norm2 2.82% → h1 35.5%——attention 无罪，K=163
+          +84 down_proj 嫌疑最大）。性能再降：prefix 115.62ms@712 / flow 
+          +7.64 → **稳态 e2e ≈ 248ms = 378 线 0.66×**                    
+      137 +  - **M3 剩余**：MLP 段数值修复（down_proj 单算对拍 → split-K/
+          +act 尺度/WCONST 对比）→ kvk_l1 ≤5% → 全层 → e2e 终态 → 真实 e2
+          +e 延迟 bench → LIBERO 对标（9/10 基线）；后置：pk/pv 设备直连 
+          +、懒加载、真 tokenizer                                        
+      138    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      139      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      140    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 3s (ctrl+o to expand)
+
+● 文档四处齐。两步提交（子模块 → 外层）：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git log --oneline
+      -1)
+  ⎿   M crates/apxinf-model/examples/ge_model_probe.rs
+     c7db8c8 M3 parity bisect: golden-mid per-segment compare + f16-inv rop
+     e fix
+
+● Bash(git add crates/apxinf-model/examples/ge_model_probe.rs && git commit -m
+      "$(cat <<'EOF'
+      M3 empty-camera root cause fix: GEB_PREFIX_DROP_EMPTY drops pad view
+      rows…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port 451cb4b] M3 empty-camera root cause fix: GEB_PREFIX_DROP_
+     … +4 lines (ctrl+o to expand)
+
+● Bash(cd /d/compass/APXinf && git add apxinf
+      syx_docs/dev_logs/summary/2026-09-21_m3-empty-camera-mask-root-cause.md
+      syx_docs/dev_logs/handoff.md syx_docs/setup.md sy…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/plans/npu-port-roadmap.md',
+     … +28 lines (ctrl+o to expand)
+
+● Bash(git commit -m "$(cat <<'EOF'
+      docs: M3 empty-camera root cause (pad-mask semantics) fixed, drift
+      isolated to MLP section…)
+  ⎿  [main 68d9486] docs: M3 empty-camera root cause (pad-mask semantics) f
+     ixed, drift isolated to MLP section
+      13 files changed, 874 insertions(+), 8 deletions(-)
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 提交完成（子模块 451cb4b → fork/ascend-port；外层 68d9486）。按时间纪律查表：
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-21 01:15:33
+
+  Thought for 29s (ctrl+o to expand)
+
+● 01:15——距截止还有 75 分钟，继续。下一步（MLP 段精确定位）其实不用新烤图：槽位
+  dump 里 slots 48-51 尺寸 11665408 = 712×16384 = gate/up/gact/act 的 INTER 
+  宽中间量！扩展判读脚本覆盖全部 f64 级，逐槽钉死第一个爆的算子：
+
+● Update(syx_docs\dev_logs\slot_cmp712.py)
+  ⎿  Added 26 lines, removed 12 lines
+      34  res = x0 + m0 @ ow.T
+      35  sc = (1.0 + w2)[None, :]
+      36  n2 = res / np.sqrt((res * res).mean(-1, keepdims=True) + EPS)
+      37 -h1_f = res + (gelu_tanh(n2 @ (gw * sc).T) * (n2 @ (uw * sc).T))
+         - @ dw.T                                                        
+      37 +gate = n2 @ (gw * sc).T                                        
+      38 +up = n2 @ (uw * sc).T                                          
+      39 +gact = gelu_tanh(gate)                                         
+      40 +act = gact * up                                                
+      41 +down = act @ dw.T                                              
+      42 +h1_f = res + down                                              
+      43  
+      44 +f16q = lambda a: np.asarray(a, dtype=np.float16).astype(np.floa
+         +t64)                                                           
+      45 +print(f"[幅值] gate |max|={np.abs(gate).max():.1f} up |max|={np
+         +.abs(up).max():.1f}"                                           
+      46 +      f" act |max|={np.abs(act).max():.1f}（f16 上限 65504）") 
+      47 +n_big = (np.abs(act) > 30000).mean() * 100                     
+      48 +print(f"[幅值] |act|>30000 占比 {n_big:.4f}%  |act|>65504（溢出
+         +）{(np.abs(act) > 65504).sum()} 个")                           
+      49 +                                                               
+      50  INV16 = np.float64(np.float16(10000.0 ** (-np.arange(128) * 2.0
+           / 256.0)))
+      51  ANG = np.arange(P)[:, None] * INV16[None, :]
+      52  COS, SIN = np.cos(ANG), np.sin(ANG)
+     ...
+      69  rel = lambda a, b: np.abs(a - b).max() / max(np.abs(b).max(), 1
+          e-9) * 100
+      70  print(f"[torch 自洽] h1_f(m0_vis 续算) vs h1_vis: {rel(h1_f, h1
+          ):.2f}%")
+      71  print(f"[链核对] k_l1(h1_vis) vs golden kvk_l1: {rel(k_l1_of(h1
+          ), kvk1):.2f}%")
+      61 -print(f"[链核对] k_l1(h1_f) vs golden kvk_l1: {rel(k_l1_of(h1_f
+         -), kvk1):.2f}%")                                               
+      72  
+      73  cands = {
+      64 -    "x0": x0, "m0_vis": m0, "res": res, "norm2": n2, "h1(cur)":
+         - h1_f, "h1_vis": h1,                                           
+      74 +    "x0": (x0, 2048), "m0": (m0, 2048), "res": (res, 2048), "no
+         +rm2": (n2, 2048),                                              
+      75 +    "gate": (gate, 16384), "up": (up, 16384), "gact": (gact, 16
+         +384), "act": (act, 16384),                                     
+      76 +    "down": (down, 2048), "h1": (h1_f, 2048), "h1_vis": (h1, 20
+         +48),                                                           
+      77  }
+      66 -print("\n[槽位判读] 36+ 为调试槽（值匹配最好的级）:")          
+      78 +print("\n[槽位判读] 全级匹配（每槽最好的三级）：")             
+      79  for i in range(36, 55):
+      80      try:
+      81          v = np.fromfile(f"/data/apxinf/dump712/ge_slot{i}.f16",
+           dtype=np.float16).astype(np.float64)
+      82      except OSError:
+      83          break
+      72 -    if v.size != x0.size:                                      
+      73 -        print(f"  slot{i}: size {v.size} ≠ {x0.size}（k/v 槽？ 
+         -）")                                                           
+      84 +    matches = []                                               
+      85 +    for n, (ref, w) in cands.items():                          
+      86 +        if v.size != P * w:                                    
+      87 +            continue                                           
+      88 +        matches.append((rel(v.reshape(P, w), ref), n))         
+      89 +    if not matches:                                            
+      90 +        print(f"  slot{i}: size {v.size} 无匹配宽度")          
+      91          continue
+      75 -    v = v.reshape(P, 2048)                                     
+      76 -    best = sorted(((rel(v, ref), n) for n, ref in cands.items()
+         -))[0]                                                          
+      77 -    print(f"  slot{i}: 最匹配 {best[1]} ({best[0]:.2f}%)  " +  
+      78 -          "  ".join(f"{n}={rel(v, r):.1f}%" for n, r in list(ca
+         -nds.items())[:0]))                                             
+      79 -    # 全级数值一行打全                                         
+      80 -    print("        " + "  ".join(f"{n}:{rel(v, r):.1f}%" for n,
+         - r in cands.items()))                                          
+      92 +    matches.sort()                                             
+      93 +    top = "  ".join(f"{n}:{d:.2f}%" for d, n in matches[:3])   
+      94 +    print(f"  slot{i} [{v.size // 712} 宽]: {top}")            
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/slot_cmp712.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker e…)  ⎿  [幅值] gate |max|=16.0 up |max|=24.7 act |max|=395.8（f16 上限 65504）
+     [幅值] |act|>30000 占比 0.0000%  |act|>65504（溢出）0 个
+     [torch 自洽] h1_f(m0_vis 续算) vs h1_vis: 0.03%
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 46s (ctrl+o to expand)
+
+● 全级表翻案：act 3.05% / down 3.15%——MLP 主体其实没问题！真正的跳变在更早：m0 
+  0.52% → norm2 2.82%（跨 o_proj mm + res add + addrms 三算子），且 torch 自身
+  f16 vs f64 全链只有 0.03%——引擎这条链比 torch 差
+  100×，不是"累积序"级别。gate/up 槽的 15-32% 是覆写垃圾（act 只 3.05%
+  不可能）。查现有 GEB_OPTEST 能否直接喂真数据：
+
+  Thought for 22s, searched for 1 pattern (ctrl+o to expand)
+
+● GEB_OPTEST 是随机数据编译冒烟矩阵，不适配真数据裁决（改+烤+跑 30
+  分钟起步，会压线）。收尾前做一个 5 分钟的 numpy 锐化：0.52% 的 m0 误差传播到
+  norm2 能解释多少（剩余即 o_proj/addrms 执行误差）：
+
+● Bash(cat > /tmp/propagate_check.py <<'EOF'
+      import numpy as np…)
+  ⎿  [传播] m0 引擎误差 0.52% → f64 o_proj+res: 0.08% → norm2: 0.03%
+     [实测] 图 norm2 槽 vs f64 norm2: 2.82%  → 超出传播部分的 = o_proj/addr
+     ms 执行误差
+  ⎿  (timeout 5m)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 最终定位：m0 的 0.52% 误差经 o_proj 传播只剩 0.03%——而图 norm2 实测 2.82%，即
+  ~2.8% 误差产自 {o_proj mm + res + addrms} 三个算子内部（torch 同链 f16 只
+  0.03%，引擎差 100 倍——真执行误差，非累积序）。且 act 3.05/down 3.15 与 norm2
+  2.82 单调一致 → gate/up mm 基本不再加新误差，主嫌疑集中在 o_proj mm（WCONST
+  Const+NZ）。修正三处文档后收口：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md
+        )
+  ⎿  Added 13 lines, removed 8 lines
+      32  | step0_x1 | **10.1%** | 语义修复大幅收敛（旧口径终态 314%） |
+      33  | final actions | 323.7% | 10 步 euler 复合 v_t 误差（prefix kv
+           漂移所致）——修 MLP 后应收敛 |
+      34  
+      35 -## 剩余问题（已精确定位）                                      
+      35 +## 剩余问题（已精确定位到三算子跨度）                          
+      36  
+      37 -**引擎 MLP 段 f16 数值**（slot_cmp712.py 槽位判读，t712dbg 图 +
+         - DUMP_MID）：                                                  
+      37 +**引擎层内 {o_proj mm + res add + addrms} 跨度产生 ~2.8% 执行误
+         +差**（slot_cmp712.py 全级槽位判读 + propagate_check.py 传播上界
+         +）：                                                           
+      38  
+      39 -| 级 | rel vs golden v3 真值 |                                 
+      40 -|---|---|                                                      
+      41 -| m0_vis（attention 合并输出） | **0.52%** ✓ attention 无罪 |  
+      42 -| norm2 | 2.82% |                                              
+      43 -| h1（层 0 完整输出） | **35.53%** ← gate/up(K=2048,N=16384) → 
+         -gelu → mul → **down(K=16384)** 段把 2.8% 放大到 35.5% |        
+      39 +| 级 | rel vs f64 教科书 | 备注 |                              
+      40 +|---|---|---|                                                  
+      41 +| m0（attention 合并输出） | **0.52%** | attention 段无罪 |    
+      42 +| m0 误差经 f64 o_proj+res+norm 传播 | 0.03% | **传播上界——0.52
+         +% 输入解释不了下面的 2.82%** |                                 
+      43 +| norm2（图槽 37/44/45 一致） | **2.82%** | ~2.8% 产自三算子内 
+         +部执行 |                                                       
+      44 +| act（gelu·up，槽 51） | 3.05% | 与 norm2 单调一致 |          
+      45 +| down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不
+         +加新误差）；gate/up 槽（15/32%）系覆写垃圾 |                   
+      46 +| h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程 
+         +放大 + 逐层复合 |                                              
+      47  
+      45 -下一步（嫌疑序）：① down_proj 单算对拍（真权重真 act 输入：GE m
+         -m vs aclnn eager vs f64——K=16384 f16 累加序/outlier 放大）；② g
+         -ate/up mm 同测；③ gelu·mul 中间幅值检查（|act| 分布，可能溢出 f
+         -16 精度区）；④ 修复候选：split-K down（2×8192 mm + add）/ act  
+         -尺度预除 / 关 WCONST 对比。修到 kvk_l1 ≤5% → 全层复测 → e2e 终 
+         -态 → LIBERO。                                                  
+      48 +**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍
+         +，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 n
+         +orm2 只增 ~0.3%——**主嫌疑 = o_proj mm（WCONST Const+NZ 烤入，K=
+         +2048）**，addrms 次之。                                        
+      49  
+      50 +下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden 
+         +m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展
+         +或最小隔离图）；② addrms 同测（真 res 输入）；③ 若 mm 定罪：WCO
+         +NST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2
+         +e 终态 → LIBERO。                                              
+      51 +                                                               
+      52  ## 性能（t712，零回归且更快）
+      53  
+      54  prefix **115.62ms**@712（was 138.81@968，-17%）/ flow **7.64ms*
+          */步（was 8.12）/ vision 55.86 不变 → **稳态 e2e ≈ 55.86+115.62
+          +10×7.64 ≈ 248ms = CUDA 378 线 0.66×**。剔除死 token 白赚性能。
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md
+        )
+  ⎿  Added 1 line, removed 1 line
+       4  
+       5  ## 一句话
+       6  
+       7 -**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBE
+         -RO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 p
+         -ad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把 
+         -这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位
+         -置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等
+         -公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（9
+         -68→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vi
+         -s 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到引擎 M
+         -LP 段（m0 0.52% → h1 35.5%）。**                               
+       7 +**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBE
+         +RO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 p
+         +ad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把 
+         +这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位
+         +置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等
+         +公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（9
+         +68→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vi
+         +s 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到层内 {
+         +o_proj mm + res + addrms} 跨度 ~2.8% 执行误差（torch 同链 f16  
+         +仅 0.03%）。**                                                 
+       8  
+       9  ## 定位链（当晚五步裁决，全部实测）
+      10  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真
+        -实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/repla
+        -y 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视 
+        -图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产
+        -（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.
+        -1%；**剩余漂移精确定位：引擎 MLP 段（m0 0.52% → norm2 2.82% → h1
+        - 35.5%——attention 无罪，gate/up→gelu→mul→down(K=16384) 段放大）*
+        -*，逐层复合至 l17 84% → final actions 323%。详见 summary 2026-09
+        --21_m3-empty-camera-mask-root-cause。性能：prefix 115.62ms@712 /
+        - flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66×）**。        
+      5 +**314% 真根因 = empty_camera 视图语义（golden 9/10 语义只喂 2 真
+        +实视图，empty 走 missing 路径 pad=0：遮蔽 + 位置塌缩；引擎/repla
+        +y 都当一等公民）——已修 `GEB_PREFIX_DROP_EMPTY=256`（x0 剔除空视 
+        +图行 968→712，数学等价 theory_check 0.128%）；golden v3 自洽重产
+        +（frame0_v3）**。修复后 x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.
+        +1%；**剩余漂移精确定位：层内 {o_proj mm + res + addrms} 跨度 ~2.
+        +8% 执行误差（m0 0.52% 输入传播上界仅 0.03%、torch 同链 f16 全程 
+        +0.03%——真执行误差非累积序；down/act 只 3.05/3.15% 无罪，gate/up 
+        +槽系覆写垃圾）**，逐层复合至 l17 84% → final actions 323%。详见 
+        +summary 2026-09-21_m3-empty-camera-mask-root-cause。性能：prefix
+        + 115.62ms@712 / flow 7.64ms/步 → **稳态 e2e ≈ 248ms（378 线 0.66
+        +×）**。                                                         
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         -n v3 自洽，剩余 = 引擎 MLP 段 f16 数值：m0 0.52% → h1 35.5%，嫌
+         -疑 down_proj K=16384 累加——见 summary 2026-09-21_m3-empty-camer
+         -a-mask-root-cause）**。第一动作：① **down_proj 单算对拍**（真权
+         -重真 act 输入：GE mm vs aclnn eager vs f64——GEB_OPTEST 扩展或隔
+         -离图）；② gate/up mm 同测；③ |act| 幅值分布检查（gelu·mul 中间 
+         -量可能进 f16 精度差区）；④ 修复候选：split-K down（2×8192 mm+ad
+         -d）/ act 预除尺度 / WCONST 开关对比。修到 kvk_l1 ≤5% → 全层 → e
+         -2e 终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DR
+         -OP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t7
+         -12 GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`； 
+         -槽位判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_DUMP_MID + slot
+         -_cmp712.py。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs
+         -/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 C
+         -LAUDE.md。                                                     
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         +n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         +行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         +mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         +**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 m
+         +m vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712db
+         +g OM 现成）；② addrms 同测（真 res 输入）；③ 若 mm 定罪 → WCONS
+         +T 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 
+         +终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_
+         +EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 
+         +GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位
+         +判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E
+         +2E_DUMP_MID=<dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪 
+         +律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜 
+         +像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。     
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 2 lines
+      133    - **✅ M3 起跑第一动作（2026-09-20，281d703）——真 checkpoint
+            权重接入三段 OM（`GEB_CKPT`）**。复用 `Pi05Weights::from_safe
+           tensors` host 解析管线（LeRobot 前缀归一、[in,out] 物理转置、*
+           *Gemma 1+w scale 折叠**——g1/g2=ones、折叠进 q/k/v/gate/up，pro
+           be 图直接消费该约定）→ bf16→f16 → 既有 `wt()` Const 路径烤入 O
+           M。映射面：vision 全 LN/bias 有值（SigLIP 块 + patch/pos/proj
+           ）；prefix/flow 的 Gemma 投影无 bias（真权重=zeros）；ada-norm
+            条件向量（ascl/ash/mscl/msh/fsc/fsh）与 x0/state/pk/pv 保持合
+           成运行时输入（两路同值对拍不受影响）。**真 OM 三件套 `{vision,
+           prefix,flow}_real.om`（字节数与 _r3 逐位同 = 同拓扑），bench 
+           与合成 r3 打平：vision 55.86 / prefix 124.61 / flow 7.89 ms/步
+           （全模型 ~259ms），GEB_LOAD 加载路径验证通过——真权重零延迟代价
+           **。**真权重 parity**：vision 0.1%（同合成）；prefix 深度曲线 
+           **16.8/59.7/100/100%**（d=2/4/8/18；合成时 6.0→25.1%）——layer0
+            K/V 仍逐位一致、绝对 max_diff 次线性（5.5→36.7）平滑饱和，fp1
+           6 累加序机制被真 Gemma outlier 通道放大，非 bug，e2e 判定；flo
+           w 37.4%（输出 |max|≈1.1 小分母 + 同机制）。checkpoint 加载 61s
+           /进程（全量 mmap+解析，可后置优化为按段懒加载）。⚠ GEB_LOAD 真
+            OM 必须配 GEB_CKPT（eager 参考从 binds 取权重）
+      134    - **✅ M3 第二步（2026-09-20，c8ca41b）——三段 OM 接入真实推
+           理链（`GEB_SEG=e2e`，见 summary/2026-09-20_m3-e2e-chain-wiring
+           ）**。进程内链式 host 中转：x0 = vision_out ‖ token 查表（embe
+           d_prefix 序；state 走离散化进 prompt 不进 prefix）、styles 真
+           值（sinusoidal→time_mlp→style→ascl=1+s0，host f32 每步 h2d 换
+           绑）、pk/pv = prefix 36 输出直连、10 步 flow 换绑（euler 图内
+           ）。chip6 bring-up 全通（GE_E2E_PROBE_OK，|x|max 89.9→34.6 单
+           调收敛，actions 有限）；GEB_E2E_GOLDEN safetensors 对拍钩子就
+           位
+      135    - **✅ M3 对拍偏差定位（2026-09-20 晚，c7db8c8——见 summary/2
+           026-09-20_m3-parity-drift-bisect）**。首帧 314% 拆解三层：① ro
+           pe f16-inv_freq 语义差（torch `.to(f16)` 连 rotary buffer 量化
+           ）已修 `rope_angle()` + t200 重烤，kvk_l0 12.6%→0.4%；② 语义/
+           权重/attention/MLP 全部教科书级洗清（0.03-0.14%，golden v2 + 
+           七分析脚本 + probe bisect 工具链）；③ 剩余 = **GE OM 图内数值
+           级**：同链 x0 输入 0.4% vs golden-h1 输入 18.7%（嫌疑：AddRmsN
+           orm f16 方差大动态范围 / WCONST 烤入 / mm cube 累加；另证中间
+           量输出槽被图内复用覆写）。性能零回归：prefix 138.81ms@968 / fl
+           ow 8.12ms/步 → **稳态 e2e ≈ 275.6ms（378 线 0.73×）**
+      136 -  - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+          -_m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+          -部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+          - 语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+          -P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+          -1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+          - 512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+          -第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+          -` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+          -PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自 
+          -洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+          - step0_x1 10.1%；**剩余漂移精确定位到引擎 MLP 段**（slot 槽位 
+          -判读：m0 0.52% → norm2 2.82% → h1 35.5%——attention 无罪，K=163
+          -84 down_proj 嫌疑最大）。性能再降：prefix 115.62ms@712 / flow 
+          -7.64 → **稳态 e2e ≈ 248ms = 378 线 0.66×**                    
+      137 -  - **M3 剩余**：MLP 段数值修复（down_proj 单算对拍 → split-K/
+          -act 尺度/WCONST 对比）→ kvk_l1 ≤5% → 全层 → e2e 终态 → 真实 e2
+          -e 延迟 bench → LIBERO 对标（9/10 基线）；后置：pk/pv 设备直连 
+          -、懒加载、真 tokenizer                                        
+      136 +  - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+          +_m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+          +部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+          + 语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+          +P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+          +1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+          + 512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+          +第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+          +` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+          +PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自 
+          +洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+          + step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+          +ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+          + 同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+          +性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+          + = 378 线 0.66×**                                             
+      137 +  - **M3 剩余**：{o_proj/addrms} 单算真数据对拍（GE vs eager v
+          +s f64）→ 定罪修复（WCONST/NZ/split-K）→ kvk_l1 ≤5% → 全层 → e2
+          +e 终态 → 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）；后置 
+          +：pk/pv 设备直连、懒加载、真 tokenizer                        
+      138    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      139      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      140    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 5s (ctrl+o to expand)
+
+● 镜像 propagate_check.py 到本地并提交修正：
+
+● Bash(cp /tmp/propagate_check.py
+      /d/compass/APXinf/syx_docs/dev_logs/propagate_check.py && cd
+      /d/compass/APXinf && git add syx_docs/dev_logs/summary/2026-09-21_m3-emp…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/slot_cmp712.py', LF
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 01:45，还有余量——做一个零风险高价值的最后裁决：norm2 
+  误差的结构分析（误差是按行缩放 → addrms 有罪；还是按通道分布 → o_proj mm
+  有罪）：
+
+● Bash(cat > /tmp/err_struct.py <<'EOF'
+      import numpy as np…)
+  ⎿  [总] norm2 槽 vs f64: max|d|/|max| = 2.82%
+     [行] 每行相对误差：中位 5.53%  max 11.58%  min 3.07%
+     [行缩放] 行尺度系数范围 [-0.68%, -0.05%]；去掉行缩放后残差 2.82%
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 14s (ctrl+o to expand)
+
+● o_proj mm 定罪：行缩放残差 2.82%（纯行尺度只有 -0.7%——addrms 无罪：norm
+  误差必呈行缩放形态）；误差呈通道结构（top10 通道 12-30× 中位，m0 对照仅
+  3-5×）——mm 输出列特征的污染。补进文档并收口：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md
+        )
+  ⎿  Added 2 lines, removed 2 lines
+      45  | down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不
+          加新误差）；gate/up 槽（15/32%）系覆写垃圾 |
+      46  | h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程
+          放大 + 逐层复合 |
+      47  
+      48 -**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍
+         -，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 n
+         -orm2 只增 ~0.3%——**主嫌疑 = o_proj mm（WCONST Const+NZ 烤入，K=
+         -2048）**，addrms 次之。                                        
+      48 +**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍
+         +，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 n
+         +orm2 只增 ~0.3%。**err_struct.py 结构裁决**：误差无行缩放分量（
+         +纯行尺度 -0.68%..-0.05%，去掉后 2.82% 原样——**addrms 无罪**，no
+         +rm 误差必呈行缩放）；误差呈**通道结构**（top10 通道 12-30× 中位
+         +、m0 对照仅 3-5×）——mm 输出列特征污染，**o_proj mm（WCONST Cons
+         +t+NZ）定罪为头号嫌疑**。                                       
+      49  
+      50 -下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden 
+         -m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展
+         -或最小隔离图）；② addrms 同测（真 res 输入）；③ 若 mm 定罪：WCO
+         -NST 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2
+         -e 终态 → LIBERO。                                              
+      50 +下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden 
+         +m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展
+         +或最小隔离图）；② 若定罪：WCONST 开关 / NZ vs ND / split-K / 通
+         +道误差与 outlier 输入×权重行的相关性。修到 kvk_l1 ≤5% → 全层 → 
+         +e2e 终态 → LIBERO。                                            
+      51  
+      52  ## 性能（t712，零回归且更快）
+      53  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         -n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         -行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         -mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         -**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 m
+         -m vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712db
+         -g OM 现成）；② addrms 同测（真 res 输入）；③ 若 mm 定罪 → WCONS
+         -T 开关 / NZ vs ND / split-K 对比。修到 kvk_l1 ≤5% → 全层 → e2e 
+         -终态 → LIBERO（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_
+         -EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 
+         -GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3.safetensors`；槽位
+         -判读 = t712dbg + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E
+         -2E_DUMP_MID=<dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪 
+         -律：PYTHONPATH 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜 
+         -像；GEB_SAVE 全路径文件名；goal 时限纪律见全局 CLAUDE.md。     
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         +n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         +行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         +mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         +**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 m
+         +m vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712db
+         +g OM 现成；err_struct.py 已证 addrms 无罪、误差呈通道结构 → mm 
+         +列污染）；② 若定罪 → WCONST 开关 / NZ vs ND / split-K 对比。修 
+         +到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e
+         + 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=
+         +/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/f
+         +rame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + 
+         +GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp712.py（
+         +gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚 
+         +本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限 
+         +纪律见全局 CLAUDE.md。                                         
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+● Bash(cp /tmp/err_struct.py /d/compass/APXinf/syx_docs/dev_logs/err_struct.py
+      && git add
+      syx_docs/dev_logs/summary/2026-09-21_m3-empty-camera-mask-root-cause.md
+      syx_d…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-21_
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 27s (ctrl+o to expand)
+
+● 01:20——还有 70 分钟，够做第一动作（o_proj 单算真数据对拍）。看 GEB_OPTEST
+  分派区怎么接：
+
+  Thought for 3s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Bash(sed -n '3700,3760p'
+      /d/compass/APXinf/apxinf/crates/apxinf-model/examples/ge_model_probe.rs)  ⎿                  }
+                 }
+                 println!("ma numeric ({which}): ge |max|={gm:.3} max_diff=
+     … +58 lines (ctrl+o to expand)
+
+  Thought for 21s (ctrl+o to expand)
+
+● Bash(sed -n '3760,3800p'
+      /d/compass/APXinf/apxinf/crates/apxinf-model/examples/ge_model_probe.rs)
+  ⎿                      "nz" => {
+                             let buf = upload_bytes(ctx, &nz_bytes);
+                             s.data_nz("w", &nz_dims, buf)
+     … +38 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 模式清楚了，wgt 的 mechanics 可整体复用。加 oproj 模式（真 m0_vis × 真
+  o_proj，cst/nd 两形态 vs eager 三方 + 落盘 f64 对拍）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 58 lines, removed 1 line
+      3809                  );
+      3810              }
+      3811          }
+      3812 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt, got {other}"),                                  
+      3812 +        // oproj: 真数据单算裁决（2026-09-21 定位收口）——norm
+           +2 级 2.82% 通道                                              
+      3813 +        // 结构误差产自 {o_proj mm + res + addrms} 跨度，err_
+           +struct 已洗 addrms                                           
+      3814 +        // （无行缩放分量）。本模式：golden m0_vis(712×2048) 
+           +× L0 o_proj 真权重，                                         
+      3815 +        // GE 图 cst（Const 烤入 = 生产 WCONST 路径）/ nd（Da
+           +ta）两形态 vs                                                
+      3816 +        // aclnn eager b_t 三方对拍；结果落盘 /tmp/oproj_*.f1
+           +6 供 f64 教科书比对                                          
+      3817 +        "oproj" => {                                         
+      3818 +            let real = real.expect("oproj 需要 GEB_CKPT");   
+      3819 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("oproj 需要 GEB_E2E_GOLDEN（golden v3）");                 
+      3820 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      3821 +                .expect("golden load");                      
+      3822 +            let m0v = t.get("m0_vis").expect("golden 缺 m0_vi
+           +s").to_f32_vec().unwrap();                                   
+      3823 +            let m0h: Vec<f16> = m0v.iter().map(|&v| f16::from
+           +_f32(v)).collect();                                          
+      3824 +            let lay = real.language_layers.get(0).expect("L0 
+           +权重");                                                      
+      3825 +            let wh = lw_f16(&lay.attention.output);          
+      3826 +            let (m, k, n) = (712i64, 2048i64, 2048i64);      
+      3827 +            assert_eq!(m0h.len(), (m * k) as usize, "m0_vis  
+           +长度 ≠ 712×2048");                                           
+      3828 +            let stream = be.stream();                        
+      3829 +            let xb = upload(ctx, &m0h);                      
+      3830 +            let wb = upload(ctx, &wh);                       
+      3831 +            let er = aops::matmul_b_t_fp16(ctx, &stream, &xb,
+           + [m, k], &wb, k, n).unwrap();                                
+      3832 +            drop(stream.synchronize());                      
+      3833 +            let ef = download_f16(ctx, &er, (m * n) as usize)
+           +;                                                            
+      3834 +            let bytes: Vec<u8> = ef.iter().flat_map(|v| v.to_
+           +bits().to_le_bytes()).collect();                             
+      3835 +            std::fs::write("/tmp/oproj_eager.f16", &bytes).ex
+           +pect("dump eager");                                          
+      3836 +            for variant in ["cst", "nd"] {                   
+      3837 +                let mut s = Seg::new(&format!("oproj_{variant
+           +}"));                                                        
+      3838 +                let x = s.data(ctx, "x", &[m, k], &m0h);     
+      3839 +                let wname = if variant == "cst" {            
+      3840 +                    s.const_f16("w", &[n, k], &wh)           
+      3841 +                } else {                                     
+      3842 +                    s.data(ctx, "w", &[n, k], &wh)           
+      3843 +                };                                           
+      3844 +                s.g.add_op("mm", "MatMulV2").unwrap();       
+      3845 +                s.g.set_input_desc("mm", "x1", &[m, k], Dtype
+           +::Fp16).unwrap();                                            
+      3846 +                s.g.set_input_desc("mm", "x2", &[n, k], Dtype
+           +::Fp16).unwrap();                                            
+      3847 +                s.g.set_output_desc("mm", "y", &[m, n], Dtype
+           +::Fp16).unwrap();                                            
+      3848 +                s.g.set_attr_bool("mm", "transpose_x1", false
+           +).unwrap();                                                  
+      3849 +                s.g.set_attr_bool("mm", "transpose_x2", true)
+           +.unwrap();                                                   
+      3850 +                s.wire("mm", "x1", &x);                      
+      3851 +                s.g.link("mm", "x2", &wname).unwrap();       
+      3852 +                let y = s.reg_out("mm", "y");                
+      3853 +                s.finish(&[&y]);                             
+      3854 +                let ins: Vec<&DeviceBuffer> = s.binds.iter().
+           +collect();                                                   
+      3855 +                let out = ctx.malloc((m * n * 2) as usize).un
+           +wrap();                                                      
+      3856 +                s.g.run(&ins, &[&out], stream).unwrap();     
+      3857 +                drop(stream.synchronize());                  
+      3858 +                let ge = download_f16(ctx, &out, (m * n) as u
+           +size);                                                       
+      3859 +                let (mut md, mut gm) = (0f32, 0f32);         
+      3860 +                for (a, b) in ge.iter().zip(&ef) {           
+      3861 +                    md = md.max((a.to_f32() - b.to_f32()).abs
+           +());                                                         
+      3862 +                    gm = gm.max(b.to_f32().abs());           
+      3863 +                }                                            
+      3864 +                println!("oproj[{variant}]: vs_eager max_diff
+           +={md:.5} rel={:.3}%", md / gm * 100.0);                      
+      3865 +                let bytes: Vec<u8> = ge.iter().flat_map(|v| v
+           +.to_bits().to_le_bytes()).collect();                         
+      3866 +                std::fs::write(format!("/tmp/oproj_ge{variant
+           +}.f16"), &bytes).expect("dump ge");                          
+      3867 +            }                                                
+      3868 +        }                                                    
+      3869 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj, got {other}"),                            
+      3870      }
+      3871      println!("OPTEST_{which}_OK");
+      3872      ge_builder::fini().expect("fini");
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      2540  
+      2541  /// 单算子最小图编译冒烟（GEB_OPTEST=btd|rsh|sld|gat|cat|aln|
+            gln|asc）——
+      2542  /// 新算子逐个定罪用（三段图共享的新算子集）
+      2543 -fn optest(be: &AscendBackend, which: &str) {                 
+      2543 +fn optest(be: &AscendBackend, which: &str, real: Option<&Pi05
+           +Weights>) {                                                  
+      2544      let ctx = be.ctx();
+      2545      let mut s = Seg::new(&format!("op_{which}"));
+      2546      let zeros_host = vec![f16::from_f32(0.0); 768 * 1152];
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      3891          w
+      3892      });
+      3893      if let Ok(t) = std::env::var("GEB_OPTEST") {
+      3894 -        optest(&be, &t);                                     
+      3894 +        optest(&be, &t, real.as_ref());                      
+      3895          return;
+      3896      }
+      3897      match seg.as_str() {
+
+● Bash(tar -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  warning: unused variable: `stream`
+     warning: unused import: `Backend as _`
+     warning: unused import: `apxinf_core::Backend as _`
+     … +11 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 25s (ctrl+o to expand)
+
+● 反转：孤立 o_proj mm（cst/nd 两形态）与 eager 逐位一致 0.000%——mm
+  单算无罪！2.82% 只在全图上下文出现。跨度里只剩 addrms（真 res
+  输入）没单算过。补完最后一块拼图：golden v3 加 res 键 + optest=arm 模式：
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 3 lines
+      67  for k in ("m0_vis", "h1_vis"):
+      68      golden[k] = capv[k][0].float().reshape(-1, 2048).cpu().nump
+          y()
+      69      print(f"[v3] {k}", golden[k].shape)
+      70 +# res（层 0 o_proj 输出+残差，addrms 单算对拍输入）——与 cache  
+         +同 forward                                                     
+      71 +hh2 = [lm0.layers[0].register_forward_hook(                    
+      72 +    lambda mod, args, out: capv.setdefault("res0", (args[0].det
+         +ach().clone(),)), with_kwargs=True)]                           
+      73  pkv = pv_out.past_key_values
+      74  kcs = pkv.key_cache if hasattr(pkv, "key_cache") else [kv[0] fo
+          r kv in pkv]
+      75  vcs = pkv.value_cache if hasattr(pkv, "value_cache") else [kv[1
+          ] for kv in pkv]
+
+  Thought for 7s (ctrl+o to expand)
+
+● 挂错位置了（forward 已跑完）。改为挂进现有 hh 列表（post_attention_layernorm
+  的 pre-hook args[0] 恰是 res）：
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 1 line, removed 4 lines
+      64          past_key_values=None, use_cache=True, adarms_cond=None)
+      65  for x in hh:
+      66      x.remove()
+      67 -for k in ("m0_vis", "h1_vis"):                                 
+      67 +for k in ("m0_vis", "h1_vis", "res0"):                         
+      68      golden[k] = capv[k][0].float().reshape(-1, 2048).cpu().nump
+          y()
+      69      print(f"[v3] {k}", golden[k].shape)
+      70 -# res（层 0 o_proj 输出+残差，addrms 单算对拍输入）——与 cache  
+         -同 forward                                                     
+      71 -hh2 = [lm0.layers[0].register_forward_hook(                    
+      72 -    lambda mod, args, out: capv.setdefault("res0", (args[0].det
+         -ach().clone(),)), with_kwargs=True)]                           
+      70  pkv = pv_out.past_key_values
+      71  kcs = pkv.key_cache if hasattr(pkv, "key_cache") else [kv[0] fo
+          r kv in pkv]
+      72  vcs = pkv.value_cache if hasattr(pkv, "value_cache") else [kv[1
+          ] for kv in pkv]
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 1 line
+      55  
+      56  
+      57  hh = [lm0.layers[0].self_attn.o_proj.register_forward_pre_hook(
+          _pre("m0_vis"), with_kwargs=True),
+      58 +      lm0.layers[0].post_attention_layernorm.register_forward_p
+         +re_hook(_pre("res0"), with_kwargs=True),                       
+      59        lm0.layers[1].input_layernorm.register_forward_pre_hook(_
+          pre("h1_vis"), with_kwargs=True)]
+      60  with torch.no_grad():
+      61      pos = torch.arange(Pv, device=x0_vis.device).unsqueeze(0)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 加 arm 模式（真 res0 输入的 AddRmsNorm 单算）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 45 lines
+      3809                  );
+      3810              }
+      3811          }
+      3812 +        // arm: AddRmsNorm 真数据单算（2026-09-21 跨度收口）—
+           +—x = golden res0                                             
+      3813 +        // （层 0 o_proj+残差真值，712×2048），x2=zeros、gamm
+           +a=ones（fold 约定），                                        
+      3814 +        // GE 图 AddRmsNorm vs aclnn eager add_rms_norm_fp16 
+           +；落盘供 f64 对拍                                            
+      3815 +        "arm" => {                                           
+      3816 +            let gpath = std::env::var("GEB_E2E_GOLDEN").expec
+           +t("arm 需要 GEB_E2E_GOLDEN（golden v3）");                   
+      3817 +            let (t, _) = apxinf_loader::safetensors::load_nat
+           +ive_path(std::path::Path::new(&gpath))                       
+      3818 +                .expect("golden load");                      
+      3819 +            let rv = t.get("res0").expect("golden 缺 res0").t
+           +o_f32_vec().unwrap();                                        
+      3820 +            let resh: Vec<f16> = rv.iter().map(|&v| f16::from
+           +_f32(v)).collect();                                          
+      3821 +            let (m, w) = (712i64, 2048i64);                  
+      3822 +            assert_eq!(resh.len(), (m * w) as usize, "res0 长
+           +度 ≠ 712×2048");                                             
+      3823 +            let zeros = vec![f16::from_f32(0.0); w as usize];
+      3824 +            let gamma = vec![f16::from_f32(1.0); w as usize];
+      3825 +            let stream = be.stream();                        
+      3826 +            let xb = upload(ctx, &resh);                     
+      3827 +            let zb = upload(ctx, &zeros);                    
+      3828 +            let gb = upload(ctx, &gamma);                    
+      3829 +            let er = aops::add_rms_norm_fp16(ctx, &stream, &x
+           +b, &zb, &gb, &[m, w], RMS_EPS)                               
+      3830 +                .unwrap()                                    
+      3831 +                .0;                                          
+      3832 +            drop(stream.synchronize());                      
+      3833 +            let ef = download_f16(ctx, &er, (m * w) as usize)
+           +;                                                            
+      3834 +            let bytes: Vec<u8> = ef.iter().flat_map(|v| v.to_
+           +bits().to_le_bytes()).collect();                             
+      3835 +            std::fs::write("/tmp/arm_eager.f16", &bytes).expe
+           +ct("dump eager");                                            
+      3836 +            let mut s = Seg::new("arm_ge");                  
+      3837 +            let x = s.data(ctx, "x", &[m, w], &resh);        
+      3838 +            let _ = x;                                       
+      3839 +            s.data_zeros(ctx, "zeros", m, w);                
+      3840 +            s.data(ctx, "gamma", &[w], &gamma);              
+      3841 +            let y = s.addrms("y", "x", "zeros", "gamma", &[m,
+           + w]);                                                        
+      3842 +            s.finish(&[&y]);                                 
+      3843 +            let ins: Vec<&DeviceBuffer> = s.binds.iter().coll
+           +ect();                                                       
+      3844 +            let out = ctx.malloc((m * w * 2) as usize).unwrap
+           +();                                                          
+      3845 +            s.g.run(&ins, &[&out], stream).unwrap();         
+      3846 +            drop(stream.synchronize());                      
+      3847 +            let ge = download_f16(ctx, &out, (m * w) as usize
+           +);                                                           
+      3848 +            let (mut md, mut gm) = (0f32, 0f32);             
+      3849 +            for (a, b) in ge.iter().zip(&ef) {               
+      3850 +                md = md.max((a.to_f32() - b.to_f32()).abs());
+      3851 +                gm = gm.max(b.to_f32().abs());               
+      3852 +            }                                                
+      3853 +            println!("arm[ge]: vs_eager max_diff={md:.5} rel=
+           +{:.3}%", md / gm * 100.0);                                   
+      3854 +            let bytes: Vec<u8> = ge.iter().flat_map(|v| v.to_
+           +bits().to_le_bytes()).collect();                             
+      3855 +            std::fs::write("/tmp/arm_ge.f16", &bytes).expect(
+           +"dump ge");                                                  
+      3856 +        }                                                    
+      3857          // oproj: 真数据单算裁决（2026-09-21 定位收口）——norm
+            2 级 2.82% 通道
+      3858          // 结构误差产自 {o_proj mm + res + addrms} 跨度，err_
+            struct 已洗 addrms
+      3859          // （无行缩放分量）。本模式：golden m0_vis(712×2048) 
+            × L0 o_proj 真权重，
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      3911                  std::fs::write(format!("/tmp/oproj_ge{variant
+            }.f16"), &bytes).expect("dump ge");
+      3912              }
+      3913          }
+      3914 -        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           -ma*|bc4|wgt|oproj, got {other}"),                            
+      3914 +        other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+           +ma*|bc4|wgt|oproj|arm, got {other}"),                        
+      3915      }
+      3916      println!("OPTEST_{which}_OK");
+      3917      ge_builder::fini().expect("fini");
+
+● Bash(cat /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker…)
+  ⎿  [v3] h1_vis (712, 2048)
+     [v3] res0 (712, 2048)
+     [v3] prefix 712 replay cache layers: 18 k0 (1, 1, 712, 256)
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(tar -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  RC=0
+  ⎿  (timeout 10m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  thread 'main' panicked at crates/apxinf-ascend/src/tensor.rs:120:9:
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 8s (ctrl+o to expand)
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  thread 'main' panicked at crates/apxinf-ascend/src/tensor.rs:120:9:
+     assertion `left == right` failed: buffer/device size mismatch for fp16
+      shape [712, 2048]
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● zeros 只建了 2048 个元素（须全 [712,2048]）。修正：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      3820              let resh: Vec<f16> = rv.iter().map(|&v| f16::from
+            _f32(v)).collect();
+      3821              let (m, w) = (712i64, 2048i64);
+      3822              assert_eq!(resh.len(), (m * w) as usize, "res0 长
+            度 ≠ 712×2048");
+      3823 -            let zeros = vec![f16::from_f32(0.0); w as usize];
+      3823 +            let zeros = vec![f16::from_f32(0.0); (m * w) as u
+           +size];                                                       
+      3824              let gamma = vec![f16::from_f32(1.0); w as usize];
+      3825              let stream = be.stream();
+      3826              let xb = upload(ctx, &resh);
+
+● Bash(tar -C "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  0
+     thread 'main' panicked at crates/apxinf-model/examples/ge_model_probe.
+     rs:3845:44:
+  ⎿  (timeout 10m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  [ge_builder] geb_run rc=-3
+
+     thread 'main' panicked at crates/apxinf-model/examples/ge_model_probe.
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 18s (ctrl+o to expand)
+
+● 01:50，arm 的 GE run rc=-3 不追了（eager 侧已通，图侧待查）——oproj 
+  逐位干净这个结果本身已足够重构结论：跨度内单算全干净（o_proj mm 0.000%）+
+  addrms 结构洗清 ⇒ 2.82% 只能产自图内 manual attention 链的真实输出（≠ m0 
+  槽回读值 0.52%——"槽与消费值不一致"老问题的再现）。更新文档并收口：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md
+        )
+  ⎿  Added 2 lines, removed 2 lines
+      45  | down（槽 52/53） | **3.15%** | **down_proj 无罪**（K=16384 不
+          加新误差）；gate/up 槽（15/32%）系覆写垃圾 |
+      46  | h1 → kvk_l1 | 24.7%（dbg 图）/45.2%（净图） | max-度量跨量程
+          放大 + 逐层复合 |
+      47  
+      48 -**判读**：torch 同链 f16 vs f64 全程 0.03%——引擎该跨度差 100 倍
+         -，是**真执行误差而非合法累积序差**。gate/up/act/down 各级相对 n
+         -orm2 只增 ~0.3%。**err_struct.py 结构裁决**：误差无行缩放分量（
+         -纯行尺度 -0.68%..-0.05%，去掉后 2.82% 原样——**addrms 无罪**，no
+         -rm 误差必呈行缩放）；误差呈**通道结构**（top10 通道 12-30× 中位
+         -、m0 对照仅 3-5×）——mm 输出列特征污染，**o_proj mm（WCONST Cons
+         -t+NZ）定罪为头号嫌疑**。                                       
+      48 +**判读更新（单算裁决后）**：`GEB_OPTEST=oproj`（真 m0_vis × 真 
+         +L0 o_proj，cst/nd 两形态）**GE 图 mm vs aclnn eager 逐位一致 0.
+         +000%**——o_proj mm 单算无罪；addrms 已被 err_struct 洗清（无行缩
+         +放分量；`GEB_OPTEST=arm` 真res0 单算已实现但 GE 侧 run rc=-3 待
+         +查，eager 侧通）。⇒ **2.82% 只能产自图内 manual attention 链的 
+         +真实输出**：m0 槽回读 0.52% 美化了实际消费值（"槽与消费值不一致
+         +"再现——此前 m0_variants 时代的 41% 悖论同源）。误差呈通道结构（
+         +top10 通道 12-30× 中位）指向 attention 合并/headmerge 或其 bmm 
+         +累加。                                                         
+      49  
+      50 -下一步（第一动作）：**o_proj 单算真数据对拍**——真权重 + golden 
+         -m0_vis 输入，GE 图 mm vs aclnn eager mm vs f64（GEB_OPTEST 扩展
+         -或最小隔离图）；② 若定罪：WCONST 开关 / NZ vs ND / split-K / 通
+         -道误差与 outlier 输入×权重行的相关性。修到 kvk_l1 ≤5% → 全层 → 
+         -e2e 终态 → LIBERO。                                            
+      50 +下一步（第一动作）：**manual attention 链孤立对拍**——真 x0_vis 
+         +输入跑 [norm1→qkv→rope→GQA(TileD/bmm/softmax/headsplit)→merge] 
+         +最小图（或 DBG 中间槽位加密），对拍 golden m0_vis；② headsplit/
+         +headmerge 的重排与 bmm K=712 累加是通道结构误差的天然来源（列重
+         +排错位/累加序）；③ `arm` GE run rc=-3 顺手排查。修到 kvk_l1 ≤5%
+         + → 全层 → e2e 终态 → LIBERO。                                  
+      51  
+      52  ## 性能（t712，零回归且更快）
+      53  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         -n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         -行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         -mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         -**o_proj 单算真数据对拍**（真权重 + golden m0_vis 输入：GE 图 m
+         -m vs aclnn eager mm vs f64——GEB_OPTEST 扩展或最小隔离图，t712db
+         -g OM 现成；err_struct.py 已证 addrms 无罪、误差呈通道结构 → mm 
+         -列污染）；② 若定罪 → WCONST 开关 / NZ vs ND / split-K 对比。修 
+         -到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口径：e2e
+         - 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=
+         -/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/golden/f
+         -rame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/FULL + 
+         -GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp712.py（
+         -gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；golden/脚 
+         -本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal 时限 
+         -纪律见全局 CLAUDE.md。                                         
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（empty_camera 语义已修 + golde
+         +n v3 自洽，剩余 = 层内 {o_proj mm + res + addrms} 跨度 ~2.8% 执
+         +行误差：m0 0.52% 传播上界仅 0.03%、torch 同链 f16 0.03%——见 sum
+         +mary 2026-09-21_m3-empty-camera-mask-root-cause）**。第一动作：
+         +**manual attention 链孤立对拍**（真 x0_vis 输入跑 [norm1→qkv→ro
+         +pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         +逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         +输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         +向 headsplit/headmerge 重排或 bmm 累加）；② GEB_OPTEST=arm 的 G
+         +E run rc=-3 顺手查。修到 kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO 
+         +（9/10）。运行口径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB
+         +_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDE
+         +N=/data/apxinf/golden/frame0_v3.safetensors`；槽位判读 = t712db
+         +g + GEB_DBG_MID/FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<
+         +dir> + slot_cmp712.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH
+         + 追加勿覆盖；golden/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全
+         +路径文件名；goal 时限纪律见全局 CLAUDE.md。                    
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line, removed 1 line
+      134    - **✅ M3 第二步（2026-09-20，c8ca41b）——三段 OM 接入真实推
+           理链（`GEB_SEG=e2e`，见 summary/2026-09-20_m3-e2e-chain-wiring
+           ）**。进程内链式 host 中转：x0 = vision_out ‖ token 查表（embe
+           d_prefix 序；state 走离散化进 prompt 不进 prefix）、styles 真
+           值（sinusoidal→time_mlp→style→ascl=1+s0，host f32 每步 h2d 换
+           绑）、pk/pv = prefix 36 输出直连、10 步 flow 换绑（euler 图内
+           ）。chip6 bring-up 全通（GE_E2E_PROBE_OK，|x|max 89.9→34.6 单
+           调收敛，actions 有限）；GEB_E2E_GOLDEN safetensors 对拍钩子就
+           位
+      135    - **✅ M3 对拍偏差定位（2026-09-20 晚，c7db8c8——见 summary/2
+           026-09-20_m3-parity-drift-bisect）**。首帧 314% 拆解三层：① ro
+           pe f16-inv_freq 语义差（torch `.to(f16)` 连 rotary buffer 量化
+           ）已修 `rope_angle()` + t200 重烤，kvk_l0 12.6%→0.4%；② 语义/
+           权重/attention/MLP 全部教科书级洗清（0.03-0.14%，golden v2 + 
+           七分析脚本 + probe bisect 工具链）；③ 剩余 = **GE OM 图内数值
+           级**：同链 x0 输入 0.4% vs golden-h1 输入 18.7%（嫌疑：AddRmsN
+           orm f16 方差大动态范围 / WCONST 烤入 / mm cube 累加；另证中间
+           量输出槽被图内复用覆写）。性能零回归：prefix 138.81ms@968 / fl
+           ow 8.12ms/步 → **稳态 e2e ≈ 275.6ms（378 线 0.73×）**
+      136    - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+           _m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+           部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+            语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+           P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+           1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+            512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+           第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+           ` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+           PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自
+           洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+            step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+           ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+            同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+           性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+            = 378 线 0.66×**
+      137 -  - **M3 剩余**：{o_proj/addrms} 单算真数据对拍（GE vs eager v
+          -s f64）→ 定罪修复（WCONST/NZ/split-K）→ kvk_l1 ≤5% → 全层 → e2
+          -e 终态 → 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）；后置 
+          -：pk/pv 设备直连、懒加载、真 tokenizer                        
+      137 +  - **M3 剩余**：manual attention 链孤立对拍（oproj 单算 0.000
+          +% + addrms 结构无罪 ⇒ 2.8% 产自图内 attention 真实输出 ≠ m0 槽
+          +回读——通道结构误差指向 headsplit/headmerge/bmm）→ 定罪修复 → k
+          +vk_l1 ≤5% → 全层 → e2e 终态 → 真实 e2e 延迟 bench → LIBERO 对 
+          +标（9/10 基线）；后置：pk/pv 设备直连、懒加载、真 tokenizer   
+      138    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      139      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      140    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_m3-empty-camera-mask-root-cause.md
+        )
+  ⎿  Added 1 line, removed 1 line
+       4  
+       5  ## 一句话
+       6  
+       7 -**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBE
+         -RO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 p
+         -ad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把 
+         -这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位
+         -置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等
+         -公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（9
+         -68→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vi
+         -s 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到层内 {
+         -o_proj mm + res + addrms} 跨度 ~2.8% 执行误差（torch 同链 f16  
+         -仅 0.03%）。**                                                 
+       7 +**e2e 314% 的真根因是 empty_camera 视图语义：golden_gen 按 LIBE
+         +RO 9/10 语义只喂 2 真实视图，empty_camera 走 missing 路径（-1 p
+         +ad 图进 SigLIP 但 pad_mask=0）——make_att_2d_masks 的 pad_2d 把 
+         +这 256 个 key 对所有人遮蔽、position_ids=cumsum(pad)-1 使文本位
+         +置塌缩到 512..711；引擎（和 golden v2 的 replay）都把它们当一等
+         +公民（可见 key + 占位 512..767）。修复 = x0 组装剔除该视图行（9
+         +68→712），数学等价（theory_check 实证 h1 0.128%）。修复后 x0_vi
+         +s 0.1% / kvk_l0 0.3% / step0_x1 10.1%；剩余漂移精确定位到图内 m
+         +anual attention 链的真实输出（~2.8% 执行误差、通道结构；o_proj 
+         +mm 单算逐位干净、addrms 无罪——m0 槽回读 0.52% 美化了实际消费值 
+         +）。**                                                         
+       8  
+       9  ## 定位链（当晚五步裁决，全部实测）
+      10  
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm）/ GEB_TRACE 
+          -中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          -跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          -QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          -（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          -期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          -_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          -重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          -；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          -ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          -必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          -2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          -套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          -fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          -t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          -n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          -洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          -nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          -隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          - 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          - 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          -kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          -可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          -、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMPTY=2
+          -56 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera 走 
+          -missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除该 2
+          -56 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 缓存
+          - /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL tap 图
+          -））**）） |                                                  
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；GE 侧 run rc=-3 待查）——两模式都须
+          +配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（oproj））/ GEB_TRACE  
+          +中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          +跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          +QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          +（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          +期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          +_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          +重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          +；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          +ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          +必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          +2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          +套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          +fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          +t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          +n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          +洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          +nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          +隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          + 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          + 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          +kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          +可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          +、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMPTY=2
+          +56 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera 走 
+          +missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除该 2
+          +56 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 缓存
+          + /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL tap 图
+          + … [+8 chars]                                                 
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 2s (ctrl+o to expand)
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          -真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          - eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          -m 单算**（golden res0 输入；GE 侧 run rc=-3 待查）——两模式都须
+          -配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（oproj））/ GEB_TRACE  
+          -中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          -跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          -QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          -（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          -期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          -_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          -重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          -；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          -ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          -必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          -2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          -套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          -fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          -t/x0/x0_vis/m0/h1/m0_vis/h1_vis/kvk_l{0..17}/step0_x1，**golde
+          -n_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义、自 
+          -洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、与 i
+          -nfer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bisect  
+          -隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PREFIX
+          - 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=prefix
+          - 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直拍 
+          -kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠ 槽值
+          -可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位落盘 
+          -、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMPTY=2
+          -56 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera 走 
+          -missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除该 2
+          -56 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 缓存
+          - /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL tap 图
+          - … [+8 chars]                                                 
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；GE 侧 run rc=-3 待查）——两模式都须
+          +配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（oproj））/ GEB_TRACE  
+          +中间量打印（含 head）/ GEB_DBG=1 层 0 各级观察 / GEB_NO_AUX=1 
+          +跳过 LN 辅输出（数值坏，隔离实验用）/ **GEB_ATTN=manual + GEB_
+          +QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四件套 = 当前最优组合**
+          +（全模型 263ms = 378 线 0.70×；WCONST = mm 权重 Const 入图编译
+          +期折叠 NZ 转换，OM 变 per-checkpoint；rope 表已改 f16 量化 inv
+          +_freq——torch golden 同源）/ **GEB_CKPT=<dir> 真 checkpoint 权 
+          +重**（Pi05Weights host 解析 + bf16→f16 + Const 路径，~61s 加载
+          +；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GEB_ROUNDS+GEB_PER ben
+          +ch 规模参数化——假设检验用 5+3，十几秒出数**；⚠ parity ≥20% 段 
+          +必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB_SEG=e2e 三段链式 e
+          +2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/10 步换绑；须配四件
+          +套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om；GEB_E2E_GOLDEN=<sa
+          +fetensors> 对拍——**golden v3 中间量逐段 BISECT**（键 vision_ou
+          +t/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l{0..17}/step0_x1，**
+          +golden_gen_v3.py 产 frame0_v3.safetensors = 712 空视图剔除语义
+          +、自洽 0.03-0.12%**；v2 frame0 的 replay 键是 968 全开旧语义、
+          +与 infer 键混世界——已废弃，教训见 summary 2026-09-21）/ **bise
+          +ct 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH_VISION/GEB_DEPTH_PRE
+          +FIX 分段深度、GEB_ATTN_PREFIX 分段 attention、GEB_E2E_STOP=pre
+          +fix 截断、GEB_LAYER_OFFSET 权重层偏移（配 GEB_E2E_X0_KEY=h1 直
+          +拍 kvk_l{i} 公式）、GEB_DBG_MID/GEB_DBG_FULL 图内调试输出（⚠  
+          +槽值可被图内复用覆写，按值判读）、GEB_E2E_DUMP_MID=<dir> 槽位 
+          +落盘、GEB_OUT_PAD 用户 buffer 占位取证 / **GEB_PREFIX_DROP_EMP
+          +TY=256 空视图剔除（2026-09-21 根因修复：9/10 语义 empty_camera
+          + 走 missing 路径 pad=0 被遮蔽+位置塌缩，数学等价于 x0 直接剔除
+          +该 256 行 968→712；prefix/flow 两段都要设，golden 须配 v3；OM 
+          +缓存 /data/apxinf/om_cache/t712（净图）与 t712dbg（DBG_FULL  …
+          + [+13 chars]                                                  
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+● Bash(cd /d/compass/APXinf/apxinf && git add
+      crates/apxinf-model/examples/ge_model_probe.rs && git commit -m "$(cat
+      <<'EOF'
+      optest: real-data single-op adjudication m…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port da456d4] optest: real-data single-op adjudication modes (
+     … +3 lines (ctrl+o to expand)
+
+● Bash(cd /d/compass/APXinf && git add apxinf syx_docs && git commit -m "$(cat
+      <<'EOF'
+      docs: single-op adjudication clears o_proj mm (0.000%), drift pinned to
+      in-graph…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/err_struct.py', LF
+     will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/golden_gen_v3.py',
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 本轮 goal 收口（01:34，远早于 02:30 线，全量文档已更新提交）。
+
+  今晚战果：314% 漂移真根因终结
+
+  根因（五步裁决链钉死）：golden_gen 按 LIBERO 9/10 语义只喂 2
+  真实视图，empty_camera 走 missing 路径——pad_mask=0 遮蔽这 256 个 key + 
+  文本位置塌缩到 512..711；引擎（和 golden v2 的
+  replay）都把它们当一等公民。前晚“GE OM 图内数值”的诊断被推翻——golden v2
+  自己混了两个语义世界（infer-hook 键 vs 968 全开 replay
+  键），造出引擎漂移假象。
+
+  修复：GEB_PREFIX_DROP_EMPTY=256（x0 剔除空视图行 968→712，pad 列 softmax
+  贡献恰为 0 故数学等价，theory_check 实证 0.128%）+ golden v3 自洽重产 + t712
+  OM。
+
+  修复后：x0_vis 0.1% / kvk_l0 0.3% / step0_x1 10.1%（原终态
+  314%）；性能白赚——prefix 115.62ms@712、flow 7.64 → 稳态 e2e ≈ 248ms = 378 线 
+  0.66×。
+
+  剩余漂移（已精确定位+连环洗冤）：
+  - 槽位判读：m0 0.52% → norm2 2.82% → down 3.15%（MLP 主体无罪）
+  - 误差结构：无行缩放 → addrms 无罪；通道结构（top10 通道 12-30× 中位）
+  - oproj 单算（真 m0_vis × 真权重，cst/nd 两形态）：GE vs eager 逐位 
+    0.000%——o_proj mm 无罪
+  - ⇒ 结论：2.8% 产自图内 manual attention 链的真实输出（m0 槽回读 0.52%
+    美化了实际消费值——“槽与消费值不一致”再现），下一动作 = attention
+    链孤立对拍（handoff 已备）
+
+  提交：子模块 451cb4b+da456d4（drop 修复 + oproj/arm optest）已推
+  fork/ascend-port；外层 68d9486→1b86f1b 四笔。九个新取证脚本镜像在
+  syx_docs/dev_logs/。
+
+  另：全局 CLAUDE.md 的 goal 时间纪律本轮首次实战——23:30
+  锚点、两次单点查表、无轮询，按约收工。
+
+✔ Goal achieved (2h · 1 turn · 171.4k tokens) (ctrl+o to expand)
+
+✻ Brewed for 2h 5m 13s · done 1:34 AM
+
+※ recap: M3 对拍偏差定位：314% 根因（空视图语义）今晚已修复、验证并全部提交，剩余约 2.8% 误差定位到图内 attention 链真实输出。下一步：用真 x0_vis 孤立复刻 attention 链，对拍 golden m0_vis 定罪。
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   291.8k/1m tokens (29%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 289.3k tokens (28.9%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 707.8k (70.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
