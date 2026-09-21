@@ -2,7 +2,7 @@
 
 ## 状态一句话
 
-**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-replay-closed-loop）**：真 env（libero_object task0）rollout 40 调用录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP patches/捕获 noise/torch normalized_actions）→ **真实 token 长度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp16 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态 bench 310ms 自洽。集成四件已通三件（tokenizer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.82×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。两仓已推平：子模块 e9d9335、外层 a40e784。
+**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-replay-closed-loop）**：真 env（libero_object task0）rollout 40 调用录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP patches/捕获 noise/torch normalized_actions）→ **真实 token 长度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp16 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态 bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%）；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokenizer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.82×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。两仓已推平：子模块 e9d9335、外层 a40e784。
 
 ## ① Compact 参数（贴到 /compact 后）
 
