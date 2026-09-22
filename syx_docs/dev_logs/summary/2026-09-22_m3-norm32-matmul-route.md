@@ -52,6 +52,16 @@ NORM32 v2（fp32 方差语义对齐，单点 0.13%）跑 task0 闭环仍 520 打
 - B. **近 bit-exact 冲刺**：AscendC 自研 fused fp32 RMS kernel（f16 in → f32 全内积 → f16 out，单 kernel 唯一舍入点，把 norm 段级压到 ~0.1%）+ 其余源的逐项压缩——工作量大且 mm 累加序等源未必可压到敏感度以下
 - C. **混合形态**：关键精度敏感段（norm/flow）留 torch_npu，引擎接管大 matmul（零调度税收益保留）——偏离"原生引擎"目标但保行为
 
+## 追记 2：佐证实验半程 + rc=-8 最终真身（2026-09-23 凌晨）
+
+用户选择"先做佐证实验再定"后开跑 t200n32 段级 golden 对拍，**半程中断**：
+
+1. **vision 级已出**：BISECT vision_out rel=0.3% / x0_vis rel=0.1%——与 t712fix 基线持平（vision 段无 Gemma norm，预期不变，链路健康）。
+2. **prefix 级没跑成**：golden run 在 prefix OM 加载处 rc=-1——排查发现 **t200n32/prefix_real.om 根本不存在**（flow/vision 在）：prefix bake 日志显示 **`model built: 3759036729 bytes` 后 `aclmdlLoadFromMem failed` → rc=-8**。
+3. **rc=-8 最终真身 = aclmdlLoadFromMem 失败**（编译成功、装载失败）：t200 bake 时段 chip6 正被 supervisor_n32 的 serve 桶占用（tl141 spawn on chip6 15:26，bake 15:47 起），3.76GB 装不下。bake 脚本不因内部失败非零退出（`&&` 链不短路）——flow 照烤、prefix 缺失，golden 才拿到 rc=-1（文件不存在）。**上轮"depth15/17/18 rc=-8 编译上限"与本轮 t200 是同一个码、两个触发场景（旧代码 panic 退出 vs 装载失败），编译上限从来不存在**（skill #37 已按此修订）。
+4. **佐证实验入口（下一轮第一动作，~15 分钟）**：干净芯片（4/5/7 现均空闲）重烤 `bash /data/apxinf/replay/bake_one_n32.sh prefix 200 4` → 确认 `ls /data/apxinf/om_cache/tl200n32/prefix_real.om` 存在 → 重跑 golden 对拍（命令同 /tmp/golden_n32.log 那次：GEB_SEG=e2e GEB_TOKENS=200 GEB_OM_DIR=tl200n32 GEB_NORM32=1 GEB_E2E_GOLDEN=frame0_v3.safetensors + 四件套 + CKPT + fusion 开关，chip6 现已清干净）→ 对照基线读 prefix 级 rel（守恒假说预测 ~0.8% 不降；若显著降则 B 路线有戏）。
+5. 顺带：serve 系统已全停（supervisor_n32 + 桶 kill，芯片回基线 1.2-1.7GB）；n32 桶留存 tl{138..145,147}n32 + tl200n32（prefix 缺）。
+
 ## 陷阱回填
 
 ge-offline-om skill：#35 修法修正（1-D Tile 桥有腐蚀，指向 #39）、#37 修订（rc=-8 定案）、#38 新增（f32 归约假支持 + mm cube 累加替代）、#39 新增（TileD 连续平铺腐蚀 + dim0/TransposeD 桥）。
