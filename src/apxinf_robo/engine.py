@@ -117,14 +117,24 @@ def load_policy(model_dir, **kwargs):
         Ascend NPU via LeRobot PI0.5 on torch_npu (phase-1 of the NPU port;
         LeRobot-format checkpoints). Routed before ``apxinf`` is touched so a
         CUDA-less install can still serve NPU.
+    ``"npu-ge"``
+        Ascend NPU via the native GE static-OM engine (route C, phase-3):
+        bucketed ``GEB_E2E_SERVE`` processes in the rust container; this
+        process keeps only the torch preprocessing host.
     """
     engine = kwargs.pop("engine", "apxinf")
     if engine == "npu-torch":
         from .npu_torch import NpuTorchPi05Policy
 
         return NpuTorchPi05Policy(model_dir, **kwargs)
+    if engine == "npu-ge":
+        from .npu_ge import GeServePi05Policy
+
+        return GeServePi05Policy(model_dir, **kwargs)
     if engine != "apxinf":
-        raise ValueError(f"unknown engine {engine!r}; known: 'apxinf', 'npu-torch'")
+        raise ValueError(
+            f"unknown engine {engine!r}; known: 'apxinf', 'npu-torch', 'npu-ge'"
+        )
     apxinf = require_apxinf()
     return apxinf.AutoPolicy.from_pretrained(model_dir, **kwargs)
 

@@ -389,7 +389,7 @@ class InProcessBackend:
             "discrete_state": args.discrete_state,
             "seed": args.model_seed if args.model_seed is not None else args.seed,
         }
-        if args.engine == "npu-torch":
+        if args.engine in ("npu-torch", "npu-ge"):
             # Rust-engine-only knobs are dropped; the torch_npu policy owns its
             # flow-step count, norm handling, and tokenizer discovery.
             options = {
@@ -524,12 +524,13 @@ def run_episode(
                 observation["agentview_image"],
                 observation["robot0_eye_in_hand_image"],
             )
-            # The npu-torch engine serves LeRobot-format checkpoints trained on
-            # HuggingFaceVLA/libero, whose state is pos+axis-angle+BOTH fingers
-            # (8); the Rust engine's openpi checkpoints use one finger (7).
+            # The npu-torch/npu-ge engines serve LeRobot-format checkpoints
+            # trained on HuggingFaceVLA/libero, whose state is
+            # pos+axis-angle+BOTH fingers (8); the Rust engine's openpi
+            # checkpoints use one finger (7).
             state = (
                 libero_state_lerobot(observation)
-                if getattr(backend, "engine", None) == "npu-torch"
+                if getattr(backend, "engine", None) in ("npu-torch", "npu-ge")
                 else libero_state(observation)
             )
             preprocess_seconds += time.perf_counter() - preprocess_started
@@ -699,11 +700,12 @@ def build_parser() -> argparse.ArgumentParser:
     in_process.add_argument("--model-dir", type=pathlib.Path)
     in_process.add_argument(
         "--engine",
-        choices=("apxinf", "npu-torch"),
+        choices=("apxinf", "npu-torch", "npu-ge"),
         default="apxinf",
         help="policy implementation behind the in-process backend: 'apxinf' "
-        "(default, Rust/CUDA) or 'npu-torch' (LeRobot PI0.5 on Ascend NPU via "
-        "torch_npu; pairs with --precision fp16 and --tokenizer)",
+        "(default, Rust/CUDA), 'npu-torch' (LeRobot PI0.5 on Ascend NPU via "
+        "torch_npu; pairs with --precision fp16 and --tokenizer), or 'npu-ge' "
+        "(native GE static-OM engine, route C; bucketed serve processes)"
     )
     in_process.add_argument("--model-type", default=None, help="override config.json model type")
     in_process.add_argument("--checkpoint", type=pathlib.Path)
