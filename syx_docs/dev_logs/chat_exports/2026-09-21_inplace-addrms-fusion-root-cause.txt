@@ -1,0 +1,1634 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 全部收口完成。本轮总结：
+
+  战果：M3 剩余漂移定罪（比预期深得多）
+
+  上轮推断推翻：attention 链无罪——最小图（真 x0_vis 走完整链）m0sq
+  0.229%、o_proj 消费 0.089% 全干净，上轮"norm2 2.82%"槽值是覆写假象。
+
+  16 步洗冤链（全部单算/组合实验）：gate 宽 N mm 0.057% / down K=16384 mm 0.017%
+  / MLP 尾整链组合 0.032% / 权重折叠 0.032% / GQA 簇 / rope / M 对齐 /
+  auto-bind / dual-role——全灭。
+
+  唯一定罪签名：
+  - [在图中间量 → AddRmsNorm] = 11-13% 确定性数值污染
+  - 决定性实验 wmm4：同一份 h1 值作 Data 上传输入 → 0.073% 干净
+  - 去 addrms（L1=mm）→ 0.036% 干净
+  - 五类屏障/端口变体（mul-ones/x1x2 对调/恒等 Reshape/Add 对调/恒等
+    mm）逐位相同 + 图形状强敏感（净图 45.2 / dbg 24.7 / 垫M 24.66 / MIN 11.0）⇒
+    收敛到 GE 静态 OM 内存计划重叠活 buffer
+
+  生产影响面吻合：prefix 每层 2 处 [add→addrms]×18 + flow 1.6% 残差 → kvk_l0
+  净（x0 是 Data 免疫）/ l1 45.2% / l17 84% / actions 323%。最小复现仅 ~13
+  算子。
+
+  顺带结案：arm 的 rc=-3 = 绑 addrms y 作图输出触发 rstd/x_out 自动补绑 →
+  输出数不匹配（新坑入档）。
+
+  下一轮攻坚（handoff 已备）
+
+  第一动作 GEB_OPT_ge.bufferOptimize=off（选项已在 libge_compiler.so 确认）→
+  ge.* 选项扫描 → ReduceSum/Rsqrt 分解 norm 兜底 → 修好后代入生产全 [add→addrms]
+  处 → LIBERO。
+
+  提交
+
+  - 子模块 fb60a36 已推 fork/ascend-port（attn/wmm1-5 六个 optest 模式 +
+    全部变体旋钮，+640 行）
+  - 外层 ea9cf89（新 summary + handoff/setup/roadmap 更新 + 13 个裁决脚本镜像 +
+    你导出的 chat_export）
+
+  goal 的 M3 推进已到自然收口点，攻坚留给下一轮。
+
+✔ Goal achieved (1h · 1 turn · 189.9k tokens) (ctrl+o to expand)
+
+✻ Baked for 9m 33s · done 11:25 AM
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_ge-addrms 
+-ingraph-corruption                                                             
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-21_ge-addrms-ingraph-corruption.txt
+
+❯ /compact 聚焦保留：**定罪签名**（[在图中间量→AddRmsNorm] 11-13% 脏 vs 同值    
+Data 输入 0.073% 净 vs 去 addrms 0.036% 净；行剖面平坦、通道结构扁平            
+4×、逐位确定性）；**16 步洗冤链**（attention 0.229/oproj 消费 0.089/MLP 尾组合  
+0.032/折叠 0.032/gate 宽N 0.057/down 大K 0.017/wmm5 小图 addrms                 
+0.058——组合矩阵见 summary 表格）；**内存重叠收敛证据**（五变体逐位相同          
+max_diff=1.08594 + 大 buffer 尺寸变化即变值 + `ge.bufferOptimize` 选项已在      
+libge_compiler.so 确认待试）；**复现/裁决旋钮**（GEB_OPTEST=attn 全家 +         
+wmm~wmm5 + GEB_ATTN_* 变体 + dump 落                                            
+/data/apxinf/{attnmin,wmm}/）；**坑**（图输出按模型 introspection 分配：绑      
+addrms y 触发 rstd/x_out 自动补绑 → n_out 不匹配 rc=-3——arm 模式 rc=-3          
+同根因已结案）。丢弃：各中间 dump 与一次性 sed 变体脚本。                       
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (166 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (19 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-09-21_ge-addrms-ingraph-corruption.md 
+     (64 lines)
+  ⎿  Read syx_docs\dev_logs\addrms_hypo2.py (39 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3（剩余漂移已定罪 GE 图内 AddRmsNorm     
+读在图中间量被污染，见 summary                                                  
+2026-09-21_ge-addrms-ingraph-corruption）**，注意                               
+13:50若还未完成，则全量更新文档并停止                                           
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU C 路线 M3（剩余漂移已定罪 GE 图内 AddRmsNorm
+     读在图中间量被污染，见 summary 
+     2026-09-21_ge-addrms-ingraph-corruption），注意
+     13:50若还未完成，则全量更新文档并停止
+
+  Thought for 38s (ctrl+o to expand)
+
+● 收到 goal：继续 M3 addrms 污染攻坚（13:50
+  时限，未完则更新文档停止）。第一动作按 handoff ② 执行——ge.bufferOptimize=off
+  跑 MIN 复现图。先记时间锚点：
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-21 11:30:22
+
+  Thought for 4s (ctrl+o to expand)
+
+● 11:30 开工，13:50 截止，预算 2h20m。查芯 + 跑第一实验：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'npu-smi info | grep -E "310P|Process" | head -20')
+  ⎿  | 1       310P3                 | OK              | NA           52
+                  11174 / 11174         |
+     | 1       310P3                 | OK              | NA           52
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 芯全空。跑实验 ①：ge.bufferOptimize=off × MIN 复现图（基线 11.041%）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  [geb] node kwl1(Const) out0 dims[256,2048]
+     [geb] node l1kr_bk(Reshape) out0 dims[712,256] in0<-l1kr_ad:0 dims[142
+     4,128] in1<-shp_kb2:0 dims[2]
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 27s (ctrl+o to expand)
+
+● rc=-7 编译拒。先判别是“选项值无效”还是“关掉后真编不过”——用默认值 l2_optimize
+  做对照（若默认值也 -7 则是传参路径问题）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  Error: Exit code 127
+     /usr/bin/bash: line 1: k_err: command not found
+     /usr/bin/bash: line 1: rel: command not found
+     /usr/bin/bash: line 1: ERR: command not found
+     /usr/bin/bash: line 1: failed | tail -10": command not found
+     bash: -c: line 1: unexpected EOF while looking for matching `"'
+     bash: -c: line 2: syntax error: unexpected end of file
+
+  Thought for 3s (ctrl+o to expand)
+
+● 引号打架，改回 tail：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  build: AclError { code: -7, op: "geb_model_build" }
+     note: run with `RUST_BACKTRACE=1` environment variable to display a ba
+     cktrace
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+  Thought for 8s (ctrl+o to expand)
+
+● 默认值也 -7 ⇒ 不是值问题，是该选项不走 build 级。试 init 级（GEB_INIT_OPT_）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿       |
+
+     warning: `apxinf-model` (example "ge_model_probe") generated 49 warnin
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 16s (ctrl+o to expand)
+
+● build 级选项 map 用的是 atc 风格名（input_shape 无前缀——C1 ③ 的发现），ge.
+  前缀名在那层会被拒。改用 atc 名 buffer_optimize：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  build: AclError { code: -7, op: "geb_model_build" }
+     note: run with `RUST_BACKTRACE=1` environment variable to display a ba
+     cktrace
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+❯ 这个bug属于什么技术栈的问题，要不要去查查demo实现？                           
+
+  Thought for 1m 30s (ctrl+o to expand)
+
+● 好问题，正中要害。这 bug 属于 华为 CANN 的 GE（Graph 
+  Engine）离线图编译器栈——具体在 aclgrphBuildModel（OM
+  构建期）的内存规划器（buffer overlap 决策），不是我们 Rust
+  侧的问题（数值指纹已排除算子语义）。而且查 demo 确实是对的动作：本地就有 GE
+  部分开源源码仓 D:\compass\ge（examples/offline_compile_run
+  是官方离线构图范例）——刚连续三个 rc=-7/-1 说明我在瞎猜选项传法，正应该去看官方
+  demo 怎么传 options。现在就去：
+
+  Thought for 17s, searched for 1 pattern, read 1 file, listed 3 directories (ctrl+o to expand)
+
+● Demo 确认了分层：init 用 ge.* 名、build 用 atc 风格名（input_format
+  无前缀）——我的传法没错。那 buffer_optimize=off 的 rc=-7
+  可能是真把这个图的编译弄崩了（TBE 子进程报错），不是选项被拒。跑对照
+  buffer_optimize=l2_optimize（默认值）判别，同时挖这个仓里的内存规划源码（这才
+  是开源部分的真正金矿——能直接读 overlap 逻辑）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 默认值也炸 ⇒ buffer_optimize 这个 key 在 aclgrphBuildModel
+  选项表里根本不存在（未知 key → rc=-7）。好消息：GE
+  源码仓就在本地，直接查选项注册表和内存规划代码：
+
+  Thought for 3s, searched for 2 patterns (ctrl+o to expand)
+
+● 命中要害：ge_ir_build.cc:275——BUFFER_OPTIMIZE 是从 global_options（init 
+  级）读的，不是 build 级！查宏的真实字符串值：
+
+● Bash(grep -n "BUFFER_OPTIMIZE" "D:/compass/ge/inc/graph_metadef/external/ge_co
+      mmon/ge_common_api_types.h"; echo ===; grep -rn
+      "kBufferOptimizeSupportOption\s*=" "D:/…)
+  ⎿  221:const char_t *const BUFFER_OPTIMIZE = "ge.bufferOptimize";
+     405:const std::string BUFFER_OPTIMIZE = "ge.bufferOptimize";
+     639:static const char_t *const BUFFER_OPTIMIZE = ge::BUFFER_OPTIMIZE.c
+     … +46 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 双命中：
+  1. 正确值是 off_optimize 不是 off（合法集 l1/l2/off/l1_and_l2，当前支持 l2 +
+     off_optimize）——我 init 那次失败是值校验拒，传参层对了
+  2. 正上方就是 ge.exec.disableReuseMemory（EXEC_DISABLE_REUSED_MEMORY）——buffer
+     复用开关，正中内存重叠嫌疑！查它的字符串值和合法值：
+
+  Thought for 3s, searched for 1 pattern (ctrl+o to expand)
+
+● ge.exec.disableReuseMemory 取值 "0"/"1"，init
+  级。两个都是正中嫌疑的开关。跑实验
+  ②：disableReuseMemory=1（最直接的复用重叠断头闸）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  [geb]   in[11] size=4096 dims=2048
+     [geb]   in[12] size=4096 dims=1,2048
+     [geb]   in[13] size=4096 dims=2048
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 逐位不变 11.041%——disableReuseMemory=1 无效。但先验证旋钮是否真生效（OM
+  大小应变化——复用关掉内存占用应暴涨），顺带跑 off_optimize。带 GEB_SAVE 对照：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  Error: Exit code 2
+     [geb]   out[0] size=364544 dims=712,256
+     attn: out[0] size=364544 dims=[712, 256]
+     attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     OPTEST_attn_OK
+     ls: cannot access '/data/apxinf/wmm/boff.om': No such file or directory
+
+  Thought for 1m 3s (ctrl+o to expand)
+
+● 两个正中嫌疑的旋钮都逐位不变——要么旋钮没到达规划器，要么病根不在它们管的复用层
+  。但刚才源码里注意到决定性线索：在图 h1 tap 干净（0.032%）而 addrms 
+  读同一边却脏——绑成图输出会强制 ND 物化（GE 插
+  TransData），不绑则保持内部格式（NZ
+  等）。格式错配假说成立的话全指纹吻合：五屏障逐位同（屏障算子格式透传）、Data
+  输入净（强制 ND）、形状敏感（tiling/格式选择随 shape 变）、通道结构扁平 4×（NZ
+  16×16 块气味）。查 GE 的图 dump 机制直接看编译后的边上格式：
+
+  Thought for 2s, searched for 2 patterns (ctrl+o to expand)
+
+● DUMP_GE_GRAPH 环境变量存在。看它把图 dump 到哪、怎么配路径：
+
+● Bash(sed -n 905,985p "D:/compass/ge/graph_metadef/graph/utils/graph_utils.cc")
+  ⎿    return false;
+     }
+     … +77 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 看 dump 文件落盘路径怎么定：
+
+  Thought for 17s, searched for 2 patterns (ctrl+o to expand)
+● 找到完整机制：DUMP_GE_GRAPH=<level> + DUMP_GRAPH_PATH=<dir>。跑取证：MIN
+  脏图全 pass 图 dump，看 addrms 边上的格式：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "mkdir -p
+      /data/apxinf/gedump/…)
+  ⎿  attn: out[0] size=364544 dims=[712, 256]
+     attn[out0]: vs_golden_kvk_l1 max_diff=1.08594 rel=11.041%
+     OPTEST_attn_OK
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls /data/apxinf/gedump/min/pid_429702_deviceid_0 |
+      head -50; echo…)
+  ⎿  ge_onnx_00000000_graph_0_PreRunBegin.pbtxt
+     ge_onnx_00000001_graph_0_RunCustomPassBeforeInfershape.pbtxt
+     ge_onnx_00000002_graph_0_PreRunAfterNormalizeGraph.pbtxt
+     … +25 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 13 个 pass 的图全 dump 下来了。看最终 Build 图里 AddRmsNorm 节点的输入格式：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -n "AddRmsNorm"
+      /data/apxinf/gedump/min/pid_429702_deviceid_…)
+  ⎿  4191:    type: "InplaceAddRmsNorm"
+     4248:          s: "AddRmsNorm"
+     4469:        s: "{\"InplaceAddRmsNormFusionPass\":[[\"name:n2\",\"type
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 22s (ctrl+o to expand)
+
+● 爆点：最终图里 AddRmsNorm 被 InplaceAddRmsNormFusionPass 融合成 
+  InplaceAddRmsNorm——原地写算子！ 原地 kernel 把 y 写回输入
+  buffer，这正是“内存计划重叠”的机制候选。决定性对照：dump 干净的 wmm4 图（Data
+  输入 → addrms，0.073%），看它是否也被融合：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "mkdir -p
+      /data/apxinf/gedump/…)
+  ⎿  [geb]   in[3] size=512 dims=1,256
+     [geb]   out[0] size=364544 dims=712,256
+     OPTEST_wmm4_OK
+  ⎿  (timeout 7m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'D=$(ls -d /data/apxinf/gedump/wmm4/pid_* | head -1);
+      echo DIR=$D;…)
+  ⎿  DIR=/data/apxinf/gedump/wmm4/pid_430074_deviceid_0
+     /data/apxinf/gedump/wmm4/pid_430074_deviceid_0/ge_proto_00000011_graph
+     _0_PreRunAfterOptimizeGraphBeforeBuild.txt:826:    type: "InplaceAddRm
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 干净图同样被融合成 InplaceAddRmsNorm ⇒
+  融合单独不定罪。但机制链反而更锋利了：原地算子的输出别名到输入 buffer——wmm4
+  输入是 Data（用户 buffer 全程活，规划器不敢复用）→ 净；MIN
+  图输入是中间量（规划器判死后复用）→ 脏。disableReuseMemory
+  无效也自洽（它管跨算子复用，不管 inplace 别名）。决定性实验：关掉这个融合 
+  pass，让 addrms 回到非原地版本。查 fusion switch file 机制：
+
+  Searched for 3 patterns, listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n 760,860p "D:/compass/ge/compiler/engines/nn_engine/fusion/fusion_c
+      onfig_manager/fusion_config_parser.cc")
+  ⎿      string type_elem = elem.key();
+         string type_elem_string = StringUtils::Trim(type_elem);
+         if (type_elem_string == kExceptionalPass) {
+     … +45 lines (ctrl+o to expand)
+
+● Bash(grep -rn -B2 -A18 "CheckFusionConfigJsonLastLayerFormat"
+      "D:/compass/ge/compiler/engines/nn_engine/fusion/fusion_config_manager/fus
+      ion_config_parser.cc" | sed -…)
+  ⎿  612-      string key_inner_string = StringUtils::Trim(key_inner);
+     613-      string value_inner_string = StringUtils::Trim(value_inner);
+     614:      // This is safety, because CheckFusionConfigJsonLastLayerFor
+     … +37 lines (ctrl+o to expand)
+
+  Thought for 6s, searched for 1 pattern (ctrl+o to expand)
+
+● JSON 格式确认（第 4 层直接是字符串 "on"/"off"）。查 fusionSwitchFile 是 init
+  还是 build 级：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n 1870,1895p "D:/compass/ge/api/atc/main_impl.cc")
+  ⎿    options.insert(std::pair<std::string, std::string>(std::string(OP_SE
+     LECT_IMPL_MODE), FLAGS_op_select_implmode));
+       options.insert(
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 8s, searched for 4 patterns (ctrl+o to expand)
+
+● ge.fusionSwitchFile 是 init 级（atc 把全部选项灌进 BuildInitialize）。写
+  fusion 开关文件，跑决定性实验——关 InplaceAddRmsNormFusionPass：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "cat >
+      /data/apxinf/fusion_off…)
+  ⎿  {
+       "Switch": {
+         "GraphFusion": {
+     … +5 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  [geb]   out[0] size=364544 dims=712,256
+     attn: out[0] size=364544 dims=[712, 256]
+     attn[out0]: vs_golden_kvk_l1 max_diff=0.01562 rel=0.159%
+     OPTEST_attn_OK
+  ⎿  (timeout 7m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 破案！11.041% → 0.159%——关掉 InplaceAddRmsNormFusionPass 后 MIN 图转净（fp16
+  噪声底水平）。根因钉死：该融合 pass 产出的原地 kernel 
+  与静态内存计划的别名交互，在读“在图中间量”时污染数值（Data 输入时 GE 保护用户
+  buffer 故净——机制为推断）。
+
+  马上验证全图（非 MIN）和生产 e2e：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  attn[out3]: vs_golden_res0 max_diff=1023.50000 rel=183.095%
+     attn[out3]: vs_golden_h1_vis max_diff=0.50000 rel=0.032%
+     attn[out4]: vs_golden_kvk_l1 max_diff=0.01562 rel=0.159%
+     OPTEST_attn_OK
+  ⎿  (timeout 7m)
+
+  Thought for 18s (ctrl+o to expand)
+
+● 全图 45.224% → 0.159%。根因坐实。现在生产 e2e 验证——注意 t712 目录的旧 OM
+  是带融合烤的，必须换新目录强制重编：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "mkdir -p
+      /data/apxinf/om_cach…)  ⎿  Running in the background (↓ to manage)
+
+  Thought for 7s (ctrl+o to expand)
+
+● e2e 后台跑着（bxqsicyq3）。等待期间查 InplaceAddRmsNorm 融合 pass
+  的源码，把“推断”变“已证”：
+
+  Searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n 1,15p "D:/compass/ge/docs/zh/user_guides/atc_tools/references/fusi
+      on_rules_list.md"; echo ===; grep -n -B5 "InplaceAddRmsNormFusionPass"
+      "D:/compass/ge/d…)
+  ⎿  # 融合规则列表
+
+     如下融合规则关闭后可能会有功能使用上的风险；更多融合规则请参见《图融合
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● pass 源码不在开源部分（在闭源 fe 二进制里），但官方文档明确它是可关闭的融合规
+  则（关掉仅“功能使用风险”，正是为这种 case 设计的开关）。查 e2e 进度：
+
+  Thought for 17s, read 1 file (ctrl+o to expand)
+
+● 输出被管道尾的 tail 缓冲着，正常（OM
+  重编要几分钟）。等待期间把修复件镜像进仓（新文件）：
+
+● Write(syx_docs\dev_logs\fusion_off_inplace.json)
+  ⎿  Wrote 8 lines to syx_docs\dev_logs\fusion_off_inplace.json
+      1 {
+      2   "Switch": {
+      3     "GraphFusion": {
+      4       "InplaceAddRmsNormFusionPass": "off"
+      5     },
+      6     "UBFusion": {}
+      7   }
+      8 }
+
+  Thought for 28s (ctrl+o to expand)
+
+● 等 e2e 期间查 910b stub 的算子注册表里 InplaceAddRmsNorm 的定义，看它的
+  inplace 语义（输出别名到哪个输入）：
+
+● Bash(python -c "
+      import json…)
+  ⎿  {
+      "attr": {
+       "list": "epsilon"
+     … +86 lines (ctrl+o to expand)
+
+● Background command "Production e2e with fusion disabled, fresh OM dir"
+completed (exit code 0)
+
+  Thought for 50s (ctrl+o to expand)
+
+● 注册表实锤 inplace 语义：output0 直接叫 x1、output2 叫 x2——kernel
+  把结果写回两个输入 buffer
+  本体（x1←归一化输出、x2←和）。这就是别名写回的解剖学证据。看 e2e 跑完没：
+
+  Thought for 16s, read 1 file (ctrl+o to expand)
+
+● e2e 模式要求先烤三段 OM 到目录（t712fix 空 → load 挂）。后台串行烤三段（带
+  GEB_BENCH 顺手拿融合关闭后的性能数）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 烤图中。等待期间定位 ge-offline-om skill 的陷阱表，准备回填：
+
+  Thought for 9s, searched for 1 pattern, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● 陷阱表 #30 收尾。查烤图进度：
+
+  Thought for 3s, read 1 file (ctrl+o to expand)
+
+● 还在烤 vision。先把 skill 回填写了（不依赖 e2e 数字）：
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 1 line
+      105  | 28 | 静态 OM 执行墙钟远大于 kernel 总时（fill ~15%）；执行流
+           上每层多次 MemcopyAsync（每次 ~380µs、前置 4.5-12ms host 停顿
+           ），下个 kernel 固定为切片的消费者（TransposeD/PFA/ConcatD）；
+           换算子/换 attention/Const shape 都不动 | **SliceD 列切视图（st
+           ride≠连续）的下游 kernel 要连续物理布局 → GE 运行时每次执行插 
+           D2D 物化拷贝，拷贝走 host 慢路径**（aclmdlExecuteAsync 内走走
+           停顿提交）。msprof task_time 邻接分析可定位（MemcopyAsync 的 n
+           ext kernel 恒定即指纹）。⚠ 动态路径（unknown 拆分）反而不付此
+           税——切片被物化成 kernel | 图组织上消灭列切视图：① qkv 融合+切
+           分 → 3 个独立 mm + 独立权重输入；② rope 的 lo/hi 半宽切+Concat
+           D → flat 视图行交换（Reshape[p,wd]→[p·h·2,d/2] → GatherV2D Con
+           st 索引 swap → mul/mul/add → Reshape back）。实测 vision 723→6
+           8 / prefix 750→188 / flow 70.9→17.5 ms |
+      106  | 29 | 改动输入注册集（如 shape 张量 Data→Const 后输入槽消失）
+           后 eager 参考硬编码索引 panic（buffer size 断言，如 [832,256] 
+           读到 [2560,1024]），且可能伪装成 TBE task_distribute 编译崩 | 
+           输入序号整体漂移，索引未同步；段内 const_i32 不占输入槽 | eage
+           r 的段级/层内索引与注册序耦合，改注册集必须同步索引（用段头注
+           释记录当前注册序）；先看 panic 的 shape 与实际 buffer 对应哪个
+           输入定位错位量 |
+      107  | 30 | op_statistic 里 **TransData 占大头**（实测 flow 54%，27
+            次/层）；op_summary 签名 `[n,k] → [k/16,n/16,16,16] [ND→FRACT
+           AL_NZ]`；小 m 段（如 decode/flow）每层 ~0.5ms 白耗 | **MatMulV
+           2 的 b 权重按 ND Data 输入时，GE 每次执行都插设备侧 ND→NZ 转换
+            kernel**（无跨执行缓存；8MB ≈ 130µs @~63GB/s）。torch_npu 的 
+           TransData 大头同源（TorchAir 靠权重入图逃税） | **权重 Const 
+           入图**（`geb_add_const_raw` fp16 → GE 编译期折叠转换、OM 烤入
+           权重，单算实证 0.3945→0.2945 ms/mm、OM 8.4MB）。代价：OM 变 pe
+           r-checkpoint。⚠ NZ desc 直入（Data 声明 FRACTAL_NZ + host_nz_r
+           eorder 字节）在 310P 编译崩（TBE）——未走通，记开放项。⚠ 权重 C
+           onst 化会改变 mm kernel 变体的累加序 → 对拍 worst 微移同档（re
+           l% 不变），非 bug |
+      108 +| 31 | 图内 AddRmsNorm 读**在图中间量**时数值确定性错 11-45%（
+          +行剖面平坦/通道结构扁平、**同值作 Data 输入 0.073% 干净**、五 
+          +类屏障与端口对调变体**逐位不变**、改图形状/垫 M 即变值）；`ge.
+          +exec.disableReuseMemory=1` 与 `ge.bufferOptimize=off_optimize`
+          + 均无效 | **`InplaceAddRmsNormFusionPass` 把 AddRmsNorm 融合成
+          +原地版本**（算子注册表 output0 名就叫 `x1`、output2 叫 `x2`—— 
+          +结果写回两个输入 buffer 本体）；原地别名与静态 OM 内存计划的交
+          +互在读中间量时污染数值，Data 输入因用户 buffer 全程受保护而免 
+          +疫（机制细粒度未钉死，推测与别名 buffer 的计划复用有关）。disa
+          +bleReuseMemory 管不到它也自洽——Const 别名/复用不在其管辖 | **`
+          +ge.fusionSwitchFile`（init 级）关该 pass**：JSON `{"Switch":{"
+          +GraphFusion":{"InplaceAddRmsNormFusionPass":"off"},"UBFusion":
+          +{}}}`（第 4 层直接是字符串 "on"/"off"）——实测 MIN 复现图 11.04
+          +1%→0.159%、全图 45.2%→0.159%。取证链见工具箱 #6/#7 |          
+      109  
+      110  ## 环境与自检
+      111  
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 2 lines
+      129  3. **模型 IO dump**：`aclmdlGetNumInputs/GetInputDims/GetInput
+           SizeByIndex`（加载后、执行前）——验证编译产物带上了正确 shape/d
+           type/size。
+      130  4. **OM 落盘 strings**：把 ModelBufferData 写文件后 `strings x
+           xx.om | grep -E "matmul|cast|kernel"`。真模型含 `te_<算子>_<ha
+           sh>__kernel0` 与 `my_kernel_core.cce`；出现 `te_cast` = dtype 
+           配错信号。
+      131  5. **strace 找环境探测失败**：`strace -f -e trace=execve,wait4
+            ./程序`——第三方库起子进程探测环境（python3-config 等）失败的
+           特征是子进程退出码 127 且主库随后报 init 失败。比读反汇编字符
+           串快。
+      132 +6. **编译期逐 pass 图 dump**：env `DUMP_GE_GRAPH=3 DUMP_GRAPH_
+          +PATH=<dir>`——落盘每个优化 pass 前后的图（ge_proto .txt + onnx 
+          +.pbtxt，目录下按 `pid_*_deviceid_*`）。查融合/插算子/格式决策 
+          +的 ground truth（陷阱 #31 靠它发现 InplaceAddRmsNormFusionPass
+          +）。                                                          
+      133 +7. **编译选项层级判别**（传错层 rc=-7/-1，与"选项不存在"同症状
+          +）：`ge.*` 前缀名是 **init 级**（aclgrphBuildInitialize 的 glo
+          +bal_options——socVersion/fusionSwitchFile/bufferOptimize/disabl
+          +eReuseMemory…）；**build 级** map 只收 atc 风格短名（input_sha
+          +pe/input_format…）。合法值要查源码/文档（如 bufferOptimize 是 
+          +`off_optimize` 不是 `off`；disableReuseMemory 是 "0"/"1"）。开
+          +源 GE 仓（gitee mindspore/ge）的 `compiler/api/aclgrph/ge_ir_b
+          +uild.cc` `CheckGlobalOptions` 与 `api/atc/main_impl.cc` 是选项
+          +归属的权威索引。                                              
+      134  
+      135  ## 边界
+      136  
+
+  Thought for 2s (ctrl+o to expand)
+
+● skill 回填完。查烤图进度 + 时间锚点：
+
+● Bash(date '+%F %T'; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-AP
+      Xinf/2a40e485-56e8-461c-879c-a1fd53a1d9fe/tasks/bwb72xb1g.output"
+      2>/dev/null | tail -20)
+  ⎿  2026-09-21 11:59:36
+     ===BAKE vision===
+
+  Thought for 7s (ctrl+o to expand)
+
+● 11:59，剩 1h51m。等待期间起草新
+  summary（发现链部分数字已定，生产验证数字落地后 Edit 补）：
+
+● Write(syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-fusion-root-cause.md
+       )  ⎿  Wrote 56 lines to syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-
+     fusion-root-cause.md
+        图中间量
+      3 日期：2026-09-21（下午班）　前置：[上轮定罪](2026-09-21_ge-addrms
+        疑、修复留下轮）
+      5 ## 一句话
+      7 **上轮嫌疑"GE 静态 OM 内存计划重叠活 buffer"的实体找到了：`Inplac
+        sNorm`（注册表 output0 名就叫 `x1`、output2 叫 `x2`——结果写回两个
+        时污染数值；关掉该融合 pass 后 MIN 复现图 11.041%→0.159%、全量 at
+        项 `ge.fusionSwitchFile` 指向 JSON 开关文件（官方文档明载该 pass 
+        ）未钉死——标注为推测：别名 buffer 的计划复用；Data 输入免疫因用户
+      8 
+     … +92 lines (ctrl+o to expand)
+  ⎿  1 skill available
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● grep 块缓冲把进度藏住了。直接查服务器侧产物与进程：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'ls -l /data/apxinf/om_cache/t712fix/ 2>/dev/null;
+      docker exec apx…)
+  ⎿  total 0
+     root       56128  0.0  0.0      0     0 ?        Z    Sep18   0:00 [ge
+     _model_probe] <defunct>
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● probe 进程没了（只剩 9/18
+  的僵尸）且目录空——烤图链死了但任务没报完成？查容器内活进程：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ps aux | grep -E
+      \"cargo|rustc|t…)
+  ⎿  root      431874  0.0  0.0  16376 11952 ?        S    04:01   0:00 /us
+     r/local/python3.12.13/bin/python3 -c from multiprocessing.resource_tra
+     cker import main;main(8)
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● forkserver 子进程活着（容器钟 04:01 = 主机
+  12:0x，正是刚才启动的）——编译基础设施在工作。再确认 probe 主进程：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ps -ef | grep -v
+      grep | grep -E…)
+  ⎿  root       56128       1  0 Sep18 ?        00:00:00 [ge_model_probe] <
+     defunct>
+     root       56578       1  0 Sep18 ?        00:00:00 [ge_model_probe] <
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● probe 主进程不在但循环还卡在 vision 迭代——查任务真实状态：
+
+● Task Output(non-blocking) bwb72xb1g
+  ⎿  ===BAKE vision===
+     [out-dims] 96: size=3072 dims=[768, 1]
+     [out-dims] 97: size=3072 dims=[768, 1]
+     … +19 lines (ctrl+o to expand)
+
+  Thought for 23s (ctrl+o to expand)
+
+● vision 烤完：0.1% parity、56.11ms（基线 55.86 不变——vision 无 
+  AddRmsNorm，符合预期）。prefix 烤着。等待期间验证 310P 本机注册表的
+  InplaceAddRmsNorm 命名（刚才是 910b stub）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'find /usr/local/Ascend/ascend-toolkit/latest -name
+      "*ops-info*" -…)
+  ⎿  []
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "find
+      /usr/local/Ascend -name \"*…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/config/m
+     c62cm12a/aic-mc62cm12a-ops-info-cv.json
+     /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/config/m
+     … +7 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ls
+      /usr/local/Ascend/cann-9.0.1/…)
+  ⎿  Error: Exit code 2
+     ascend031
+     ascend035
+     ascend310b
+     ascend310p
+     ascend610lite
+     ascend630
+     ascend910
+     ascend910_55
+     ascend910_93
+     … +1 line (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "ls
+      /usr/local/Ascend/cann-9.0.1/…)
+  ⎿  aic-ascend310p-ops-info-nn.json
+     outputs: {'output0': 'x1', 'output1': 'rstd', 'output2': 'x2'}
+     inputs : {'input0': 'x1', 'input1': 'x2', 'input2': 'gamma'}
+
+  Thought for 3s (ctrl+o to expand)
+
+● 310P 注册表同构实锤（output0=x1、output2=x2）。把 summary 的“待验”改为已验：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-fusion-root-cause.m
+        d)
+  ⎿  Added 1 line, removed 1 line
+      20  | 8 | 源码查 fusion 开关机制（fusion_config_parser.cc） | JSON 
+          4 层结构，第 4 层字符串 "on"/"off"；`ge.fusionSwitchFile` init 
+          级 | 修复件 = fusion_off_inplace.json |
+      21  | 9 | **决定性实验：`GEB_INIT_OPT_ge.fusionSwitchFile=...` 跑 M
+          IN 图** | **11.041% → 0.159%** | **根因终结** |
+      22  | 10 | 全量 attn 图（非 MIN）同开关 | **45.224% → 0.159%**（h1_
+          vis 0.032%） | 修复在全图成立 |
+      23 -| 11 | 910b stub 注册表查 InplaceAddRmsNorm 语义 | output0 名 `
+         -x1`、output2 名 `x2`（dtype/format 与输入一致） | 原地写回解剖 
+         -学证据（310P 注册表同构待验，不影响结论） |                    
+      23 +| 11 | 910b stub + **310P 本机注册表**（`aic-ascend310p-ops-inf
+         +o-nn.json`）查 InplaceAddRmsNorm 语义 | 两边同构：inputs {x1, x
+         +2, gamma}、outputs {**x1**, rstd, **x2**}——输出端口名=输入端口 
+         +名 | 原地写回解剖学证据（310P 已验，非推断） |                 
+      24  
+      25  ## 修复件
+      26  
+
+● Task Output bwb72xb1g
+  ⎿  ===BAKE vision===
+     [out-dims] 96: size=3072 dims=[768, 1]
+     [out-dims] 97: size=3072 dims=[768, 1]
+     … +66 lines (ctrl+o to expand)
+
+● Background command "Bake three segment OMs with fusion disabled plus bench"
+completed (exit code 0)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 三段全绿，性能还赚了：
+  - prefix worst 0.8%（修复前真权重 100%+）· 115.99ms（基线 124.61，快 7%）
+  - flow 4.4%（修复前 37.4%）· 7.57ms/步（基线 7.89）
+  - vision 0.1% / 56.11ms 打平（无该融合，符合预期）
+
+  跑生产 e2e 终验（t712fix OM + golden frame0_v3 全中间量对拍）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 3s (ctrl+o to expand)
+● e2e 后台跑。先把烤图数字补进 summary：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-fusion-root-cause.m
+        d)
+  ⎿  Added 9 lines, removed 1 line
+      46  
+      47  ## 生产验证（e2e + 性能）
+      48  
+      49 -（数字见下方追记——烤图 t712fix 三段 + GEB_SEG=e2e + GEB_BENCH  
+         -对照）                                                         
+      49 +**三段重烤（t712fix，融合开关全程携带；parity vs eager 参考，GE
+         +B_BENCH=1 GEB_ROUNDS=5 GEB_PER=3）**：                         
+      50  
+      51 +| 段 | parity（修复前 → 后） | bench（修复前 → 后） |          
+      52 +|---|---|---|                                                  
+      53 +| vision（27 层，无 AddRmsNorm） | 0.1% → 0.1%（不变） | 55.86 
+         +→ 56.11 ms（打平） |                                           
+      54 +| **prefix（18 层，36 处 addrms）** | 真权重 d=18 时 100%+ → **
+         +worst 0.8%**（36 输出全 0.3-0.8%） | 124.61 → **115.99 ms（快 7
+         +%）** |                                                        
+      55 +| **flow（18 层，HOR=50）** | 真权重 37.4% → **4.4%**（ref \|ma
+         +x\|=1.016 小分母 + fp16 累加序残余，非 addrms） | 7.89 → **7.57
+         + ms/步** |                                                     
+      56 +                                                               
+      57 +全模型估算 ≈ 248ms 持平（修复零性能代价，反而净赚——非原地版无别
+         +名约束，内存计划更自由）。OM 三件套 5.2GB 已落 /data/apxinf/om_
+         +cache/t712fix/。                                               
+      58 +                                                               
+      59  ## 教训（方法论追加）
+      60  
+      61  1. **"内存计划类" bug 的最快解法是让编译器把决策亮出来**：`DUMP
+          _GE_GRAPH` 逐 pass 图 dump 一眼看到融合改写；比猜选项 A/B 快一
+          个数量级。
+
+  Thought for 8s (ctrl+o to expand)
+
+● 更新 roadmap——M3 剩余攻坚条目改写为已达成：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Error editing file
+
+  Thought for 2s (ctrl+o to expand)
+
+● 复现不精确，读原文：
+
+  Thought for 3s, read 1 file (ctrl+o to expand)
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      135    - **✅ M3 对拍偏差定位（2026-09-20 晚，c7db8c8——见 summary/2
+           026-09-20_m3-parity-drift-bisect）**。首帧 314% 拆解三层：① ro
+           pe f16-inv_freq 语义差（torch `.to(f16)` 连 rotary buffer 量化
+           ）已修 `rope_angle()` + t200 重烤，kvk_l0 12.6%→0.4%；② 语义/
+           权重/attention/MLP 全部教科书级洗清（0.03-0.14%，golden v2 + 
+           七分析脚本 + probe bisect 工具链）；③ 剩余 = **GE OM 图内数值
+           级**：同链 x0 输入 0.4% vs golden-h1 输入 18.7%（嫌疑：AddRmsN
+           orm f16 方差大动态范围 / WCONST 烤入 / mm cube 累加；另证中间
+           量输出槽被图内复用覆写）。性能零回归：prefix 138.81ms@968 / fl
+           ow 8.12ms/步 → **稳态 e2e ≈ 275.6ms（378 线 0.73×）**
+      136    - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+           _m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+           部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+            语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+           P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+           1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+            512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+           第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+           ` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+           PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自
+           洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+            step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+           ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+            同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+           性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+            = 378 线 0.66×**
+      137    - **✅ M3 剩余漂移定罪（2026-09-21 上午——见 summary/2026-09-
+           21_ge-addrms-ingraph-corruption）**：attention 链（最小图 m0sq
+            0.229%/res 0.089%）、gate 宽 N mm（0.057%）、down 大 K mm（0.
+           017%）、MLP 尾组合（0.032%）、权重折叠、GQA 簇、rope、M 对齐、
+           auto-bind、dual-role **16 步全部洗清**；唯一定罪 = **[在图中间
+           量 → AddRmsNorm] 数值污染（11-13%）**——同值作 Data 输入 0.073%
+            干净（wmm4 决定性实验）、去 addrms 0.036% 干净、五类屏障/端口
+           变体逐位不变、小图 [mm→addrms] 干净、图形状强敏感（net 45.2/db
+           g 24.7/垫M 24.66/MIN 11.0）⇒ **GE 静态 OM 内存计划重叠活 buffe
+           r**（嫌疑；机制待下轮钉死）。最小复现 ~13 算子：`GEB_OPTEST=at
+           tn GEB_ATTN_MIN=1`。生产影响面 = prefix 每层 2 处 [add→addrms]
+           ×18 + flow（1.6% 同病小 shape）→ kvk_l17 84%/actions 323%
+      138 -- **M3 剩余**：addrms 污染攻坚——① `GEB_OPT_ge.bufferOptimize=o
+          -ff`（选项已确认）② libge strings 扫 ge.* 内存选项 A/B ③ Reduce
+          -Sum/Rsqrt 分解 norm 绕开 ④ 显式 TransData ⑤ 大 buffer 布局扰动
+          -二分；修好 → attn kvk1 ≤0.1% → 生产全 [add→addrms] 处应用 → kv
+          -k_l1 ≤5% → 全层 → e2e 终态 → 真实 e2e 延迟 bench → LIBERO 对标
+          -（9/10 基线）；后置：pk/pv 设备直连、懒加载、真 tokenizer     
+      138 +  - **✅ M3 addrms 污染根因终结 + 修复落地（2026-09-21 下午—— 
+          +见 summary/2026-09-21_inplace-addrms-fusion-root-cause）**：上
+          +轮"内存计划重叠"的实体 = **`InplaceAddRmsNormFusionPass` 把 Ad
+          +dRmsNorm 融合成原地算子 `InplaceAddRmsNorm`**（310P/910b 注册 
+          +表同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名
+          +与静态内存计划在读在图中间量时污染；Data 输入因用户 buffer 受 
+          +保护而免疫（与 16 步证据全兼容）。**修复 = init 级 `ge.fusionS
+          +witchFile` 关该 pass**（官方可关融合规则）：MIN 复现图 11.041%
+          +→0.159%、全量 attn 图 45.224%→0.159%。**生产三段重烤（t712fix 
+          +）**：prefix worst 100%+→**0.8%** 且 124.61→**115.99ms（快 7% 
+          +）**、flow 37.4%→4.4%（fp16 累加序残余）且 7.89→7.57ms、vision
+          + 不变——**修复零代价净赚**。取证新工具：`DUMP_GE_GRAPH=3` 逐 pa
+          +ss 图 dump（发现融合的破局点）、GE 开源仓（本地 D:\compass\ge 
+          +）选项归属索引（`ge.*` 名 init 级 / atc 短名 build 级；bufferO
+          +ptimize 合法值 `off_optimize`）。skill ge-offline-om 陷阱 #31 
+          ++ 工具箱 #6/#7 回填                                           
+      139 +- **M3 剩余**：e2e 终态对拍（t712fix OM 全中间量 vs golden v3 
+          +）→ 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）；后置：pk/p
+          +v 设备直连、懒加载、真 tokenizer                              
+      140    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      141      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      142    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158  | `cargo run --example ge_model_probe --features ascend -p apx
+           inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+           flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径
+           文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+           m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+           t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+           .89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩
+           阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj = 
+           真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+            eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+           m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+            y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+           明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+            **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis 
+           走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041%
+           、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+           msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+           =bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+           e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判
+           别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+           proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+           观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+           B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四
+           件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+           m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+           e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+           ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+           onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+           B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+           *；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+           _SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+           10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om
+           ；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+           SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+           {0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+           = 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay 
+           键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+            2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+           _VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+439 chars]
+      159 -| `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+          -der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+          -GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值） |                   
+      159 +| `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+          +der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+          +GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值）。⚠ 选项归属（2026-09
+          +-21 定，权威索引=开源 GE 仓 `compiler/api/aclgrph/ge_ir_build.
+          +cc` CheckGlobalOptions + `api/atc/main_impl.cc`）：**`ge.*` 前
+          +缀名是 init 级**（socVersion/fusionSwitchFile/bufferOptimize/d
+          +isableReuseMemory…），**build 级只收 atc 短名**（input_shape/i
+          +nput_format…）——传错层 rc=-7/-1 与"选项不存在"同症状；合法值如
+          + bufferOptimize=`off_optimize`（非 off）、disableReuseMemory="
+          +0"/"1"。**`GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusio
+          +n_off_inplace.json` = addrms 污染修复（2026-09-21，M3）**：关 
+          +InplaceAddRmsNormFusionPass（原地融合别名写回污染在图中间量；J
+          +SON 镜像 syx_docs/dev_logs/fusion_off_inplace.json）——**烤图/ 
+          +运行必须全程携带**（融合状态烤在 OM 里，当前生产缓存 = /data/a
+          +pxinf/om_cache/t712fix，prefix 0.8%/flow 4.4% 且更快）。取证利
+          +器：`DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>` 逐 pass 图 dump | 
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+      162  
+
+  Thought for 2s (ctrl+o to expand)
+
+● 查 e2e 结果：
+
+● Task Output bkw2o0h4l
+  ⎿  [geb]   in[188] size=512 dims=1,256
+     [geb]   in[189] size=2048 dims=1,1024
+     [geb]   in[190] size=2048 dims=1024
+     … +44 lines (ctrl+o to expand)
+
+● Background command "Production e2e parity with fixed OMs" completed (exit code
+0)
+
+  Thought for 1m 19s (ctrl+o to expand)
+
+● 段落 parity 全绿但 e2e 链上 step0_x1 11.8% / actions 363.6%——tail 把关键
+  kvk_l0..17 BISECT 行截掉了，无法判断修复是否落到 e2e
+  链。重跑一次留全日志（只滤 BISECT/PARITY 行）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -i apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 等结果期间查本地仓状态备提交：
+
+● Bash(git status --short | head -20; echo ===; git log --oneline -3)
+  ⎿   M .claude/skills/ge-offline-om/SKILL.md
+      M syx_docs/plans/npu-port-roadmap.md
+      M syx_docs/setup.md
+     … +12 lines (ctrl+o to expand)
+
+● Task Output b1mpgr1h9
+  ⎿  [e2e] BISECT vision_out: max_diff=0.50000 @idx191138 (golden |max|=182
+     .375, rel=0.3%)
+     [e2e] BISECT x0_vis: max_diff=0.50000 @idx191138 (golden |max|=526.000
+     … +25 lines (ctrl+o to expand)
+
+● Background command "Rerun e2e capturing full bisect output" completed (exit
+code 0)
+
+  Thought for 25s (ctrl+o to expand)
+
+● 修复在 e2e 全链落地，教科书级曲线：
+
+  ┌────────────┬──────────┬──────────────────────────────┐
+  │   中间量   │  修复前  │            修复后            │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ kvk_l0     │ 0.3%     │ 0.3%                         │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ kvk_l1     │ 45.2%    │ 0.4%                         │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ kvk_l2..16 │ 深度复合 │ 0.4→1.4% 平滑次线性          │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ kvk_l17    │ 84%      │ 3.8%                         │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ step0_x1   │ 10.1%    │ 11.8%（小分母）              │
+  ├────────────┼──────────┼──────────────────────────────┤
+  │ actions    │ 323%     │ 363.6%（|max|=1.055 小分母） │
+  └────────────┴──────────┴──────────────────────────────┘
+
+  kvk 尖刺（45/84%）消失、变为标准 fp16 累积噪声曲线。actions 级 ~360%
+  修复前后同量级 ⇒ 是独立残余（noise 实现差异或 flow 路径语义），非
+  addrms。快速查一下 noise 口径给下轮留准星：
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n 70,102p "D:/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py")
+  ⎿      print(f"[v3] {k}", golden[k].shape)
+     pkv = pv_out.past_key_values
+     kcs = pkv.key_cache if hasattr(pkv, "key_cache") else [kv[0] for kv in
+     … +30 lines (ctrl+o to expand)
+
+  Thought for 18s (ctrl+o to expand)
+
+● golden 的 flow 走的是捕获的 noise 张量（g["noise"]）。查我们 e2e 探针的 noise
+  是否同源：
+
+  Thought for 23s, searched for 1 pattern (ctrl+o to expand)
+
+● noise 同源确认（probe 从 golden safetensors 载入 noise 键起步）⇒ step0_x1 的
+  11.8% 是真残差，非噪声口径问题。注意 flow 段 4.4% parity 是 vs eager（同 host
+  glue），styles host 计算若有小偏差会在段内对拍中抵消、只在 vs golden 
+  时显形——下轮第一候选。收口文档。先补 summary 的 e2e 数字：
+
+● Update(syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-fusion-root-cause.m
+        d)  ⎿  Added 14 lines
+      56  
+      57  全模型估算 ≈ 248ms 持平（修复零性能代价，反而净赚——非原地版无别
+          名约束，内存计划更自由）。OM 三件套 5.2GB 已落 /data/apxinf/om_
+          cache/t712fix/。
+      58  
+      59 +**e2e 全链对拍（golden v3，t712fix OM + 融合开关）——addrms 修复
+         +全面落地**：                                                   
+      60 +                                                               
+      61 +| 中间量 | 修复前 | 修复后 |                                   
+      62 +|---|---|---|                                                  
+      63 +| vision_out / x0_vis | 0.3% / 0.1% | 0.3% / 0.1% |            
+      64 +| kvk_l0 | 0.3% | 0.3% |                                       
+      65 +| **kvk_l1** | **45.2%** | **0.4%** |                          
+      66 +| kvk_l2..l16 | 深度复合 | 0.4→1.4% 平滑次线性（教科书 fp16 累 
+         +积曲线） |                                                     
+      67 +| **kvk_l17** | **84%** | **3.8%** |                           
+      68 +| step0_x1 | 10.1% | 11.8%（小分母 \|max\|=2.953） |           
+      69 +| actions | 323% | 363.6%（\|max\|=1.055 小分母） |            
+      70 +                                                               
+      71 +**残余定性**：step0_x1/actions 与 addrms 无关（修复前后同量级 1
+         +1.8%/~350%）。noise 已确认同源（probe 从 golden safetensors 载 
+         +`noise` 键起步）⇒ 11.8% 是真残差。候选：① prefix 主路 hidden 残
+         +差（kvk_l17 3.8% 同类）喂 flow cross-attn ② **host 侧 styles 计
+         +算**（sinusoidal→time_mlp→style 链在 probe host f32 算——flow 段
+         + 4.4% parity 是 vs eager 同 host glue，styles 偏差会在段内抵消 
+         +、只在 vs golden 显形）③ flow 段自身 4.4%。**下轮第一动作：bise
+         +ct flow step0**（golden styles/pk-pv/x1 渐进替入，定位 11.8% 的
+         +最大贡献者）。                                                 
+      72 +                                                               
+      73  ## 教训（方法论追加）
+      74  
+      75  1. **"内存计划类" bug 的最快解法是让编译器把决策亮出来**：`DUMP
+          _GE_GRAPH` 逐 pass 图 dump 一眼看到融合改写；比猜选项 A/B 快一
+          个数量级。
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line, removed 1 line
+      136    - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+           _m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+           部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+            语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+           P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+           1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+            512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+           第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+           ` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+           PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自
+           洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+            step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+           ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+            同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+           性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+            = 378 线 0.66×**
+      137    - **✅ M3 剩余漂移定罪（2026-09-21 上午——见 summary/2026-09-
+           21_ge-addrms-ingraph-corruption）**：attention 链（最小图 m0sq
+            0.229%/res 0.089%）、gate 宽 N mm（0.057%）、down 大 K mm（0.
+           017%）、MLP 尾组合（0.032%）、权重折叠、GQA 簇、rope、M 对齐、
+           auto-bind、dual-role **16 步全部洗清**；唯一定罪 = **[在图中间
+           量 → AddRmsNorm] 数值污染（11-13%）**——同值作 Data 输入 0.073%
+            干净（wmm4 决定性实验）、去 addrms 0.036% 干净、五类屏障/端口
+           变体逐位不变、小图 [mm→addrms] 干净、图形状强敏感（net 45.2/db
+           g 24.7/垫M 24.66/MIN 11.0）⇒ **GE 静态 OM 内存计划重叠活 buffe
+           r**（嫌疑；机制待下轮钉死）。最小复现 ~13 算子：`GEB_OPTEST=at
+           tn GEB_ATTN_MIN=1`。生产影响面 = prefix 每层 2 处 [add→addrms]
+           ×18 + flow（1.6% 同病小 shape）→ kvk_l17 84%/actions 323%
+      138    - **✅ M3 addrms 污染根因终结 + 修复落地（2026-09-21 下午——
+           见 summary/2026-09-21_inplace-addrms-fusion-root-cause）**：上
+           轮"内存计划重叠"的实体 = **`InplaceAddRmsNormFusionPass` 把 Ad
+           dRmsNorm 融合成原地算子 `InplaceAddRmsNorm`**（310P/910b 注册
+           表同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名
+           与静态内存计划在读在图中间量时污染；Data 输入因用户 buffer 受
+           保护而免疫（与 16 步证据全兼容）。**修复 = init 级 `ge.fusionS
+           witchFile` 关该 pass**（官方可关融合规则）：MIN 复现图 11.041%
+           →0.159%、全量 attn 图 45.224%→0.159%。**生产三段重烤（t712fix
+           ）**：prefix worst 100%+→**0.8%** 且 124.61→**115.99ms（快 7%
+           ）**、flow 37.4%→4.4%（fp16 累加序残余）且 7.89→7.57ms、vision
+            不变——**修复零代价净赚**。取证新工具：`DUMP_GE_GRAPH=3` 逐 pa
+           ss 图 dump（发现融合的破局点）、GE 开源仓（本地 D:\compass\ge
+           ）选项归属索引（`ge.*` 名 init 级 / atc 短名 build 级；bufferO
+           ptimize 合法值 `off_optimize`）。skill ge-offline-om 陷阱 #31 
+           + 工具箱 #6/#7 回填
+      139 -- **M3 剩余**：e2e 终态对拍（t712fix OM 全中间量 vs golden v3 
+          -）→ 真实 e2e 延迟 bench → LIBERO 对标（9/10 基线）；后置：pk/p
+          -v 设备直连、懒加载、真 tokenizer                              
+      139 +- **M3 剩余**：① **flow step0 残差 bisect**（step0_x1 11.8%/ac
+          +tions ~360% 与 addrms 无关；候选 = host styles 计算〔段内对拍 
+          +抵消盲区〕> prefix 主路 hidden 残差 > flow 段 4.4%；golden sty
+          +les/pk-pv/x1 渐进替入定位）② 真实 e2e 延迟 bench（稳态，非 bri
+          +ng-up 计时）③ LIBERO 对标（9/10 基线）；后置：pk/pv 设备直连、
+          +懒加载、真 tokenizer                                          
+      140    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      141      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      142    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 26s (ctrl+o to expand)
+
+● 重写 handoff（分段 Edit）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      1 -# Handoff（2026-09-21 上午 GE 图内 AddRmsNorm 污染定罪 / 压缩用 
+        -）                                                              
+      1 +# Handoff（2026-09-21 下午 InplaceAddRmsNorm 融合根因终结 + 修复
+        +落地 / 压缩用）                                                 
+      2  
+      3  ## 状态一句话
+      4  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 剩余漂移（kvk_l1 45.2%）已定罪：GE 静态 OM 图内 AddRmsNorm 
+        -读"在图中间量"时数值被污染（内存计划重叠嫌疑）——同值作 Data 输入
+        - 0.073% 干净（wmm4 决定性实验），去 addrms 0.036% 干净（L1=mm） 
+        -，五类屏障/端口变体逐位不变，小图 [mm→addrms] 干净（wmm5），图形
+        -状强敏感（net 45.2/dbg 24.7/垫M 24.66/MIN 11.0/RES_GOLDEN 78.6）
+        -**。attention 链/gate 宽 N mm/down 大 K mm/MLP 尾组合/权重折叠/G
+        -QA 簇/rope/M 对齐/auto-bind/dual-role 全部洗清；最小脏图 ~13 算 
+        -子（`GEB_OPTEST=attn GEB_ATTN_MIN=1` = 11.041%）。生产影响面 = p
+        -refix 每层 2 处 [add→addrms]×18 + flow（1.6% 同病小 shape）→ kvk
+        -_l17 84%/actions 323%。详见 summary 2026-09-21_ge-addrms-ingraph
+        --corruption。性能不变：e2e ≈248ms（0.66×）。                    
+      5 +**M3 addrms 污染已终结：根因 = `InplaceAddRmsNormFusionPass` 把 
+        +AddRmsNorm 融合成原地算子 `InplaceAddRmsNorm`（310P/910b 注册表 
+        +同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名与静
+        +态内存计划在读在图中间量时污染；Data 输入因用户 buffer 全程受保 
+        +护而免疫**（与上轮 16 步证据全兼容）。修复 = **init 级 `ge.fusio
+        +nSwitchFile` 关该 pass**（JSON 在 /data/apxinf/fusion_off_inplac
+        +e.json，镜像 syx_docs/dev_logs/fusion_off_inplace.json）。修复效
+        +果：MIN 图 11.041→0.159%、全量 attn 图 45.224→0.159%、e2e **kvk_
+        +l1 45.2→0.4% / kvk_l17 84→3.8%**（0.3→1.4→3.8% 教科书 fp16 累积 
+        +曲线）；prefix 段 worst 100%+→0.8% 且 124.61→**115.99ms（快 7%）
+        +**、flow 37.4→4.4% 且 7.89→7.57ms、vision 不变——**零代价净赚**。
+        +生产缓存 = /data/apxinf/om_cache/t712fix（**烤图/运行必须全程带 
+        +融合开关**，融合状态烤在 OM 里，旧 t712 不携带修复）。残余（与 a
+        +ddrms 无关）：step0_x1 11.8% / actions ~360%（小分母；noise 同源
+        +已证——probe 从 golden 载 `noise` 键起步）——候选 host styles 计算
+        +（段内对拍抵消盲区）> prefix 主路 hidden 残差 > flow 段 4.4%。详
+        +见 summary 2026-09-21_inplace-addrms-fusion-root-cause。        
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**定罪签名**（[在图中间量→AddRmsNorm] 11-13% 脏 vs 同
+         -值 Data 输入 0.073% 净 vs 去 addrms 0.036% 净；行剖面平坦、通道
+         -结构扁平 4×、逐位确定性）；**16 步洗冤链**（attention 0.229/opr
+         -oj 消费 0.089/MLP 尾组合 0.032/折叠 0.032/gate 宽N 0.057/down  
+         -大K 0.017/wmm5 小图 addrms 0.058——组合矩阵见 summary 表格）；**
+         -内存重叠收敛证据**（五变体逐位相同 max_diff=1.08594 + 大 buffer
+         - 尺寸变化即变值 + `ge.bufferOptimize` 选项已在 libge_compiler.s
+         -o 确认待试）；**复现/裁决旋钮**（GEB_OPTEST=attn 全家 + wmm~wmm
+         -5 + GEB_ATTN_* 变体 + dump 落 /data/apxinf/{attnmin,wmm}/）；**
+         -坑**（图输出按模型 introspection 分配：绑 addrms y 触发 rstd/x_
+         -out 自动补绑 → n_out 不匹配 rc=-3——arm 模式 rc=-3 同根因已结案 
+         -）。丢弃：各中间 dump 与一次性 sed 变体脚本。                  
+       9 +聚焦保留：**根因与修复**（InplaceAddRmsNormFusionPass 原地别名 
+         +污染 + `ge.fusionSwitchFile` init 级关闭 + t712fix OM 缓存 + 全
+         +部修复前后数字 kvk_l1 45.2→0.4/kvk_l17 84→3.8/prefix 0.8%/flow 
+         +4.4%/prefix 反快 7%）；**取证工具**（`DUMP_GE_GRAPH=3 DUMP_GRAP
+         +H_PATH=<dir>` 逐 pass 图 dump = 发现融合的破局点；GE 开源仓 `D:
+         +\compass\ge` 选项归属索引：`ge.*` 名 init 级 / atc 短名 build  
+         +级、bufferOptimize 合法值 `off_optimize` 非 off；disableReuseMe
+         +mory=1 与 bufferOptimize=off_optimize 均无效的实验）；**e2e 残 
+         +余**（kvk 链已净成 0.3→3.8% 平滑 fp16 曲线；step0_x1 11.8%/acti
+         +ons ~360% 独立残差——noise 同源已证、styles 盲区假说）；**运行口
+         +径**（四件套 + GEB_INIT_OPT_ge.fusionSwitchFile + GEB_PREFIX_DR
+         +OP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t7
+         +12fix GEB_E2E_GOLDEN=frame0_v3 GEB_CKPT）。丢弃：选项 rc=-7/-1 
+         +试错过程、dump 文件清单。                                      
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（剩余漂移已定罪 GE 图内 AddRms
+         -Norm 读在图中间量被污染，见 summary 2026-09-21_ge-addrms-ingrap
+         -h-corruption）**。第一动作：**`GEB_OPT_ge.bufferOptimize=off`  
+         -跑 MIN 复现图**（`GEB_OPTEST=attn GEB_WCONST=1 GEB_ATTN_MIN=1 G
+         -EB_CKPT=... GEB_E2E_GOLDEN=frame0_v3`，判 kvk1 是否从 11.041%  
+         -转净——选项已确认存在于 libge_compiler.so，env 名带点要 `env "GE
+         -B_OPT_...=..."` 包引号）；无效则 ② libge strings 扫全部 ge.* 内
+         -存选项逐一 A/B ③ ReduceSum/Rsqrt 分解 norm 绕开 AddRmsNorm（先 
+         -验 310P GE 注册表）④ 显式 TransData ⑤ MLP 大 buffer 布局扰动二 
+         -分重叠对。〔历史：上轮第一动作 manual attention 链孤立对拍已做—
+         -—**attention 链 0.229% 无罪**〕（真 x0_vis 输入跑 [norm1→qkv→ro
+         -pe→GQA→merge] 最小图，对拍 golden m0_vis——oproj 单算已证 GE mm 
+         -逐位干净、addrms 无行缩放无罪 ⇒ 2.82% 产自图内 attention 链真实
+         -输出 ≠ m0 槽回读 0.52%，"槽与消费值不一致"再现；通道结构误差指 
+         -向 headsplit/headmerge 重排或 bmm 累加）；② arm 的 rc=-3 已结案
+         -（addrms y 绑图输出触发 rstd/x_out 自动补绑 → 输出数不匹配）。 
+         -修到 attn 图 kvk1 ≤0.1% → 生产 prefix/flow 全 [add→addrms] 处应
+         -用修复 → kvk_l1 ≤5% → 全层 → e2e 终态 → LIBERO（9/10）。运行口 
+         -径：e2e 四件套 + `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_
+         -OM_DIR=/data/apxinf/om_cache/t712 GEB_E2E_GOLDEN=/data/apxinf/g
+         -olden/frame0_v3.safetensors`；槽位判读 = t712dbg + GEB_DBG_MID/
+         -FULL + GEB_E2E_STOP=prefix + GEB_E2E_DUMP_MID=<dir> + slot_cmp7
+         -12.py（gate/up 槽值不可信）。⚠ 纪律：PYTHONPATH 追加勿覆盖；gol
+         -den/脚本 syx_docs/dev_logs/ 有镜像；GEB_SAVE 全路径文件名；goal
+         - 时限纪律见全局 CLAUDE.md。                                    
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（addrms 污染已修复，见 summary
+         + 2026-09-21_inplace-addrms-fusion-root-cause）**。第一动作：**f
+         +low step0 残差 bisect**——step0_x1 11.8% 与 addrms 无关（修复前 
+         +后同量级），noise 同源已证（probe 从 golden 载 `noise` 键起步）
+         +；候选排序：① **host 侧 styles 计算**（sinusoidal→time_mlp→styl
+         +e 在 probe host f32 算——flow 段 4.4% parity 是 vs eager 同 host
+         + glue，styles 偏差段内抵消、只在 vs golden 显形）② prefix 主路 
+         +hidden 残差（kvk_l17 3.8% 类）喂 flow cross-attn ③ flow 段自身 
+         +4.4%。方法：golden 的 styles/pk-pv/x1 渐进替入定位最大贡献者（G
+         +EB_E2E_X0_KEY 系旋钮 + GEB_E2E_GOLDEN 键）。修完 → 真实 e2e 稳 
+         +态延迟 bench（现有计时含 OM 加载/host glue 非稳态）→ LIBERO 对 
+         +标（9/10 基线）。运行口径：`GEB_ATTN=manual GEB_QKV3=1 GEB_ROPE
+         +FLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSwitchFile=/data/
+         +apxinf/fusion_off_inplace.json`（**烤图/运行都带，OM 用 t712fix
+         +**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/dat
+         +a/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/apxinf/golden/fr
+         +ame0_v3.safetensors GEB_CKPT=/data/apxinf/weights/pi05_libero_f
+         +inetuned GEB_SEG=e2e`。⚠ 纪律：PYTHONPATH 追加勿覆盖；GEB_SAVE 
+         +全路径文件名；bench 同芯对照；goal 时限纪律见全局 CLAUDE.md。  
+      14  
+      15  ## ③ Export 标题建议
+      16  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_ge-
+         -addrms-ingraph-corruption.txt（M3 剩余漂移定罪：GE 图内 AddRmsN
+         -orm 在图中间量污染 + 16 步洗冤 + 内存重叠收敛）                
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_inp
+         +lace-addrms-fusion-root-cause.txt（M3 addrms 污染根因终结：Inpl
+         +aceAddRmsNorm 融合原地别名 + fusionSwitchFile 修复 + e2e kvk 全
+         +净）                                                           
+      18  
+
+  Thought for 5s (ctrl+o to expand)
+
+● 全部文档收口完成。提交（外层仓，本轮无子模块改动——修复是配置级）：
+
+● Bash(git add .claude/skills/ge-offline-om/SKILL.md
+      syx_docs/plans/npu-port-roadmap.md syx_docs/setup.md
+      syx_docs/dev_logs/handoff.md syx_docs/dev_logs/fusion_off_inp…)
+  ⎿  warning: in the working copy of '.claude/skills/ge-offline-om/SKILL.md
+     ', LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 提交完成（484cc32）。收尾时间锚点：
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-21 12:16:25
+
+  Thought for 4s (ctrl+o to expand)
+
+● 本轮战报：M3 addrms 污染根因终结 + 修复落地（12:16 收口，远早于 13:50 期限）
+
+  破局点：你那句“查查 demo 实现”
+
+  本地 GE 开源仓 D:\compass\ge 一举给了三把钥匙：
+  1. 选项归属权威索引：ge.* 名是 init 级、atc 短名是 build 级——我前面三次
+     rc=-7/-1 全是传错层，不是选项不存在；bufferOptimize 合法值是 off_optimize
+     不是 off
+  2. DUMP_GE_GRAPH=3 逐 pass 图 dump：一打开就看到 AddRmsNorm 被 
+     InplaceAddRmsNormFusionPass 改写成 InplaceAddRmsNorm
+  3. 算子注册表实锤原地语义：310P/910b 同构——output0 名就叫 x1、output2 叫
+     x2，结果写回两个输入 buffer 本体
+
+  根因（与上轮 16 步证据全兼容）
+
+  原地别名 × 静态内存计划在读“在图中间量”时污染；Data 输入因用户 buffer
+  全程受保护而免疫（解释 wmm4 干净）、disableReuseMemory/bufferOptimize
+  无效（不管 Const
+  别名）、五屏障逐位同（不动别名计划）、形状敏感（计划随形变）。
+
+  修复 = init 级 ge.fusionSwitchFile 关该 pass（官方可关融合规则）
+
+  ┌─────────────────────────┬───────────────────────────────────────────────┐
+  │          指标           │                  修复前 → 后                  │
+  ├─────────────────────────┼───────────────────────────────────────────────┤
+  │ MIN 复现图 / 全量 attn  │ 11.041% / 45.224% → 均 0.159%                 │
+  │ 图                      │                                               │
+  ├─────────────────────────┼───────────────────────────────────────────────┤
+  │ e2e kvk_l1              │ 45.2% → 0.4%                                  │
+  ├─────────────────────────┼───────────────────────────────────────────────┤
+  │ e2e kvk_l17             │ 84% → 3.8%（0.3→1.4→3.8% 教科书 fp16          │
+  │                         │ 累积曲线）                                    │
+  ├─────────────────────────┼───────────────────────────────────────────────┤
+  │ prefix 段               │ 100%+ → 0.8%，且 124.61 → 115.99ms（反快 7%） │
+  ├─────────────────────────┼───────────────────────────────────────────────┤
+  │ flow 段                 │ 37.4% → 4.4%，7.89 → 7.57ms                   │
+  └─────────────────────────┴───────────────────────────────────────────────┘
+
+  修复零代价净赚。新 OM 缓存 t712fix（烤图/运行必须全程带开关——融合状态烤在 OM
+  里）。
+
+  残余（独立于 addrms，已给下轮排好靶）
+
+  step0_x1 11.8% / actions ~360% 修复前后同量级 ⇒ 与 addrms 无关；noise
+  同源已证。候选：host styles 计算（flow 段对拍 vs eager 用同一 host
+  glue，styles 偏差段内抵消、只对 golden 显形）> prefix 主路残差 > flow 段
+  4.4%。
+
+  收口
+
+  - 提交 484cc32（7 文件：新 summary、handoff/setup/roadmap 更新、skill 陷阱 #31
+    + 工具箱 #6/#7、fusion JSON 镜像、你的 chat export）
+  - 本轮零引擎代码改动（修复是配置级）⇒ 无子模块提交
+
+✔ Goal achieved (47m · 1 turn · 56.4k tokens) (ctrl+o to expand)
+
+✻ Baked for 47m 7s · done 12:16 PM
+
+❯ /syx_skills                                                                   
+是不是有段没更新skill了？要不更新一下？现在M3还有什么没做的？性能多少了         
+
+  Thought for 24s (ctrl+o to expand)
+
+● 先查证“有段没更新”——本轮我更新了 ge-offline-om（#31 + 工具箱
+  #6/#7），但今早那轮的“图输出自动补绑 rc=-3”坑我印象里没回填。验证：
+
+  Thought for 8s, listed 1 directory (ctrl+o to expand)
+
+● 实锤——今早的 rc=-3 自动补绑坑漏了。顺带查槽位覆写有没有记：
+
+  Thought for 10s, searched for 1 pattern (ctrl+o to expand)
+
+● 槽位覆写也没记。补两条（#32/#33）然后答你问题：
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 3 lines, removed 1 line
+      105  | 28 | 静态 OM 执行墙钟远大于 kernel 总时（fill ~15%）；执行流
+           上每层多次 MemcopyAsync（每次 ~380µs、前置 4.5-12ms host 停顿
+           ），下个 kernel 固定为切片的消费者（TransposeD/PFA/ConcatD）；
+           换算子/换 attention/Const shape 都不动 | **SliceD 列切视图（st
+           ride≠连续）的下游 kernel 要连续物理布局 → GE 运行时每次执行插 
+           D2D 物化拷贝，拷贝走 host 慢路径**（aclmdlExecuteAsync 内走走
+           停顿提交）。msprof task_time 邻接分析可定位（MemcopyAsync 的 n
+           ext kernel 恒定即指纹）。⚠ 动态路径（unknown 拆分）反而不付此
+           税——切片被物化成 kernel | 图组织上消灭列切视图：① qkv 融合+切
+           分 → 3 个独立 mm + 独立权重输入；② rope 的 lo/hi 半宽切+Concat
+           D → flat 视图行交换（Reshape[p,wd]→[p·h·2,d/2] → GatherV2D Con
+           st 索引 swap → mul/mul/add → Reshape back）。实测 vision 723→6
+           8 / prefix 750→188 / flow 70.9→17.5 ms |
+      106  | 29 | 改动输入注册集（如 shape 张量 Data→Const 后输入槽消失）
+           后 eager 参考硬编码索引 panic（buffer size 断言，如 [832,256] 
+           读到 [2560,1024]），且可能伪装成 TBE task_distribute 编译崩 | 
+           输入序号整体漂移，索引未同步；段内 const_i32 不占输入槽 | eage
+           r 的段级/层内索引与注册序耦合，改注册集必须同步索引（用段头注
+           释记录当前注册序）；先看 panic 的 shape 与实际 buffer 对应哪个
+           输入定位错位量 |
+      107  | 30 | op_statistic 里 **TransData 占大头**（实测 flow 54%，27
+            次/层）；op_summary 签名 `[n,k] → [k/16,n/16,16,16] [ND→FRACT
+           AL_NZ]`；小 m 段（如 decode/flow）每层 ~0.5ms 白耗 | **MatMulV
+           2 的 b 权重按 ND Data 输入时，GE 每次执行都插设备侧 ND→NZ 转换
+            kernel**（无跨执行缓存；8MB ≈ 130µs @~63GB/s）。torch_npu 的 
+           TransData 大头同源（TorchAir 靠权重入图逃税） | **权重 Const 
+           入图**（`geb_add_const_raw` fp16 → GE 编译期折叠转换、OM 烤入
+           权重，单算实证 0.3945→0.2945 ms/mm、OM 8.4MB）。代价：OM 变 pe
+           r-checkpoint。⚠ NZ desc 直入（Data 声明 FRACTAL_NZ + host_nz_r
+           eorder 字节）在 310P 编译崩（TBE）——未走通，记开放项。⚠ 权重 C
+           onst 化会改变 mm kernel 变体的累加序 → 对拍 worst 微移同档（re
+           l% 不变），非 bug |
+      108 -| 31 | 图内 AddRmsNorm 读**在图中间量**时数值确定性错 11-45%（
+          -行剖面平坦/通道结构扁平、**同值作 Data 输入 0.073% 干净**、五 
+          -类屏障与端口对调变体**逐位不变**、改图形状/垫 M 即变值）；`ge.
+          -exec.disableReuseMemory=1` 与 `ge.bufferOptimize=off_optimize`
+          - 均无效 | **`InplaceAddRmsNormFusionPass` 把 AddRmsNorm 融合成
+          -原地版本**（算子注册表 output0 名就叫 `x1`、output2 叫 `x2`—— 
+          -结果写回两个输入 buffer 本体）；原地别名与静态 OM 内存计划的交
+          -互在读中间量时污染数值，Data 输入因用户 buffer 全程受保护而免 
+          -疫（机制细粒度未钉死，推测与别名 buffer 的计划复用有关）。disa
+          -bleReuseMemory 管不到它也自洽——Const 别名/复用不在其管辖 | **`
+          -ge.fusionSwitchFile`（init 级）关该 pass**：JSON `{"Switch":{"
+          -GraphFusion":{"InplaceAddRmsNormFusionPass":"off"},"UBFusion":
+          -{}}}`（第 4 层直接是字符串 "on"/"off"）——实测 MIN 复现图 11.04
+          -1%→0.159%、全图 45.2%→0.159%。取证链见工具箱 #6/#7 |          
+      108 +| 31 | 图内 AddRmsNorm 读**在图中间量**时数值确定性错 11-45%（
+          +行剖面平坦/通道结构扁平、**同值作 Data 输入 0.073% 干净**、五 
+          +类屏障与端口对调变体**逐位不变**、改图形状/垫 M 即变值）；`ge.
+          +exec.disableReuseMemory=1` 与 `ge.bufferOptimize=off_optimize`
+          + 均无效 | **`InplaceAddRmsNormFusionPass` 把 AddRmsNorm 融合成
+          +原地版本**（算子注册表 output0 名就叫 `x1`、output2 叫 `x2`—— 
+          +结果写回两个输入 buffer 本体）；原地别名与静态 OM 内存的交互在
+          +读中间量时污染数值，Data 输入因用户 buffer 全程受保护而免疫（ 
+          +机制细粒度未钉死，推测与别名 buffer 的计划复用有关）。disableR
+          +euseMemory 管不到它也自洽——Const 别名/复用不在其管辖 | **`ge.f
+          +usionSwitchFile`（init 级）关该 pass**：JSON `{"Switch":{"Grap
+          +hFusion":{"InplaceAddRmsNormFusionPass":"off"},"UBFusion":{}}}
+          +`（第 4 层直接是字符串 "on"/"off"）——实测 MIN 复现图 11.041%→0
+          +.159%、全图 45.2%→0.159%。取证链见工具箱 #6/#7 |              
+      109 +| 32 | `geb_run` rc=-3，报 "n_out N != model M"（模型输出数 > 
+          +声明数，如 8 vs 10） | 绑**多输出算子**（AddRmsNorm 的 y、ARPE
+          + 的 q 等）的某个输出作图输出时，GE 把悬空的兄弟输出端口（rstd/
+          +x_out）**自动补绑为额外图输出**——声明 1 个实得 3 个 | 输出 buf
+          +fer 一律按**模型 introspection** 分配（加载后 `num_outputs()` 
+          +逐个查 size），按值对号；不要按声明数 malloc |                
+      110 +| 33 | 把图中间量绑成图输出做调试对拍，读到的是**过期/被改写**
+          +的值（同图其他声明的输出正常） | 图输出 buffer 可被静态内存计 
+          +划**复用**给图内在其后写入的张量（运行期读回时机在全部执行之后
+          +）——绑出 ≠ 快照 | 判读一律**按值不按槽**：先验证该槽值与已知量
+          +级/结构是否自洽（行剖面、|max|）；不可信时改用一次性专门图（GE
+          +B_DUMP_MID 类槽位落盘 + 与 golden 交叉验证）；#31 定罪过程即靠
+          +"wmm4 同值 Data 输入"绕开槽判读 |                             
+      111  
+      112  ## 环境与自检
+      113  
+
+● Bash(git add .claude/skills/ge-offline-om/SKILL.md && git commit -m
+      "docs(skill): backfill ge-offline-om pitfalls #32 (sibling-output
+      auto-rebind rc=-3) and #33 (out…)
+  ⎿  warning: in the working copy of '.claude/skills/ge-offline-om/SKILL.md
+     ', LF will be replaced by CRLF the next time Git touches it
+     [main 7ed212b] docs(skill): backfill ge-offline-om pitfalls #32 (sibli
+     … +6 lines (ctrl+o to expand)
+  ⎿  1 skill available
+  Thought for 2s (ctrl+o to expand)
+
+● 你的直觉对了——今早那轮确实漏了两条 skill（只写进了
+  summary）。刚补上并提交（7ed212b）：
+
+  - #32 绑多输出算子的 y 作图输出 → GE 自动补绑悬空兄弟端口（rstd/x_out）→ n_out
+    不匹配 rc=-3；修法 = 按模型 introspection 分配输出（arm/attn
+    两个模式都咬过这口）
+  - #33 图输出槽值可被图内复用覆写——“绑出 ≠ 快照”，判读按值不按槽（今早"norm2
+    2.82% 假槽"就是它）
+
+  本轮主战果的 #31（InplaceAddRmsNorm 融合污染 + fusionSwitchFile 修复）+ 工具箱
+  #6/#7（DUMP_GE_GRAPH / 选项层级索引）在上一笔提交里已经进了。其余 skill（asce
+  nd-msprof、AscendC-ops-dev、remote-ssh-windows）本轮没攒到新教训，不硬塞。
+
+  M3 还剩什么
+
+  按优先级：
+
+  1. flow step0 残差 bisect——addrms 修完后 e2e 的 kvk 链已全净（0.3→3.8% 平滑
+     fp16 曲线），但 step0_x1 11.8% / actions ~360% 与 addrms
+     无关（修复前后同量级，noise 同源已证）。第一嫌疑 = host 侧 styles 
+     计算（flow 段对拍是 vs eager 用同一 host glue，styles
+     有偏差会在段内抵消、只对 golden 显形）；方法 = golden 的 styles/pk-pv/x1
+     渐进替入
+  2. 真实 e2e 稳态延迟 bench——现在的计时含 OM 加载和 host glue，不是干净口径
+  3. LIBERO 对标——M3 验收本体（成功率 ≥ torch_npu 的 9/10 − 1pp）
+  4. 后置优化：pk/pv 设备直连（现在 host 中转）、checkpoint 懒加载（61s
+     全量加载）、真 tokenizer
+
+  性能
+
+  三段 OM 稳态（median，chip6）：
+
+  ┌─────────────────┬───────────┬──────────────────────────────┐
+  │       段        │   耗时    │          对比修复前          │
+  ├─────────────────┼───────────┼──────────────────────────────┤
+  │ vision（27 层） │ 56.11ms   │ 持平（无 AddRmsNorm）        │
+  ├─────────────────┼───────────┼──────────────────────────────┤
+  │ prefix（18 层） │ 115.99ms  │ 124.61 → 快 7%（关融合白赚） │
+  ├─────────────────┼───────────┼──────────────────────────────┤
+  │ flow × 10 步    │ 7.57ms/步 │ 7.89                         │
+  ├─────────────────┼───────────┼──────────────────────────────┤
+  │ 模型侧合计      │ ≈ 247.7ms │ 上轮 263.3                   │
+  └─────────────────┴───────────┴──────────────────────────────┘
+
+  对 378ms torch_npu 基线 = 0.66×（快 34%）。addrms 修复不但没付性能代价反而净赚
+  ~15ms——非原地版无别名约束，内存计划更自由。
+
+  ⚠ 注意这是模型侧数字；完整 e2e 链的 host 开销（每步 styles 计算 + h2d
+  换绑、pk/pv 中转）还没压，真稳态 e2e 数字要等上面第 2 项跑出来。
+
+✻ Sautéed for 1m 14s · done 1:00 PM
+
+❯ 378ms 的基线包括你说的host开销吗？                                            
+
+  Thought for 22s (ctrl+o to expand)
+
+● 好问题——口径不对齐，这正是我说“真稳态数字要专门 bench”的原因。拆开看：
+
+  378ms 基线的口径
+
+  阶段 1 的 bench（bench_npu.json）有两个数：
+  - model_ms P50 = 376.4ms ← 平时说的 378 基线就是这个
+  - total_ms P50 = 383.8ms（外围 glue：噪声生成、图像预处理、动作后处理）
+
+  关键是 torch 路径里我说的那些 host 计算——styles（time_mlp）、euler 步进、mask 
+  构造——全都跑在 torch 的 forward 内部，所以它们算在 376ms 里面。torch
+  的“模型侧”是含全部模型内 host 工作的全口径。
+
+  我们 247.7ms 的口径
+
+  只算了三段 OM 的设备执行：
+  - vision 56.11 + prefix 115.99 + flow 7.57×10
+  - 不含：每步 styles 的 host 计算 + h2d 换绑、pk/pv 的 host 中转（prefix 出 →
+    host → flow 进）、x0 构建(token 查表/拼接)、噪声生成
+
+  而这些项在 torch 基线里都在 forward 内算着呢。所以：
+
+  247.7ms vs 376ms 现在是"我们的设备时间 vs 
+  他们的全模型时间”——比较对我们是偏乐观的。
+
+  实际差距多大
+
+  bring-up 计时给了个上界：flow 段 10 步 2.17s（含每步 host styles + 换绑）≈
+  217ms/步 vs OM 执行 7.6ms/步——host glue 目前比设备计算重一个数量级（bring-up
+  口径还混着 BISECT 对拍开销，真值要低些，但量级如此）。也就是说当前形态下 e2e
+  单次调用可能远不止 248ms，host 侧反而是新瓶颈。
+
+  好消息是这些 host 开销都有明确的压缩路径，而且 torch
+  基线证明它们压完后可以只占 ~8ms 量级（total−model 差）：
+  1. styles 预计算批处理——10 步的 styles 一次性算好（时间步固定），不是每步现算
+  2. pk/pv 设备直连——已在 M3 后置清单
+  3. x0/euler 图内化或一次构建
+
+  所以诚实的说法是：设备侧 0.66× 已坐实（这是 C 
+  路线零调度税论点的验证），全模型口径待 host glue 压完才能真正对线 
+  378ms。这也是为什么 M3 剩余清单里“真实 e2e 稳态 bench”要排在 LIBERO
+  前面——先拿到干净的全口径数字再谈对标。
+
+✻ Cooked for 32s · done 1:02 PM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   160.7k/1m tokens (16%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 158.2k tokens (15.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 838.9k (83.9%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens

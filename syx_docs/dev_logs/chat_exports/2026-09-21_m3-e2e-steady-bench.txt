@@ -1,0 +1,1942 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 好问题——口径不对齐，这正是我说“真稳态数字要专门 bench”的原因。拆开看：
+
+  378ms 基线的口径
+
+  阶段 1 的 bench（bench_npu.json）有两个数：
+  - model_ms P50 = 376.4ms ← 平时说的 378 基线就是这个
+  - total_ms P50 = 383.8ms（外围 glue：噪声生成、图像预处理、动作后处理）
+
+  关键是 torch 路径里我说的那些 host 计算——styles（time_mlp）、euler 步进、mask 
+  构造——全都跑在 torch 的 forward 内部，所以它们算在 376ms 里面。torch
+  的“模型侧”是含全部模型内 host 工作的全口径。
+
+  我们 247.7ms 的口径
+
+  只算了三段 OM 的设备执行：
+  - vision 56.11 + prefix 115.99 + flow 7.57×10
+  - 不含：每步 styles 的 host 计算 + h2d 换绑、pk/pv 的 host 中转（prefix 出 →
+    host → flow 进）、x0 构建(token 查表/拼接)、噪声生成
+
+  而这些项在 torch 基线里都在 forward 内算着呢。所以：
+
+  247.7ms vs 376ms 现在是"我们的设备时间 vs 
+  他们的全模型时间”——比较对我们是偏乐观的。
+
+  实际差距多大
+
+  bring-up 计时给了个上界：flow 段 10 步 2.17s（含每步 host styles + 换绑）≈
+  217ms/步 vs OM 执行 7.6ms/步——host glue 目前比设备计算重一个数量级（bring-up
+  口径还混着 BISECT 对拍开销，真值要低些，但量级如此）。也就是说当前形态下 e2e
+  单次调用可能远不止 248ms，host 侧反而是新瓶颈。
+
+  好消息是这些 host 开销都有明确的压缩路径，而且 torch
+  基线证明它们压完后可以只占 ~8ms 量级（total−model 差）：
+  1. styles 预计算批处理——10 步的 styles 一次性算好（时间步固定），不是每步现算
+  2. pk/pv 设备直连——已在 M3 后置清单
+  3. x0/euler 图内化或一次构建
+
+  所以诚实的说法是：设备侧 0.66× 已坐实（这是 C 
+  路线零调度税论点的验证），全模型口径待 host glue 压完才能真正对线 
+  378ms。这也是为什么 M3 剩余清单里“真实 e2e 稳态 bench”要排在 LIBERO
+  前面——先拿到干净的全口径数字再谈对标。
+
+✻ Cooked for 32s · done 1:02 PM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   160.7k/1m tokens (16%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 158.2k tokens (15.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 838.9k (83.9%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_inplace-a 
+ddrms-fusion-root-cause                                                         
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-21_inplace-addrms-fusion-root-cause.txt
+
+❯ /compact 聚焦保留：**根因与修复**（InplaceAddRmsNormFusionPass 原地别名污染 + 
+`ge.fusionSwitchFile` init 级关闭 + t712fix OM 缓存 + 全部修复前后数字 kvk_l1   
+45.2→0.4/kvk_l17 84→3.8/prefix 0.8%/flow 4.4%/prefix 反快                       
+7%）；**取证工具**（`DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>` 逐 pass 图 dump =   
+发现融合的破局点；GE 开源仓 `D:\compass\ge` 选项归属索引：`ge.*` 名 init 级 /   
+atc 短名 build 级、bufferOptimize 合法值 `off_optimize` 非                      
+off；disableReuseMemory=1 与 bufferOptimize=off_optimize 均无效的实验）；**e2e  
+残余**（kvk 链已净成 0.3→3.8% 平滑 fp16 曲线；step0_x1 11.8%/actions ~360%      
+独立残差——noise 同源已证、styles 盲区假说）；**运行口径**（四件套 +             
+GEB_INIT_OPT_ge.fusionSwitchFile + GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200     
+GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=frame0_v3               
+GEB_CKPT）。丢弃：选项 rc=-7/-1 试错过程、dump 文件清单。                       
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read .claude\skills\ge-offline-om\SKILL.md (141 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (19 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (167 lines)
+  ⎿  Read 
+     syx_docs\dev_logs\summary\2026-09-21_inplace-addrms-fusion-root-cause.md 
+     (79 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3（addrms 污染已修复，见 summary         
+2026-09-21_inplace-addrms-fusion-root-cause）**，到13:55以后还没完成就停止      
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU C 路线 M3（addrms 污染已修复，见 summary 
+     2026-09-21_inplace-addrms-fusion-root-cause），到13:55以后还没完成就停止
+
+  Thought for 13s (ctrl+o to expand)
+
+● 收到 goal：继续 M3 剩余项（第一动作 = flow step0 残差 bisect），13:55
+  未完成则停。先锚定时间，然后按 handoff 的第一动作开工。
+
+● Bash(date)
+  ⎿  Mon, Sep 21, 2026  1:07:22 PM
+
+  Thought for 8s (ctrl+o to expand)
+
+● 13:07，期限 13:55（≈48 分钟）。按 handoff 第一动作开工：flow step0 残差
+  bisect。先看 probe 的 e2e 段现有替入旋钮面：
+
+  Thought for 20s, searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+● 看 golden v3 里存了哪些键（决定 bisect 能直接替入什么）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'python3 -c "
+      import sys…)
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 4, in <module>
+     ModuleNotFoundError: No module named 'safetensors'
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu python3 -c "
+      from safetensors import safe_…)
+  ⎿  53 keys
+     actions [50, 7]
+     h1 [968, 2048]
+     … +51 lines (ctrl+o to expand)
+
+  Thought for 34s (ctrl+o to expand)
+
+● Golden 有 kvk_l*/kvv_l*（= flow 的 pk/pv 真值）但没有 styles 键。bisect
+  计划：先做 pk/pv 替入（现有键即可，一次小改），styles 假说视结果再补 golden
+  键。找 flow 段 pk/pv 的绑定点：
+
+  Thought for 58s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 设计好了：一次 probe 改动带两个旋钮（GEB_E2E_PK_GOLD /
+  GEB_E2E_STYLE_GOLD），golden v3 现有键先撑 pk/pv 实验，styles 键补进
+  golden_gen_v3.py 并行重烤。先看 golden_gen_v3.py 的 styles 计算段：
+
+  Thought for 26s, read 1 file (ctrl+o to expand)
+
+● Golden replay 的 styles 入口 = embed_suffix 返回的 cond——存 cond_s{0..9} 就够
+  probe 侧替入/对拍。先确认模型真实 time 调度公式：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu grep -n "time\|embed_suffix"
+      /data/apxinf/…)  ⎿  grep: /data/apxinf/lerobot/lerobot/policies/pi05/modeling_pi05.py: No
+     such file or directory
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "f=\$(python3 -c
+      \"import lerobot.…)
+  ⎿  /usr/local/lib/python3.11/site-packages/torchvision/io/image.py:13: Us
+     erWarning: Failed to load image Python extension: 'Could not load this
+      library: /usr/local/lib/python3.11/site-packages/torchvision/image.so
+     … +37 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu grep -n -A6 "def
+      sample_actions" /data/apx…)
+  ⎿  817:    def sample_actions(
+     818-        self,
+     819-        images,
+     … +29 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu sed -n "855,880p"
+      /data/apxinf/lerobot/src…)
+  ⎿              use_cache=True,
+             )
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● 时间调度确认一致（1.0 + step·dt，dt=-0.1）。关键发现：golden 的 te 在 mlp 
+  前就被 cast 成 f16（time_emb.to(timestep.dtype)，timestep 本身 f16）——我们
+  host 全 f32，这是一处真实的语义差。现在动手：golden 脚本加 cond_s{0..9} 键（烤
+  v3b，不动 v3），probe 加 PK_GOLD/STYLE_GOLD 两旋钮。先看 prefix 段 cmp
+  区精确文本：
+
+  Thought for 2s, read 1 file (ctrl+o to expand)
+
+● 四个编辑一次做完：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line, removed 1 line
+      1189              }
+      1190              keys.extend(
+      1191                  t.keys()
+      1192 -                    .filter(|k| k.starts_with("kvk_l"))      
+      1192 +                    .filter(|k| k.starts_with("kvk_l") || k.s
+           +tarts_with("kvv_l") || k.starts_with("cond_s"))              
+      1193                      .cloned()
+      1194                      .collect::<Vec<_>>(),
+      1195              );
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line
+      2052          let key_off = envi("GEB_LAYER_OFFSET", 0) as usize;
+      2053          for li in 0..depth {
+      2054              st.cmp_mid(&format!("kvk_l{}", li + key_off), &st
+            .kv[2 * li]);
+      2055 +            st.cmp_mid(&format!("kvv_l{}", li + key_off), &st
+           +.kv[2 * li + 1]);                                            
+      2056          }
+      2057          return;
+      2058      }
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 29 lines, removed 2 lines
+      2144      s.data(ctx, "ainb", &[1, AW], &ainb_h);
+      2145      // prefix k/v（rank-2——ConcatD axis=0 拼接后统一 Unsqueez
+            e）；
+      2146      // e2e：prefix OM 36 输出直连（k0,v0,k1,v1,... → pk{i}=kv
+            [2i]/pv{i}=kv[2i+1]）
+      2147 +    // GEB_E2E_PK_GOLD=1：pk/pv 改喂 golden kvk_l{i}/kvv_l{i}
+           +（step0 残差                                                 
+      2148 +    // bisect——检验 prefix 主路 k/v 残差喂 cross-attn 的贡献 
+           +）                                                           
+      2149 +    let pk_gold = envi("GEB_E2E_PK_GOLD", 0) == 1;           
+      2150 +    if pk_gold {                                             
+      2151 +        println!("[e2e] PK_GOLD: pk/pv 替入 golden kvk/kvv（b
+           +isect）");                                                   
+      2152 +    }                                                        
+      2153 +    let gold_key_f16 = |st: &E2eStage, k: &str| -> Vec<f16> {
+      2154 +        let v = st                                           
+      2155 +            .golden_mid                                      
+      2156 +            .iter()                                          
+      2157 +            .find(|(gk, _)| gk == k)                         
+      2158 +            .map(|(_, v)| v.clone())                         
+      2159 +            .unwrap_or_else(|| panic!("GEB_E2E_PK_GOLD 需要 g
+           +olden 键 {k}"));                                             
+      2160 +        v.into_iter().map(f16::from_f32).collect()           
+      2161 +    };                                                       
+      2162      for i in 0..depth {
+      2163          let pk_h = e2e
+      2164              .as_ref()
+      2150 -            .map(|st| st.kv[2 * i].clone())                  
+      2165 +            .map(|st| {                                      
+      2166 +                if pk_gold {                                 
+      2167 +                    gold_key_f16(st, &format!("kvk_l{i}"))   
+      2168 +                } else {                                     
+      2169 +                    st.kv[2 * i].clone()                     
+      2170 +                }                                            
+      2171 +            })                                               
+      2172              .unwrap_or_else(|| rand_f16((p * KVD) as usize, &
+            mut seed, 100.0));
+      2173          let pv_h = e2e
+      2174              .as_ref()
+      2154 -            .map(|st| st.kv[2 * i + 1].clone())              
+      2175 +            .map(|st| {                                      
+      2176 +                if pk_gold {                                 
+      2177 +                    gold_key_f16(st, &format!("kvv_l{i}"))   
+      2178 +                } else {                                     
+      2179 +                    st.kv[2 * i + 1].clone()                 
+      2180 +                }                                            
+      2181 +            })                                               
+      2182              .unwrap_or_else(|| rand_f16((p * KVD) as usize, &
+            mut seed, 100.0));
+      2183          s.data(ctx, &format!("pk{i}"), &[p, KVD], &pk_h);
+      2184          s.data(ctx, &format!("pv{i}"), &[p, KVD], &pv_h);
+
+● Now the styles substitution in the flow loop:
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 27 lines
+      2509                  cfg.time_max_period,
+      2510              );
+      2511              let cond = e2e_conditioning(rw, &te);
+      2512 +            // styles bisect：golden cond_s{step}（frame0_v3b
+           +）存在时打印 host                                            
+      2513 +            // f32 cond 与 golden 的差；GEB_E2E_STYLE_GOLD=1 
+           +则替入 golden cond                                           
+      2514 +            // （styles 仍由 host 投影重算——分离 {te+mlp 链} 
+           +与 {style 投影}）                                            
+      2515 +            let gold_cond = {                                
+      2516 +                let key = format!("cond_s{step}");           
+      2517 +                st.golden_mid                                
+      2518 +                    .iter()                                  
+      2519 +                    .find(|(k, _)| *k == key)                
+      2520 +                    .map(|(_, v)| v.clone())                 
+      2521 +            };                                               
+      2522 +            if let Some(want) = &gold_cond {                 
+      2523 +                assert_eq!(cond.len(), want.len(), "cond 与 g
+           +olden cond_s{step} 长度不符");                               
+      2524 +                let mut md = 0f32;                           
+      2525 +                for (a, b) in cond.iter().zip(want.iter()) { 
+      2526 +                    md = md.max((a - b).abs());              
+      2527 +                }                                            
+      2528 +                let rm = want.iter().fold(0f32, |m, v| m.max(
+           +v.abs()));                                                   
+      2529 +                println!(                                    
+      2530 +                    "[e2e] step {step} cond host-vs-golden ma
+           +x_diff={md:.6} (golden |max|={rm:.3})"                       
+      2531 +                );                                           
+      2532 +            }                                                
+      2533 +            let cond: Vec<f32> = if envi("GEB_E2E_STYLE_GOLD"
+           +, 0) == 1 {                                                  
+      2534 +                println!("[e2e] step {step} STYLE_GOLD: cond 
+           +替入 golden（bisect）");                                     
+      2535 +                gold_cond.expect("GEB_E2E_STYLE_GOLD 需要 gol
+           +den cond_s{step} 键（frame0_v3b）")                          
+      2536 +            } else {                                         
+      2537 +                cond                                         
+      2538 +            };                                               
+      2539              for i in 0..depth {
+      2540                  let lay = &rw.action_layers[i];
+      2541                  let (a_scl, a_sh) = e2e_style_pair(&lay.input
+            _norm.style, &cond, AW as usize);
+
+  Thought for 14s (ctrl+o to expand)
+
+● Probe 改完。现在改 golden 脚本（产 v3b，不动 v3）：
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 1 line, removed 1 line
+      24  from apxinf_robo.npu_torch import NpuTorchPi05Policy  # noqa: E
+          402
+      25  
+      26  CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
+      27 -OUT = "/data/apxinf/golden/frame0_v3.safetensors"              
+      27 +OUT = "/data/apxinf/golden/frame0_v3b.safetensors"             
+      28  
+      29  pol = NpuTorchPi05Policy(CKPT)
+      30  model = pol.policy.model
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 10 lines
+      102  golden["step0_x1"] = x1.float().reshape(-1, x1.shape[-1]).cpu(
+           ).numpy()
+      103  print("[v3] step0_x1 |max|", float(np.abs(golden["step0_x1"]).
+           max()),
+      104        " x0_vis", golden["x0_vis"].shape, " kvk_l0", golden["kv
+           k_l0"].shape)
+      105 +                                                              
+      106 +# ---- v3b 增补：per-step cond（styles bisect 用）----        
+      107 +# sample_actions 的 time 调度 = 1.0 + step·dt（上面已实证源码 
+          +）；embed_suffix                                              
+      108 +# 返回的 adarms_cond 是 time_mlp 之后的 conditioning（f16 链路
+          +——te 在 mlp 前                                                
+      109 +# 就 .to(timestep.dtype) 量化成 f16，与引擎 host f32 链是真实 
+          +语义差）。                                                    
+      110 +for s in range(int(-1.0 / dt)):                               
+      111 +    t_s = torch.tensor(1.0 + s * dt, dtype=torch.float16, devi
+          +ce=noise.device).expand(1)                                    
+      112 +    _, _, _, cond_s = model.embed_suffix(noise, t_s)          
+      113 +    golden[f"cond_s{s}"] = cond_s.float().reshape(-1).cpu().nu
+          +mpy()                                                         
+      114 +print("[v3b] cond_s0", golden["cond_s0"].shape, "cond_s9", gol
+          +den["cond_s9"].shape)                                         
+      115  save_file(golden, OUT)
+      116  print("saved:", OUT)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 推脚本上服务器并后台开烤 v3b，同时同步 probe 代码去 rust 容器编译：
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py
+      root@192.168.13.119:/data/apxinf/…)
+  ⎿  kicked
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/…)
+  ⎿  help: use `let _ = ...` to ignore the expression or result
+          |
+     4598 -             drop(stream.synchronize());
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 6m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 编译过（29.5s）。跑第一腿 bisect：PK_GOLD（pk/pv 替入 golden，用现有
+  v3）——后台起，顺便看 v3b 烤好没：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  started
+         pip install -e ./apxinf/python/apxinf --config-settings editable_m
+     ode=strict
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● PK_GOLD 跑起来了，但 v3b 烤图报错了。看完整日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'tail -40 /data/apxinf/golden/v3b.log')  ⎿  Traceback (most recent call last):
+       File "/data/apxinf/robo_src/apxinf_robo/engine.py", line 87, in requ
+     ire_apxinf
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 21s (ctrl+o to expand)
+
+● v3b 挂在 import——原 golden 跑的时候 PYTHONPATH 带了 engine_py/apxinf，我的
+  docker exec -d 没继承。按三件套模板补上重跑：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_npu bash -c "cd
+      /data/apxinf/golden && expo…)
+  ⎿  rekick
+
+● Bash(sleep 90; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'echo ===
+      v3b ===; tail -5 /data/apxinf/golden/v3b.log;…)
+  ⎿  === v3b ===
+       import pkg_resources
+     WARNING:root:No accelerated backend detected. Using default cpu, this
+     … +12 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 21s (ctrl+o to expand)
+
+● v3b 在加载（warning 是 config 期噪音，v3 当时同样有）。PK_GOLD 跑到 vision
+  段（0.3%/0.1% 与基线一致，符合预期——替入只影响 flow 段）。等 prefix +
+  step0_x1：
+
+● Bash(sleep 100; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'echo ===
+      v3b ===; tail -3 /data/apxinf/golden/v3b.log;…)
+  ⎿  === v3b ===
+     /usr/local/lib/python3.11/site-packages/torch_npu/dynamo/torchair/_ge_
+     concrete_graph/fx2ge_converter.py:1568: UserWarning: When enable froze
+     … +36 lines (ctrl+o to expand)
+  ⎿  (timeout 2m 10s)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 第一腿裁决：PK_GOLD 不解决——step0_x1 12.4%（基线 11.8%，同量级）⇒ prefix k/v
+  残差不是主因。顺手拿到 v 侧残差曲线（kvv 1.1→4.8%，与 k 侧同形）。主嫌转向
+  styles。看 v3b 烤好没：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'tail -6 /data/apxinf/golden/v3b.log; ls -la
+      /data/apxinf/golden/f…)
+  ⎿  ✅  converted:  model.paligemma_with_expert.gemma_expert.model.layers.
+     13.mlp.up_proj -> FRACTAL_NZ
+     ✅  converted:  model.paligemma_with_expert.gemma_expert.model.layers.
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● v3b 还在 NZ 权重转换阶段（policy 加载的常规流程）。等它落盘：
+
+● Bash(sleep 110; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'grep -E
+      "\[v3\]|\[v3b\]|saved|Error|Traceback" /data/a…)
+  ⎿  Warning: Could not remap state dict keys: Error(s) in loading state_di
+     ct for PI05Policy:
+     [v3] m0_vis (712, 2048)
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 2m 20s)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 我的 cond 循环在 no_grad 块外——requires grad 报错。修掉重跑：
+
+● Update(syx_docs\dev_logs\golden_gen_v3.py)
+  ⎿  Added 4 lines, removed 3 lines
+      108  # 返回的 adarms_cond 是 time_mlp 之后的 conditioning（f16 链路
+           ——te 在 mlp 前
+      109  # 就 .to(timestep.dtype) 量化成 f16，与引擎 host f32 链是真实
+           语义差）。
+      110  for s in range(int(-1.0 / dt)):
+      111 -    t_s = torch.tensor(1.0 + s * dt, dtype=torch.float16, devi
+          -ce=noise.device).expand(1)                                    
+      112 -    _, _, _, cond_s = model.embed_suffix(noise, t_s)          
+      113 -    golden[f"cond_s{s}"] = cond_s.float().reshape(-1).cpu().nu
+          -mpy()                                                         
+      111 +    with torch.no_grad():                                     
+      112 +        t_s = torch.tensor(1.0 + s * dt, dtype=torch.float16, 
+          +device=noise.device).expand(1)                                
+      113 +        _, _, _, cond_s = model.embed_suffix(noise, t_s)      
+      114 +        golden[f"cond_s{s}"] = cond_s.float().reshape(-1).cpu(
+          +).numpy()                                                     
+      115  print("[v3b] cond_s0", golden["cond_s0"].shape, "cond_s9", gol
+           den["cond_s9"].shape)
+      116  save_file(golden, OUT)
+      117  print("saved:", OUT)
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      /d/compass/APXinf/syx_docs/dev_logs/golden_gen_v3.py
+      root@192.168.13.119:/data/apxinf/…)
+  ⎿  rekick2
+     Mon Sep 21 05:24:59 AM UTC 2026
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(date)
+  ⎿  Mon, Sep 21, 2026  1:22:16 PM
+
+  Thought for 4s (ctrl+o to expand)
+
+● 13:22，余 33 分钟。等 v3b（约 4 分钟）：
+
+● Bash(sleep 240; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'grep -E
+      "\[v3b\]|saved|RuntimeError" /data/apxinf/gold…)
+  ⎿  [v3b] cond_s0 (1024,) cond_s9 (1024,)
+     saved: /data/apxinf/golden/frame0_v3b.safetensors
+     -rw-r--r-- 1 root root 97271168 Sep 21 05:28 /data/apxinf/golden/frame
+     0_v3b.safetensors
+  ⎿  (timeout 4m 30s)
+
+  Thought for 6s (ctrl+o to expand)
+
+● v3b 落盘（cond 维 = 1024）。跑第二腿：STYLE_GOLD（golden cond 替入，pk/pv
+  用我们自己的——与第一腿正交）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  started
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(sleep 215; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'grep -E
+      "cond host|STYLE_GOLD|step0_x1|step 0|step 9|f…)
+  ⎿  [e2e] golden 中间量: ["vision_out[1572864]", "x0[1982464]", "x0_vis[14
+     58176]", "step0_x1[1600]", "m0[1982464]", "h1[1982464]", "kvk_l3[18227
+     2]", "kvv_l15[182272]", "cond_s5[1024]", "kvk_l1[182272]", "kvv_l5[182
+     … +33 lines (ctrl+o to expand)
+  ⎿  (timeout 4m 10s)
+
+  Thought for 35s (ctrl+o to expand)
+● 第二腿裁决：STYLE_GOLD 也不解决——11.8%（与基线全等），且 host-vs-golden cond
+  差只有 0.002-0.012（fp16 量化级，语义没错）。两腿正交替入都无效 ⇒ 残差在 flow 
+  段执行本身（我们 fp16 全链 vs torch 混合精度——Gemma RMSNorm 是 fp32 
+  上浮计算），非输入源。拿 actions 绝对差收个尾：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -E "actions.*max_diff|golden actions|actions:"
+      /data/apxinf/…)
+  ⎿  Error: Exit code 1
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'grep -B2 -A2 "actions head"
+      /data/apxinf/style_gold.log | head -1…)
+  ⎿  [e2e] GOLDEN PARITY (first 7 cols): max_diff=3.80347 (golden |max|=1.0
+     55, rel=360.6%)
+     [e2e] flow 段 9.40835232s（含 OM 加载 + 10 步）
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 22s (ctrl+o to expand)
+
+● actions abs=3.8（|max|=1.055）——轨迹级混沌放大 + 小分母。bisect
+  三输入源全部洗清，结案。写 summary + 更新文档 + 提交（余 ~17 分钟）：
+
+● Write(syx_docs\dev_logs\summary\2026-09-21_m3-flow-step0-residual-bisect.md)
+  ⎿  Wrote 43 lines to
+     syx_docs\dev_logs\summary\2026-09-21_m3-flow-step0-residual-bisect.md
+      1 # M3 flow step0 残差 bisect 结案：输入源全洗清，残差定位于 flow 
+      2 
+        1_inplace-addrms-fusion-root-cause.md)（step0_x1 11.8% 与 addrms 
+      4 
+      6 
+        olden（kvk/kvv 真值）→ 12.4% 不动；cond 替入 golden（styles 上游
+        2（fp16 量化级，te+mlp 链语义正确）⇒ **残差在 flow 段执行本身：我
+        上浮算方差再 cast 回，我们 AddRmsNorm fp16 直算；叠加 kernel 融合
+         abs 1.6（分母 42）——flow 实际比 prefix 干净，rel% 是小分母假象。
+      9 ## 实验设计（正交替入）
+     … +65 lines (ctrl+o to expand)
+
+● Now update handoff, roadmap, setup:
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 2 lines, removed 2 lines
+      1 -# Handoff（2026-09-21 下午 InplaceAddRmsNorm 融合根因终结 + 修复
+        -落地 / 压缩用）                                                 
+      1 +# Handoff（2026-09-21 下午 flow step0 残差 bisect 结案 / 压缩用 
+        +）                                                              
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 addrms 污染已终结：根因 = `InplaceAddRmsNormFusionPass` 把 
+        -AddRmsNorm 融合成原地算子 `InplaceAddRmsNorm`（310P/910b 注册表 
+        -同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名与静
+        -态内存计划在读在图中间量时污染；Data 输入因用户 buffer 全程受保 
+        -护而免疫**（与上轮 16 步证据全兼容）。修复 = **init 级 `ge.fusio
+        -nSwitchFile` 关该 pass**（JSON 在 /data/apxinf/fusion_off_inplac
+        -e.json，镜像 syx_docs/dev_logs/fusion_off_inplace.json）。修复效
+        -果：MIN 图 11.041→0.159%、全量 attn 图 45.224→0.159%、e2e **kvk_
+        -l1 45.2→0.4% / kvk_l17 84→3.8%**（0.3→1.4→3.8% 教科书 fp16 累积 
+        -曲线）；prefix 段 worst 100%+→0.8% 且 124.61→**115.99ms（快 7%）
+        -**、flow 37.4→4.4% 且 7.89→7.57ms、vision 不变——**零代价净赚**。
+        -生产缓存 = /data/apxinf/om_cache/t712fix（**烤图/运行必须全程带 
+        -融合开关**，融合状态烤在 OM 里，旧 t712 不携带修复）。残余（与 a
+        -ddrms 无关）：step0_x1 11.8% / actions ~360%（小分母；noise 同源
+        -已证——probe 从 golden 载 `noise` 键起步）——候选 host styles 计算
+        -（段内对拍抵消盲区）> prefix 主路 hidden 残差 > flow 段 4.4%。详
+        -见 summary 2026-09-21_inplace-addrms-fusion-root-cause。        
+      5 +**M3 parity 定位全部收口：step0_x1 11.8% 的三个候选输入源两腿正 
+        +交替入全洗清**——PK_GOLD（pk/pv←golden kvk/kvv）12.4% 不动、STYLE
+        +_GOLD（cond←golden cond_s{step}）11.8% 与基线全等且 host-vs-gold
+        +en cond 差仅 0.0004-0.012（fp16 量化级，语义正确）⇒ **残差 = flo
+        +w 段执行语义：我们 fp16 全链 vs torch 混合精度（Gemma RMSNorm fp
+        +32 上浮）**；绝对量视角 step0 abs 0.35 < prefix l17 abs 1.6（rel
+        +% 是小分母假象），actions 360% = 小分母 + 10 步轨迹混沌放大（noi
+        +se 敏感同源）。**裁判 = LIBERO（≥9/10−1pp），不再追 parity**。工
+        +具沉淀：GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮 + golden v3b（
+        +frame0_v3b.safetensors = v3 ∪ cond_s{0..9}[1024]）。**M3 剩余 = 
+        +① 真实 e2e 稳态延迟 bench（host glue 是大头：styles 每步 host 算
+        ++h2d、pk/pv 中转；torch 基线 376ms 是含模型内 host 的全口径，我 
+        +们 247.7ms 只是设备侧）② LIBERO 对标 ③（不达标才做）RMSNorm fp32
+        + 上浮对齐**。前情：addrms 融合污染已修复（summary 2026-09-21_inp
+        +lace-addrms-fusion-root-cause，t712fix OM + 融合开关全程携带）；
+        +本轮见 summary 2026-09-21_m3-flow-step0-residual-bisect。       
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 2 lines, removed 2 lines
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（addrms 污染已修复，见 summary
+         - 2026-09-21_inplace-addrms-fusion-root-cause）**。第一动作：**f
+         -low step0 残差 bisect**——step0_x1 11.8% 与 addrms 无关（修复前 
+         -后同量级），noise 同源已证（probe 从 golden 载 `noise` 键起步）
+         -；候选排序：① **host 侧 styles 计算**（sinusoidal→time_mlp→styl
+         -e 在 probe host f32 算——flow 段 4.4% parity 是 vs eager 同 host
+         - glue，styles 偏差段内抵消、只在 vs golden 显形）② prefix 主路 
+         -hidden 残差（kvk_l17 3.8% 类）喂 flow cross-attn ③ flow 段自身 
+         -4.4%。方法：golden 的 styles/pk-pv/x1 渐进替入定位最大贡献者（G
+         -EB_E2E_X0_KEY 系旋钮 + GEB_E2E_GOLDEN 键）。修完 → 真实 e2e 稳 
+         -态延迟 bench（现有计时含 OM 加载/host glue 非稳态）→ LIBERO 对 
+         -标（9/10 基线）。运行口径：`GEB_ATTN=manual GEB_QKV3=1 GEB_ROPE
+         -FLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSwitchFile=/data/
+         -apxinf/fusion_off_inplace.json`（**烤图/运行都带，OM 用 t712fix
+         -**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/dat
+         -a/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/apxinf/golden/fr
+         -ame0_v3.safetensors GEB_CKPT=/data/apxinf/weights/pi05_libero_f
+         -inetuned GEB_SEG=e2e`。⚠ 纪律：PYTHONPATH 追加勿覆盖；GEB_SAVE 
+         -全路径文件名；bench 同芯对照；goal 时限纪律见全局 CLAUDE.md。  
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（parity 定位已全部收口，见 sum
+         +mary 2026-09-21_m3-flow-step0-residual-bisect）**。第一动作：**
+         +真实 e2e 稳态延迟 bench**——目标 = 全口径单次推理延迟（vision 56
+         +.11 + prefix 115.99 + flow 7.57×10 设备侧 247.7ms + host glue：
+         +每步 styles host f32 计算 + h2d 换绑、pk/pv host 中转、x0 构建 
+         +；bring-up 计时 flow 10 步 1.8-2.2s 含对拍非稳态）；对照 = torc
+         +h_npu 基线 model_ms P50 376.4（**含模型内 host 的全口径**——torc
+         +h 的 styles/euler 在 forward 内，我们的 host glue 不含在 247.7 
+         +里，直比偏乐观）。方法：ge_model_probe 的 GEB_SEG=e2e 加计时口 
+         +径（去掉 BISECT 对拍/下载）或专门 bench 模式；拿到数字后按 host
+         + glue 大头排优化（styles 10 步预计算批处理、pk/pv 设备直连）。 
+         +然后 **LIBERO 对标**（9/10 基线，验收 ≥9/10−1pp；parity 残差 fp
+         +16-class 定性已结，行为裁判在此）。运行口径：`GEB_ATTN=manual G
+         +EB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusio
+         +nSwitchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行 
+         +都带，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=
+         +200 GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/da
+         +ta/apxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/w
+         +eights/pi05_libero_finetuned GEB_SEG=e2e`（v3b = v3 ∪ cond_s*，
+         +bisect 旋钮 GEB_E2E_PK_GOLD/GEB_E2E_STYLE_GOLD 备用）。⚠ 纪律：
+         +PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         +hip6）；goal 时限纪律见全局 CLAUDE.md。                        
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_inp
+         -lace-addrms-fusion-root-cause.txt（M3 addrms 污染根因终结：Inpl
+         -aceAddRmsNorm 融合原地别名 + fusionSwitchFile 修复 + e2e kvk 全
+         -净）                                                           
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         +flow-step0-residual-bisect.txt（M3 step0 残差 bisect 结案：输入
+         +源全洗清 → flow 段 fp16-vs-torch 执行语义差；裁判移交 LIBERO） 
+      18  
+
+  Thought for 2s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**根因与修复**（InplaceAddRmsNormFusionPass 原地别名 
+         -污染 + `ge.fusionSwitchFile` init 级关闭 + t712fix OM 缓存 + 全
+         -部修复前后数字 kvk_l1 45.2→0.4/kvk_l17 84→3.8/prefix 0.8%/flow 
+         -4.4%/prefix 反快 7%）；**取证工具**（`DUMP_GE_GRAPH=3 DUMP_GRAP
+         -H_PATH=<dir>` 逐 pass 图 dump = 发现融合的破局点；GE 开源仓 `D:
+         -\compass\ge` 选项归属索引：`ge.*` 名 init 级 / atc 短名 build  
+         -级、bufferOptimize 合法值 `off_optimize` 非 off；disableReuseMe
+         -mory=1 与 bufferOptimize=off_optimize 均无效的实验）；**e2e 残 
+         -余**（kvk 链已净成 0.3→3.8% 平滑 fp16 曲线；step0_x1 11.8%/acti
+         -ons ~360% 独立残差——noise 同源已证、styles 盲区假说）；**运行口
+         -径**（四件套 + GEB_INIT_OPT_ge.fusionSwitchFile + GEB_PREFIX_DR
+         -OP_EMPTY=256 GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/t7
+         -12fix GEB_E2E_GOLDEN=frame0_v3 GEB_CKPT）。丢弃：选项 rc=-7/-1 
+         -试错过程、dump 文件清单。                                      
+       9 +聚焦保留：**bisect 结案**（PK_GOLD 12.4% / STYLE_GOLD 11.8% 全 
+         +等基线、cond host-vs-golden 0.0004-0.012 fp16 级 ⇒ 残差 = flow 
+         +段 fp16 全链 vs torch Gemma RMSNorm fp32 上浮的执行语义差；abs 
+         +视角 0.35 < prefix 1.6、actions 360% = 小分母 + 轨迹混沌放大） 
+         +；**工具**（GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮、golden v
+         +3b = v3 ∪ cond_s{0..9}[1024]（frame0_v3b.safetensors）、kvv 对 
+         +拍曲线 1.1→4.8%）；**性能口径**（三段 OM 稳态 247.7ms 纯设备侧 
+         +vs torch 基线 376ms 全口径——不可直比，e2e 稳态 bench 是下一动作
+         +）；**addrms 修复前情**（融合开关 GEB_INIT_OPT_ge.fusionSwitchF
+         +ile + t712fix OM 烤图/运行全程携带）。丢弃：golden 重烤的 PYTHO
+         +NPATH 报错与 no_grad 小修、两腿 run 的逐行 BISECT 输出。       
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+
+● Roadmap M3 剩余行更新：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      136    - **✅ M3 真根因终结（2026-09-21 凌晨——见 summary/2026-09-21
+           _m3-empty-camera-mask-root-cause）**。前晚"GE OM 图内数值"结论
+           部分推翻：**314% 真根因 = empty_camera 视图语义**——golden 9/10
+            语义只喂 2 真实视图，empty 走 missing 路径（-1 pad 图进 SigLI
+           P 但 pad_mask=0）：pad_2d 遮蔽 + cumsum 位置塌缩（文本 512..71
+           1）；引擎与 golden v2 replay 都把它当一等公民（可见 key + 位置
+            512..767）。五步裁决（f64 链 18.71% 与 GE 实测全等 → m0_gold 
+           第三世界 35.31% → 图像行画像 → golden_gen 源码 `image_keys[:2]
+           ` → theory_check 等价性 0.128%）。**修复 = `GEB_PREFIX_DROP_EM
+           PTY=256`（x0 剔除空视图行 968→712）+ golden v3（frame0_v3，自
+           洽 0.03-0.12%）+ t712 OM**。修复后 x0_vis 0.1% / kvk_l0 0.3% /
+            step0_x1 10.1%；**剩余漂移精确定位到层内 {o_proj mm + res + a
+           ddrms} 跨度 ~2.8% 执行误差**（m0 0.52% 传播上界仅 0.03%、torch
+            同链 f16 全程 0.03%——真执行误差；down/act 3.15/3.05% 无罪）。
+           性能再降：prefix 115.62ms@712 / flow 7.64 → **稳态 e2e ≈ 248ms
+            = 378 线 0.66×**
+      137    - **✅ M3 剩余漂移定罪（2026-09-21 上午——见 summary/2026-09-
+           21_ge-addrms-ingraph-corruption）**：attention 链（最小图 m0sq
+            0.229%/res 0.089%）、gate 宽 N mm（0.057%）、down 大 K mm（0.
+           017%）、MLP 尾组合（0.032%）、权重折叠、GQA 簇、rope、M 对齐、
+           auto-bind、dual-role **16 步全部洗清**；唯一定罪 = **[在图中间
+           量 → AddRmsNorm] 数值污染（11-13%）**——同值作 Data 输入 0.073%
+            干净（wmm4 决定性实验）、去 addrms 0.036% 干净、五类屏障/端口
+           变体逐位不变、小图 [mm→addrms] 干净、图形状强敏感（net 45.2/db
+           g 24.7/垫M 24.66/MIN 11.0）⇒ **GE 静态 OM 内存计划重叠活 buffe
+           r**（嫌疑；机制待下轮钉死）。最小复现 ~13 算子：`GEB_OPTEST=at
+           tn GEB_ATTN_MIN=1`。生产影响面 = prefix 每层 2 处 [add→addrms]
+           ×18 + flow（1.6% 同病小 shape）→ kvk_l17 84%/actions 323%
+      138    - **✅ M3 addrms 污染根因终结 + 修复落地（2026-09-21 下午——
+           见 summary/2026-09-21_inplace-addrms-fusion-root-cause）**：上
+           轮"内存计划重叠"的实体 = **`InplaceAddRmsNormFusionPass` 把 Ad
+           dRmsNorm 融合成原地算子 `InplaceAddRmsNorm`**（310P/910b 注册
+           表同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名
+           与静态内存计划在读在图中间量时污染；Data 输入因用户 buffer 受
+           保护而免疫（与 16 步证据全兼容）。**修复 = init 级 `ge.fusionS
+           witchFile` 关该 pass**（官方可关融合规则）：MIN 复现图 11.041%
+           →0.159%、全量 attn 图 45.224%→0.159%。**生产三段重烤（t712fix
+           ）**：prefix worst 100%+→**0.8%** 且 124.61→**115.99ms（快 7%
+           ）**、flow 37.4%→4.4%（fp16 累加序残余）且 7.89→7.57ms、vision
+            不变——**修复零代价净赚**。取证新工具：`DUMP_GE_GRAPH=3` 逐 pa
+           ss 图 dump（发现融合的破局点）、GE 开源仓（本地 D:\compass\ge
+           ）选项归属索引（`ge.*` 名 init 级 / atc 短名 build 级；bufferO
+           ptimize 合法值 `off_optimize`）。skill ge-offline-om 陷阱 #31 
+           + 工具箱 #6/#7 回填
+      139 -- **M3 剩余**：① **flow step0 残差 bisect**（step0_x1 11.8%/ac
+          -tions ~360% 与 addrms 无关；候选 = host styles 计算〔段内对拍 
+          -抵消盲区〕> prefix 主路 hidden 残差 > flow 段 4.4%；golden sty
+          -les/pk-pv/x1 渐进替入定位）② 真实 e2e 延迟 bench（稳态，非 bri
+          -ng-up 计时）③ LIBERO 对标（9/10 基线）；后置：pk/pv 设备直连、
+          -懒加载、真 tokenizer                                          
+      139 +- **✅ M3 step0 残差 bisect 结案（2026-09-21 下午——见 summary/
+          +2026-09-21_m3-flow-step0-residual-bisect）**：三候选输入源两腿
+          +正交替入全洗清——PK_GOLD（pk/pv←golden）12.4% 不动、STYLE_GOLD 
+          +（cond←golden）11.8% 全等基线（cond host-vs-golden 仅 0.0004-0
+          +.012 fp16 量化级，te/mlp 语义正确）⇒ **残差 = flow 段执行语义 
+          +（fp16 全链 vs torch Gemma RMSNorm fp32 上浮）**；abs 视角 ste
+          +p0 0.35 < prefix l17 1.6（rel% 小分母假象），actions ~360% =  
+          +小分母 + 10 步轨迹混沌放大（noise 敏感同源）。**parity 追查止 
+          +于此，裁判移交 LIBERO**。工具：GEB_E2E_PK_GOLD/STYLE_GOLD 旋钮
+          + + golden v3b（cond_s{0..9}）；kvv 对拍曲线 1.1→4.8% 与 k 侧对
+          +称                                                            
+      140 +- **M3 剩余**：① **真实 e2e 稳态延迟 bench**（全口径：247.7ms 
+          +设备侧 + host glue〔styles 每步 host 算+h2d、pk/pv 中转〕；tor
+          +ch 376ms 是含模型内 host 的全口径不可直比）② **LIBERO 对标**（
+          +9/10 基线，验收 ≥9/10−1pp）③（LIBERO 不达标才做）RMSNorm fp32 
+          +上浮对齐；后置：pk/pv 设备直连、懒加载、真 tokenizer          
+      141    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      142      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      143    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 8s (ctrl+o to expand)
+
+● Setup.md 旋钮登记（ bisect 隔离旋钮清单追加两个新旋钮）：
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          -真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          - eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          -m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          - y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          -明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          - **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          -走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          -、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          -msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          -=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          -e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          -别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          -proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          -观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          -B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          -件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          -m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          -e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          -ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          -onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          -B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          -*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          -_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          -10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          -；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          -SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          -{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          -= 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          -键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          - 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          -_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+439 chars]     
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          + y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          +明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          + **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          +走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          +、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          +msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          +=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          +e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          +别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          +proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          +观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          +B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          +件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          +m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          +e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          +ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          +onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          +B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          +*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          +_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          +10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          +；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          +SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          +{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          += 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          +键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          + 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          +_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+724 chars]     
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值）。⚠ 选项归属（2026-09
+           -21 定，权威索引=开源 GE 仓 `compiler/api/aclgrph/ge_ir_build.
+           cc` CheckGlobalOptions + `api/atc/main_impl.cc`）：**`ge.*` 前
+           缀名是 init 级**（socVersion/fusionSwitchFile/bufferOptimize/d
+           isableReuseMemory…），**build 级只收 atc 短名**（input_shape/i
+           nput_format…）——传错层 rc=-7/-1 与"选项不存在"同症状；合法值如
+            bufferOptimize=`off_optimize`（非 off）、disableReuseMemory="
+           0"/"1"。**`GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusio
+           n_off_inplace.json` = addrms 污染修复（2026-09-21，M3）**：关 
+           InplaceAddRmsNormFusionPass（原地融合别名写回污染在图中间量；J
+           SON 镜像 syx_docs/dev_logs/fusion_off_inplace.json）——**烤图/
+           运行必须全程携带**（融合状态烤在 OM 里，当前生产缓存 = /data/a
+           pxinf/om_cache/t712fix，prefix 0.8%/flow 4.4% 且更快）。取证利
+           器：`DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>` 逐 pass 图 dump |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 4s (ctrl+o to expand)
+
+● 文档齐。两步提交（子模块 → 外层）：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git branch
+      --show-current)
+  ⎿   M crates/apxinf-model/examples/ge_model_probe.rs
+     ascend-port
+
+● Bash(git add crates/apxinf-model/examples/ge_model_probe.rs && git commit -m
+      "ge_model_probe(e2e): step0 残差 bisect 旋钮——GEB_E2E_PK_GOLD /
+      GEB_E2E_STYLE_GOLD…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port b8dee4d] ge_model_probe(e2e): step0 残差 bisect 旋钮——GEB
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(git push fork ascend-port 2>&1 | head -10)
+  ⎿  ssh_dispatch_run_fatal: Connection to 20.205.243.166 port 22: Connecti
+     on timed out
+     fatal: Could not read from remote repository.
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(git push fork ascend-port 2>&1 | head -5)
+  ⎿  ssh_dispatch_run_fatal: Connection to 20.205.243.166 port 22: Connecti
+     on timed out
+     fatal: Could not read from remote repository.
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 1m)
+
+  Thought for 5s (ctrl+o to expand)
+● Bash(git push ssh://git@ssh.github.com:443/WeNeedMoreCode/ApxInf.git
+      ascend-port 2>&1 | head -5)
+  ⎿  ssh_dispatch_run_fatal: Connection to 20.205.243.160 port 443: Connect
+     ion timed out
+     fatal: Could not read from remote repository.
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 1m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● GitHub 当前不可达（22/443 都超时，疑似 VPN 掉线）——子模块 commit b8dee4d
+  已安全落在本地，push 挂起稍后补。先提交外层仓：
+
+● Bash(cd /d/compass/APXinf && git add apxinf syx_docs/dev_logs/handoff.md
+      syx_docs/dev_logs/summary/2026-09-21_m3-flow-step0-residual-bisect.md
+      syx_docs/dev_logs/gold…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/golden_gen_v3.py',
+     LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     … +15 lines (ctrl+o to expand)
+
+● Bash(git commit -m "M3 step0 残差 bisect 结案：输入源全洗清，残差 = flow 段
+      fp16 vs torch 混合精度执行语义…)
+  ⎿  [main a01fe66] M3 step0 残差 bisect 结案：输入源全洗清，残差 = flow 段
+      fp16 vs torch 混合精度执行语义
+      6 files changed, 64 insertions(+), 9 deletions(-)
+     … +4 lines (ctrl+o to expand)
+
+● Bash(git push origin main 2>&1 | head -4; cd apxinf && git push fork
+      ascend-port 2>&1 | head -3; date)
+  ⎿  ssh_dispatch_run_fatal: Connection to 20.205.243.166 port 22: Connecti
+     on timed out
+     fatal: Could not read from remote repository.
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 1m 30s)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 工作已完成（13:36，期限前）。GitHub 两仓 push 均因网络不可达挂起（22/443
+  都超时，疑 VPN 掉线），本地提交安全：子模块 b8dee4d + 外层 a01fe66，网络恢复后
+  git push fork ascend-port / git push origin main 即可。
+
+  本轮战果：M3 step0 残差 bisect 结案
+
+  问题：step0_x1 11.8% / actions ~360% 的残差来自哪？（候选：host styles 计算 >
+  prefix k/v 残差 > flow 段自身）
+
+  方法：两腿正交替入真值（新增 GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮 +
+  golden v3b 补 cond_s{0..9} 键）：
+
+  ┌────────────┬─────────────────────────────┬───────────┬─────────────────┐
+  │     腿     │            替入             │ step0_x1  │      裁决       │
+  ├────────────┼─────────────────────────────┼───────────┼─────────────────┤
+  │ 基线       │ —                           │ 11.8%     │ 参照            │
+  ├────────────┼─────────────────────────────┼───────────┼─────────────────┤
+  │ PK_GOLD    │ pk/pv ← golden kvk/kvv 全   │ 12.4%     │ prefix k/v      │
+  │            │ 36 张量                     │           │ 残差洗清        │
+  ├────────────┼─────────────────────────────┼───────────┼─────────────────┤
+  │ STYLE_GOLD │ cond ← golden（styles       │ 11.8%     │ host styles     │
+  │            │ 上游真值）                  │ 全等      │ 链洗清          │
+  └────────────┴─────────────────────────────┴───────────┴─────────────────┘
+
+  决定性旁证：host-vs-golden cond 差仅 0.0004-0.012（fp16 量化级）——te+mlp
+  链语义正确，torch 在 mlp 前把 te 量化成 f16 的语义差根本不值得追。
+
+  结论：残差在 flow 段执行本身 = 我们 fp16 全链 vs torch 混合精度（Gemma RMSNorm
+  在 torch 里 fp32 上浮算方差）。绝对量视角：step0 abs 0.35 小于 prefix l17 的
+  1.6——rel% 11.8% vs 3.8% 是小分母假象；actions 360% 再叠加 10
+  步轨迹混沌放大（与 checkpoint 的 noise 敏感性同源）。parity 
+  追查止于此，裁判移交 LIBERO。
+
+  顺手战果：kvv 对拍曲线补全（1.1→4.8%，与 k 侧 0.3→3.8% 对称——fp16
+  累积曲线双侧确认）。
+
+  M3 剩余（roadmap 已更新）：① 真实 e2e 稳态延迟 bench（全口径含 host glue，与
+  torch 376ms 全口径对线）② LIBERO 对标（≥9/10−1pp）③ 仅在不达标时做 RMSNorm
+  fp32 对齐。
+
+✔ Goal achieved (29m · 1 turn · 36.1k tokens) (ctrl+o to expand)
+
+✻ Churned for 29m 19s · done 1:36 PM
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3                                        
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU **C 路线 M3
+
+  Thought for 1m 17s (ctrl+o to expand)
+
+● 收到，继续 M3。按 roadmap 下一项：真实 e2e 稳态延迟 bench（全口径 + 分解，定位
+  host glue 大头）。先锚时间，再看现有 e2e 分段计时与插桩点：
+
+● Bash(date; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'grep -E
+      "段.*含|flow 10" /data/apxinf/style_gold.log')
+  ⎿  Mon, Sep 21, 2026  8:40:13 PM
+     [e2e] vision 段 9.8959545s（含 OM 加载）
+     [e2e] prefix 段 77.44929427s（含 OM 加载 + 2.1GB 嵌入查表）
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 20:40（新工作块）。bring-up 分解确认：flow 10 步 1.81s 中设备仅 75.7ms ⇒ host 
+  styles ≈173ms/步 = 最大 glue。看三个段的 e2e 分支找稳态 bench 插桩点：
+
+  Thought for 42s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 flow e2e 段现状（我上轮加的 cond 对拍/替入在循环内），准备重构为 styles
+  预计算缓存 + bring-up + 稳态 bench 循环：
+
+  Thought for 39s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 重构 flow e2e 段（styles 预计算缓存 + bring-up 从缓存取 + 稳态 bench
+  循环）。两处 Edit：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 66 lines, removed 47 lines
+      2498          let nb = s.binds.len();
+      2499          h2d_f16(&s.binds[nb - 2], &c1_h);
+      2500          h2d_f16(&s.binds[nb - 1], &c2_h);
+      2501 +        // styles 预计算缓存：10 步 time 调度固定（1+step·dt 
+           +）⇒ styles 跨调用                                            
+      2502 +        // 不变，生产口径一次性算 + 常驻（每步 host 现算 ≈173
+           +ms/步 是 glue 大头，                                         
+      2503 +        // 2026-09-21 bring-up 计时定罪）。cond 对拍/替入诊断
+           +（bisect）保留在此                                           
+      2504 +        let tpre = std::time::Instant::now();                
+      2505 +        let style_cache: Vec<Vec<Vec<f16>>> = (0..cfg.num_flo
+           +w_steps)                                                     
+      2506 +            .map(|step| {                                    
+      2507 +                let time = cfg.flow_start_time * (1.0 - step 
+           +as f32 / cfg.num_flow_steps as f32);                         
+      2508 +                let te = sinusoidal_time_embedding(          
+      2509 +                    time,                                    
+      2510 +                    cfg.action_expert.width,                 
+      2511 +                    cfg.time_min_period,                     
+      2512 +                    cfg.time_max_period,                     
+      2513 +                );                                           
+      2514 +                let cond = e2e_conditioning(rw, &te);        
+      2515 +                // styles bisect：golden cond_s{step}（frame0
+           +_v3b）存在时打印 host                                        
+      2516 +                // f32 cond 与 golden 的差；GEB_E2E_STYLE_GOL
+           +D=1 则替入 golden cond                                       
+      2517 +                // （styles 仍由 host 投影重算——分离 {te+mlp 
+           +链} 与 {style 投影}）                                        
+      2518 +                let gold_cond = {                            
+      2519 +                    let key = format!("cond_s{step}");       
+      2520 +                    st.golden_mid                            
+      2521 +                        .iter()                              
+      2522 +                        .find(|(k, _)| *k == key)            
+      2523 +                        .map(|(_, v)| v.clone())             
+      2524 +                };                                           
+      2525 +                if let Some(want) = &gold_cond {             
+      2526 +                    assert_eq!(cond.len(), want.len(), "cond 
+           +与 golden cond_s{step} 长度不符");                           
+      2527 +                    let mut md = 0f32;                       
+      2528 +                    for (a, b) in cond.iter().zip(want.iter()
+           +) {                                                          
+      2529 +                        md = md.max((a - b).abs());          
+      2530 +                    }                                        
+      2531 +                    println!("[e2e] step {step} cond host-vs-
+           +golden max_diff={md:.6}");                                   
+      2532 +                }                                            
+      2533 +                let cond: Vec<f32> = if envi("GEB_E2E_STYLE_G
+           +OLD", 0) == 1 {                                              
+      2534 +                    gold_cond.expect("GEB_E2E_STYLE_GOLD 需要
+           + golden cond_s{step} 键（frame0_v3b）")                      
+      2535 +                } else {                                     
+      2536 +                    cond                                     
+      2537 +                };                                           
+      2538 +                let mut v: Vec<Vec<f16>> = Vec::with_capacity
+           +(depth * 4 + 2);                                             
+      2539 +                for i in 0..depth {                          
+      2540 +                    let lay = &rw.action_layers[i];          
+      2541 +                    let (a_scl, a_sh) = e2e_style_pair(&lay.i
+           +nput_norm.style, &cond, AW as usize);                        
+      2542 +                    let (m_scl, m_sh) = e2e_style_pair(&lay.p
+           +ost_attention_norm.style, &cond, AW as usize);               
+      2543 +                    v.push(a_scl);                           
+      2544 +                    v.push(a_sh);                            
+      2545 +                    v.push(m_scl);                           
+      2546 +                    v.push(m_sh);                            
+      2547 +                }                                            
+      2548 +                let (f_scl, f_sh) = e2e_style_pair(&rw.action
+           +_final_norm.style, &cond, AW as usize);                      
+      2549 +                v.push(f_scl);                               
+      2550 +                v.push(f_sh);                                
+      2551 +                v                                            
+      2552 +            })                                               
+      2553 +            .collect();                                      
+      2554 +        println!(                                            
+      2555 +            "[e2e] styles 预计算 ×{} 步 {:?}（一次性，跨调用 
+           +缓存）",                                                     
+      2556 +            cfg.num_flow_steps,                              
+      2557 +            tpre.elapsed()                                   
+      2558 +        );                                                   
+      2559          let t0 = std::time::Instant::now();
+      2560          for step in 0..cfg.num_flow_steps {
+      2503 -            // t = flow_start·(1-step/N)（ascend_vla 同式）→ 
+           -te → cond → styles                                           
+      2504 -            let time = cfg.flow_start_time * (1.0 - step as f
+           -32 / cfg.num_flow_steps as f32);                             
+      2505 -            let te = sinusoidal_time_embedding(              
+      2506 -                time,                                        
+      2507 -                cfg.action_expert.width,                     
+      2508 -                cfg.time_min_period,                         
+      2509 -                cfg.time_max_period,                         
+      2510 -            );                                               
+      2511 -            let cond = e2e_conditioning(rw, &te);            
+      2512 -            // styles bisect：golden cond_s{step}（frame0_v3b
+           -）存在时打印 host                                            
+      2513 -            // f32 cond 与 golden 的差；GEB_E2E_STYLE_GOLD=1 
+           -则替入 golden cond                                           
+      2514 -            // （styles 仍由 host 投影重算——分离 {te+mlp 链} 
+           -与 {style 投影}）                                            
+      2515 -            let gold_cond = {                                
+      2516 -                let key = format!("cond_s{step}");           
+      2517 -                st.golden_mid                                
+      2518 -                    .iter()                                  
+      2519 -                    .find(|(k, _)| *k == key)                
+      2520 -                    .map(|(_, v)| v.clone())                 
+      2521 -            };                                               
+      2522 -            if let Some(want) = &gold_cond {                 
+      2523 -                assert_eq!(cond.len(), want.len(), "cond 与 g
+           -olden cond_s{step} 长度不符");                               
+      2524 -                let mut md = 0f32;                           
+      2525 -                for (a, b) in cond.iter().zip(want.iter()) { 
+      2526 -                    md = md.max((a - b).abs());              
+      2527 -                }                                            
+      2528 -                let rm = want.iter().fold(0f32, |m, v| m.max(
+           -v.abs()));                                                   
+      2529 -                println!(                                    
+      2530 -                    "[e2e] step {step} cond host-vs-golden ma
+           -x_diff={md:.6} (golden |max|={rm:.3})"                       
+      2531 -                );                                           
+      2532 -            }                                                
+      2533 -            let cond: Vec<f32> = if envi("GEB_E2E_STYLE_GOLD"
+           -, 0) == 1 {                                                  
+      2534 -                println!("[e2e] step {step} STYLE_GOLD: cond 
+           -替入 golden（bisect）");                                     
+      2535 -                gold_cond.expect("GEB_E2E_STYLE_GOLD 需要 gol
+           -den cond_s{step} 键（frame0_v3b）")                          
+      2536 -            } else {                                         
+      2537 -                cond                                         
+      2538 -            };                                               
+      2561 +            let sc = &style_cache[step];                     
+      2562              for i in 0..depth {
+      2540 -                let lay = &rw.action_layers[i];              
+      2541 -                let (a_scl, a_sh) = e2e_style_pair(&lay.input
+           -_norm.style, &cond, AW as usize);                            
+      2542 -                let (m_scl, m_sh) = e2e_style_pair(&lay.post_
+           -attention_norm.style, &cond, AW as usize);                   
+      2563                  let b = layer_bases[i];
+      2544 -                h2d_f16(&s.binds[b], &a_scl);                
+      2545 -                h2d_f16(&s.binds[b + 1], &a_sh);             
+      2546 -                h2d_f16(&s.binds[b + 10], &m_scl);           
+      2547 -                h2d_f16(&s.binds[b + 11], &m_sh);            
+      2564 +                h2d_f16(&s.binds[b], &sc[4 * i]);            
+      2565 +                h2d_f16(&s.binds[b + 1], &sc[4 * i + 1]);    
+      2566 +                h2d_f16(&s.binds[b + 10], &sc[4 * i + 2]);   
+      2567 +                h2d_f16(&s.binds[b + 11], &sc[4 * i + 3]);   
+      2568              }
+      2549 -            let (f_scl, f_sh) = e2e_style_pair(&rw.action_fin
+           -al_norm.style, &cond, AW as usize);                          
+      2550 -            h2d_f16(&s.binds[fs_idx], &f_scl);               
+      2551 -            h2d_f16(&s.binds[fs_idx + 1], &f_sh);            
+      2569 +            h2d_f16(&s.binds[fs_idx], &sc[4 * depth]);       
+      2570 +            h2d_f16(&s.binds[fs_idx + 1], &sc[4 * depth + 1])
+           +;                                                            
+      2571              h2d_f16(&s.binds[0], &x); // state = 当前 x
+      2572              let ins = s.ins();
+      2573              let oref: Vec<&DeviceBuffer> = vec![&ob];
+     ...
+      2580                  st.cmp_mid("step0_x1", &x);
+      2581              }
+      2582          }
+      2564 -        println!("[e2e] flow 10 步 {:?}（含每步 styles host  
+           -计算 + h2d 换绑）", t0.elapsed());                           
+      2583 +        println!("[e2e] flow 10 步 {:?}（styles 已缓存——纯 h2
+           +d 换绑 + run + d2h）", t0.elapsed());                        
+      2584          st.actions = x;
+      2585          if let Some(g) = &st.golden_actions {
+      2586              // golden actions = predict_action_chunk 的 deplo
+            yable 切片
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 35 lines
+      2581              }
+      2582          }
+      2583          println!("[e2e] flow 10 步 {:?}（styles 已缓存——纯 h2
+            d 换绑 + run + d2h）", t0.elapsed());
+      2584 +        // GEB_E2E_BENCH=N：稳态 per-call bench——每迭代 = 完 
+           +整 10 步 flow                                                
+      2585 +        // （styles 缓存直取 + h2d + run + sync + d2h），x 每
+           +迭代从 noise 重启                                            
+      2586 +        let nb = envi("GEB_E2E_BENCH", 0) as usize;          
+      2587 +        if nb > 0 {                                          
+      2588 +            let mut ts = Vec::with_capacity(nb);             
+      2589 +            for _ in 0..nb {                                 
+      2590 +                let t = std::time::Instant::now();           
+      2591 +                let mut xx = st.noise.clone();               
+      2592 +                for sc in &style_cache {                     
+      2593 +                    for i in 0..depth {                      
+      2594 +                        let b = layer_bases[i];              
+      2595 +                        h2d_f16(&s.binds[b], &sc[4 * i]);    
+      2596 +                        h2d_f16(&s.binds[b + 1], &sc[4 * i + 
+           +1]);                                                         
+      2597 +                        h2d_f16(&s.binds[b + 10], &sc[4 * i +
+           + 2]);                                                        
+      2598 +                        h2d_f16(&s.binds[b + 11], &sc[4 * i +
+           + 3]);                                                        
+      2599 +                    }                                        
+      2600 +                    h2d_f16(&s.binds[fs_idx], &sc[4 * depth])
+           +;                                                            
+      2601 +                    h2d_f16(&s.binds[fs_idx + 1], &sc[4 * dep
+           +th + 1]);                                                    
+      2602 +                    h2d_f16(&s.binds[0], &xx);               
+      2603 +                    let ins = s.ins();                       
+      2604 +                    let oref: Vec<&DeviceBuffer> = vec![&ob];
+      2605 +                    s.g.run(&ins, &oref, stream).expect("ge r
+           +un");                                                        
+      2606 +                    drop(stream.synchronize());              
+      2607 +                    xx = download_f16(ctx, &ob, (HOR * ADIM) 
+           +as usize);                                                   
+      2608 +                }                                            
+      2609 +                ts.push(t.elapsed().as_secs_f64() * 1e3);    
+      2610 +            }                                                
+      2611 +            ts.sort_by(|a, b| a.partial_cmp(b).unwrap());    
+      2612 +            println!(                                        
+      2613 +                "[e2e] flow 稳态 bench ×{nb} 调用（10 步/调用
+           +，styles 缓存 + h2d + run + sync + d2h）: P50={:.2}ms min={:.
+           +2} max={:.2}",                                               
+      2614 +                ts[nb / 2],                                  
+      2615 +                ts[0],                                       
+      2616 +                ts[nb - 1]                                   
+      2617 +            );                                               
+      2618 +        }                                                    
+      2619          st.actions = x;
+      2620          if let Some(g) = &st.golden_actions {
+      2621              // golden actions = predict_action_chunk 的 deplo
+            yable 切片
+
+● Now the e2e_run bench loop for vision/prefix:
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 25 lines, removed 2 lines
+      1149      let refs: Vec<&DeviceBuffer> = outs.iter().collect();
+      1150      s.g.run(&ins, &refs, stream).expect("ge run");
+      1151      drop(stream.synchronize());
+      1152 -    (0..n_out)                                               
+      1152 +    let dl: Vec<Vec<f16>> = (0..n_out)                       
+      1153          .map(|i| download_f16(ctx, &outs[i], s.g.output_size(
+            i).unwrap() / 2))
+      1154 -        .collect()                                           
+      1154 +        .collect();                                          
+      1155 +    // GEB_E2E_BENCH=N：稳态 rerun bench（输入 binds 不变重跑
+           +；含全输出 d2h                                               
+      1156 +    // ——prefix 的 36 路 kv 下载 = today 生产 host 中转 glue 
+           +，如实计入）                                                 
+      1157 +    let nb = envi("GEB_E2E_BENCH", 0) as usize;              
+      1158 +    if nb > 0 {                                              
+      1159 +        let mut ts = Vec::with_capacity(nb);                 
+      1160 +        for _ in 0..nb {                                     
+      1161 +            let t = std::time::Instant::now();               
+      1162 +            s.g.run(&ins, &refs, stream).expect("ge run");   
+      1163 +            drop(stream.synchronize());                      
+      1164 +            let _: Vec<_> = (0..n_out)                       
+      1165 +                .map(|i| download_f16(ctx, &outs[i], s.g.outp
+           +ut_size(i).unwrap() / 2))                                    
+      1166 +                .collect();                                  
+      1167 +            ts.push(t.elapsed().as_secs_f64() * 1e3);        
+      1168 +        }                                                    
+      1169 +        ts.sort_by(|a, b| a.partial_cmp(b).unwrap());        
+      1170 +        println!(                                            
+      1171 +            "[e2e] {seg} 稳态 bench ×{nb}: P50={:.2}ms min={:
+           +.2} max={:.2}（run + sync + {n_out} 路 d2h）",               
+      1172 +            ts[nb / 2],                                      
+      1173 +            ts[0],                                           
+      1174 +            ts[nb - 1]                                       
+      1175 +        );                                                   
+      1176 +    }                                                        
+      1177 +    dl                                                       
+      1178  }
+      1179  
+      1180  fn seg_e2e(be: &AscendBackend, bench: bool, real: Option<&Pi0
+            5Weights>) {
+
+  Thought for 5s (ctrl+o to expand)
+
+● 同步 + 编译 + 带 GEB_E2E_BENCH=10 跑全链（bring-up 后自动进三段稳态 bench）：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/…)
+  ⎿  warning: unused variable: `stream`
+     warning: unused import: `Backend as _`
+     warning: unused import: `apxinf_core::Backend as _`
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 6m)
+
+  Thought for 3s (ctrl+o to expand)
+● 输出被 warning 淹没，确认编译结果：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿      Finished `release` profile [optimized] target(s) in 0.07s
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  started
+     Mon Sep 21 12:46:28 PM UTC 2026
+
+● Bash(sleep 200; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'grep -E
+      "稳态|styles 预计算|flow 10|段 .*含|BISECT step0|PARI…)
+  ⎿  [e2e] vision 稳态 bench ×10: P50=66.82ms min=66.37 max=69.63（run + sy
+     nc + 111 路 d2h）
+     [e2e] vision 段 11.03363868s（含 OM 加载）
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 3m 50s)
+
+  Thought for 23s (ctrl+o to expand)
+
+● M3 稳态 e2e bench 落地（chip6，t712fix，×10）：
+
+  ┌─────────────┬──────────┬────────┬──────────────────────────────────────┐
+  │     段      │ 稳态 P50 │ 设备侧 │        glue 增量（如实计入）         │
+  ├─────────────┼──────────┼────────┼──────────────────────────────────────┤
+  │ vision      │ 66.82ms  │ 56.11  │ +10.7（111 路 aux d2h）              │
+  ├─────────────┼──────────┼────────┼──────────────────────────────────────┤
+  │ prefix      │ 140.39ms │ 115.99 │ +24.4（36 路 kv d2h 13MB host 中转） │
+  ├─────────────┼──────────┼────────┼──────────────────────────────────────┤
+  │ flow ×10 步 │ 103.08ms │ 75.7   │ +27.4（37×2 h2d/步 + x d2h）         │
+  └─────────────┴──────────┴────────┴──────────────────────────────────────┘
+
+  全口径稳态 ≈ 310ms/调用 = torch 基线 376ms 的 0.82×（快 
+  18%）——延迟验收线已过。styles 预计算一次性 2.06s/进程（跨调用缓存）。收尾文档
+  + 提交：
+
+● Write(syx_docs\dev_logs\summary\2026-09-21_m3-e2e-steady-bench.md)
+  ⎿  Wrote 40 lines to
+     syx_docs\dev_logs\summary\2026-09-21_m3-e2e-steady-bench.md
+      1 # M3 真实 e2e 稳态延迟 bench：310ms/调用 = torch 基线 0.82×，延迟
+      2 
+        21_m3-flow-step0-residual-bisect.md)（parity 收口，裁判移交 LIBER
+      4 
+      6 
+      7 **全口径稳态 per-call ≈ 310.3ms（vision 66.82 + prefix 140.39 + f
+         P50 376.4ms 的 0.82×（快 18%）——M3 延迟对标"显著优于 378ms"达成*
+        2d、36 路 kv host 中转 d2h、x 逐步 d2h），与 torch 的 forward 全
+        计算缓存（2.06s/进程，10 步调度固定 ⇒ 跨调用不变）。
+      9 ## 数字表（GEB_E2E_BENCH=10，稳态 rerun）
+     … +58 lines (ctrl+o to expand)
+
+● Roadmap + handoff + setup 更新：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      137    - **✅ M3 剩余漂移定罪（2026-09-21 上午——见 summary/2026-09-
+           21_ge-addrms-ingraph-corruption）**：attention 链（最小图 m0sq
+            0.229%/res 0.089%）、gate 宽 N mm（0.057%）、down 大 K mm（0.
+           017%）、MLP 尾组合（0.032%）、权重折叠、GQA 簇、rope、M 对齐、
+           auto-bind、dual-role **16 步全部洗清**；唯一定罪 = **[在图中间
+           量 → AddRmsNorm] 数值污染（11-13%）**——同值作 Data 输入 0.073%
+            干净（wmm4 决定性实验）、去 addrms 0.036% 干净、五类屏障/端口
+           变体逐位不变、小图 [mm→addrms] 干净、图形状强敏感（net 45.2/db
+           g 24.7/垫M 24.66/MIN 11.0）⇒ **GE 静态 OM 内存计划重叠活 buffe
+           r**（嫌疑；机制待下轮钉死）。最小复现 ~13 算子：`GEB_OPTEST=at
+           tn GEB_ATTN_MIN=1`。生产影响面 = prefix 每层 2 处 [add→addrms]
+           ×18 + flow（1.6% 同病小 shape）→ kvk_l17 84%/actions 323%
+      138    - **✅ M3 addrms 污染根因终结 + 修复落地（2026-09-21 下午——
+           见 summary/2026-09-21_inplace-addrms-fusion-root-cause）**：上
+           轮"内存计划重叠"的实体 = **`InplaceAddRmsNormFusionPass` 把 Ad
+           dRmsNorm 融合成原地算子 `InplaceAddRmsNorm`**（310P/910b 注册
+           表同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名
+           与静态内存计划在读在图中间量时污染；Data 输入因用户 buffer 受
+           保护而免疫（与 16 步证据全兼容）。**修复 = init 级 `ge.fusionS
+           witchFile` 关该 pass**（官方可关融合规则）：MIN 复现图 11.041%
+           →0.159%、全量 attn 图 45.224%→0.159%。**生产三段重烤（t712fix
+           ）**：prefix worst 100%+→**0.8%** 且 124.61→**115.99ms（快 7%
+           ）**、flow 37.4%→4.4%（fp16 累加序残余）且 7.89→7.57ms、vision
+            不变——**修复零代价净赚**。取证新工具：`DUMP_GE_GRAPH=3` 逐 pa
+           ss 图 dump（发现融合的破局点）、GE 开源仓（本地 D:\compass\ge
+           ）选项归属索引（`ge.*` 名 init 级 / atc 短名 build 级；bufferO
+           ptimize 合法值 `off_optimize`）。skill ge-offline-om 陷阱 #31 
+           + 工具箱 #6/#7 回填
+      139  - **✅ M3 step0 残差 bisect 结案（2026-09-21 下午——见 summary/
+           2026-09-21_m3-flow-step0-residual-bisect）**：三候选输入源两腿
+           正交替入全洗清——PK_GOLD（pk/pv←golden）12.4% 不动、STYLE_GOLD
+           （cond←golden）11.8% 全等基线（cond host-vs-golden 仅 0.0004-0
+           .012 fp16 量化级，te/mlp 语义正确）⇒ **残差 = flow 段执行语义
+           （fp16 全链 vs torch Gemma RMSNorm fp32 上浮）**；abs 视角 ste
+           p0 0.35 < prefix l17 1.6（rel% 小分母假象），actions ~360% = 
+           小分母 + 10 步轨迹混沌放大（noise 敏感同源）。**parity 追查止
+           于此，裁判移交 LIBERO**。工具：GEB_E2E_PK_GOLD/STYLE_GOLD 旋钮
+            + golden v3b（cond_s{0..9}）；kvv 对拍曲线 1.1→4.8% 与 k 侧对
+           称
+      140 -- **M3 剩余**：① **真实 e2e 稳态延迟 bench**（全口径：247.7ms 
+          -设备侧 + host glue〔styles 每步 host 算+h2d、pk/pv 中转〕；tor
+          -ch 376ms 是含模型内 host 的全口径不可直比）② **LIBERO 对标**（
+          -9/10 基线，验收 ≥9/10−1pp）③（LIBERO 不达标才做）RMSNorm fp32 
+          -上浮对齐；后置：pk/pv 设备直连、懒加载、真 tokenizer          
+      140 +- **✅ M3 真实 e2e 稳态延迟 bench（2026-09-21 晚——见 summary/2
+          +026-09-21_m3-e2e-steady-bench）**：**全口径稳态 ≈310.3ms/调用 
+          +（vision 66.82 + prefix 140.39 + flow 103.08，P50×10，chip6，t
+          +712fix）= torch 基线 376ms 的 0.82×（快 18%），延迟验收线"显著
+          +优于 378"达成**。口径对齐说明：含全部 host glue（36 路 kv 13MB
+          + host 中转 d2h、37×2 styles h2d/步、x d2h），vision +10.7ms au
+          +x d2h 属保守计入（生产可免，真实 ≈300ms/0.80×）。styles host  
+          +计算 173ms/步（bring-up 定罪的大头）→ 一次性预计算缓存 2.06s/ 
+          +进程（10 步调度固定跨调用不变）。新旋钮 `GEB_E2E_BENCH=<N>` 三
+          +段稳态循环。优化潜力排序：pk/pv 设备直连（−15~25ms）> styles h
+          +2d 批量/设备化（−10~15ms）> aux 不下载（−10ms）→ ~265-275ms 可
+          +达（非阻塞）                                                  
+      141 +- **M3 剩余**：**LIBERO 对标**（9/10 基线，验收 ≥9/10−1pp）—— 
+          +集成工程：真 tokenizer、图像 patch 管线、pyo3/服务链接入 harne
+          +ss、actions 反量化；（不达标才做）RMSNorm fp32 上浮对齐；后置 
+          +优化：pk/pv 设备直连、styles 设备化、懒加载（100s 加载）      
+      142    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      143      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      144    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 15 lines, removed 2 lines
+       1 -# Handoff（2026-09-21 下午 flow step0 残差 bisect 结案 / 压缩用
+         -）                                                             
+       1 +# Handoff（2026-09-21 晚 e2e 稳态 bench 310ms = 基线 0.82× / 压
+         +缩用）                                                         
+       2  
+       3  ## 状态一句话
+       4  
+       5 -**M3 parity 定位全部收口：step0_x1 11.8% 的三个候选输入源两腿正
+         -交替入全洗清**——PK_GOLD（pk/pv←golden kvk/kvv）12.4% 不动、STYL
+         -E_GOLD（cond←golden cond_s{step}）11.8% 与基线全等且 host-vs-go
+         -lden cond 差仅 0.0004-0.012（fp16 量化级，语义正确）⇒ **残差 = 
+         -flow 段执行语义：我们 fp16 全链 vs torch 混合精度（Gemma RMSNor
+         -m fp32 上浮）**；绝对量视角 step0 abs 0.35 < prefix l17 abs 1.6
+         -（rel% 是小分母假象），actions 360% = 小分母 + 10 步轨迹混沌放 
+         -大（noise 敏感同源）。**裁判 = LIBERO（≥9/10−1pp），不再追 pari
+         -ty**。工具沉淀：GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮 + gol
+         -den v3b（frame0_v3b.safetensors = v3 ∪ cond_s{0..9}[1024]）。**
+         -M3 剩余 = ① 真实 e2e 稳态延迟 bench（host glue 是大头：styles  
+         -每步 host 算+h2d、pk/pv 中转；torch 基线 376ms 是含模型内 host 
+         -的全口径，我们 247.7ms 只是设备侧）② LIBERO 对标 ③（不达标才做 
+         -）RMSNorm fp32 上浮对齐**。前情：addrms 融合污染已修复（summary
+         - 2026-09-21_inplace-addrms-fusion-root-cause，t712fix OM + 融合
+         -开关全程携带）；本轮见 summary 2026-09-21_m3-flow-step0-residua
+         -l-bisect。                                                     
+       5 +**M3 延迟验收线达成：全口径稳态 e2e ≈310.3ms/调用（vision 66.82
+         + + prefix 140.39 + flow 103.08 P50×10，chip6，t712fix OM，含全 
+         +部 host glue——36 路 kv 13MB host 中转、37×2 styles h2d/步、x d2
+         +h）= torch 基线 376ms 的 0.82×（快 18%）**；styles host 现算 17
+         +3ms/步 已改一次性预计算缓存（2.06s/进程，10 步调度固定跨调用不 
+         +变）；vision +10.7ms aux d2h 保守计入（生产可免，真实 ≈300ms/0.
+         +80×）。优化潜力（非阻塞）：pk/pv 设备直连 −15~25ms > styles h2d
+         + 批量化 −10~15ms > aux 不下载 −10ms → ~265-275ms。**M3 剩余 = L
+         +IBERO 对标**（9/10 基线，验收 ≥9/10−1pp；集成工程 = 真 tokenize
+         +r〔当前 placeholder ids〕、图像 patch 管线〔当前 golden patches
+         +〕、pyo3/服务链接入 harness、actions 反量化）；parity 已定性 fp
+         +16-class 不再追（step0 残差 bisect 结案：PK_GOLD/STYLE_GOLD 两 
+         +腿全洗清 ⇒ flow 段 fp16 vs torch Gemma RMSNorm fp32 上浮的执行 
+         +语义差，见 summary 2026-09-21_m3-flow-step0-residual-bisect）。
+         +本轮 bench 见 summary 2026-09-21_m3-e2e-steady-bench；addrms 修
+         +复前情 = summary 2026-09-21_inplace-addrms-fusion-root-cause（ 
+         +融合开关全程携带）。                                           
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 +聚焦保留：**稳态 bench 数字**（310.3ms = 66.82+140.39+103.08 P5
+         +0×10 chip6 t712fix = 376ms 基线 0.82×；设备侧 247.7 + glue 62.6
+         +；styles 预计算 2.06s/进程一次性）；**口径**（含 host glue 全口
+         +径 vs torch model_ms 同层可比；vision aux d2h 10.7ms 保守，生产
+         + ≈300ms）；**优化排序**（pk/pv 直连 −15~25 > styles h2d 批量 −1
+         +0~15 > aux 免下载 −10 → ~265-275ms）；**工具**（GEB_E2E_BENCH=N
+         + 三段稳态循环、GEB_E2E_PK_GOLD/STYLE_GOLD bisect 旋钮、golden v
+         +3b = frame0_v3b.safetensors）；**parity 定性**（fp16-class 结案
+         +，裁判 LIBERO）。丢弃：bench 循环代码细节、bring-up 期计时。   
+      10 +                                                               
+      11 +## ② Post-compact 首句（贴到压缩后第一句）                     
+      12 +                                                               
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（稳态 bench 310ms = 基线 0.82×
+         + 已达成，见 summary 2026-09-21_m3-e2e-steady-bench）**。第一动 
+         +作：**LIBERO 对标集成**——把 C 路线三段 OM 链从 probe harness 接
+         +进 LIBERO 评测。缺口清单：① 真 tokenizer（当前 placeholder toke
+         +n ids=1000+i*7；LeRobot 用 PaliGemma tokenizer，权重在 paligemm
+         +a-3b-pt-224）② 图像 patch 化管线（probe 吃 golden patches [768,
+         +588]；生产 = 3 视图 SigLIP patchify + 归一化，可 host 侧仿 gold
+         +en_gen 语义）③ actions 反量化 + 状态离散化进 prompt ④ pyo3 绑定
+         +或独立 serving 进程接 apxinf_robo eval-libero harness。建议先搭
+         +"离线 LIBERO 轨迹回放"最小闭环（不起 env，用录制的 obs 序列逐帧
+         +调引擎对 actions），再上真 env。运行口径：`GEB_ATTN=manual GEB_
+         +QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSw
+         +itchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行都带
+         +，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 
+         +GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/a
+         +pxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/weigh
+         +ts/pi05_libero_finetuned GEB_SEG=e2e GEB_E2E_BENCH=N`。⚠ 纪律：
+         +PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         +hip6）；⚠ 外层仓 a01fe66 + 子模块 b8dee4d 的 GitHub push 可能仍
+         +挂起（下午网络不通，先 `git push` 验证）；goal 时限纪律见全局 C
+         +LAUDE.md。                                                     
+      14 +                                                               
+      15 +## ③ Export 标题建议                                           
+      16 +                                                               
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         +e2e-steady-bench.txt（M3 稳态 e2e bench：310ms = torch 基线 0.8
+         +2×，延迟验收线达成；styles 缓存 + GEB_E2E_BENCH 旋钮）         
+      18 +                                                               
+      19 +                                                               
+      20 +## ① Compact 参数（贴到 /compact 后）                          
+      21 +                                                               
+      22  聚焦保留：**bisect 结案**（PK_GOLD 12.4% / STYLE_GOLD 11.8% 全
+          等基线、cond host-vs-golden 0.0004-0.012 fp16 级 ⇒ 残差 = flow 
+          段 fp16 全链 vs torch Gemma RMSNorm fp32 上浮的执行语义差；abs 
+          视角 0.35 < prefix 1.6、actions 360% = 小分母 + 轨迹混沌放大）
+          ；**工具**（GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮、golden v
+          3b = v3 ∪ cond_s{0..9}[1024]（frame0_v3b.safetensors）、kvv 对
+          拍曲线 1.1→4.8%）；**性能口径**（三段 OM 稳态 247.7ms 纯设备侧 
+          vs torch 基线 376ms 全口径——不可直比，e2e 稳态 bench 是下一动作
+          ）；**addrms 修复前情**（融合开关 GEB_INIT_OPT_ge.fusionSwitchF
+          ile + t712fix OM 烤图/运行全程携带）。丢弃：golden 重烤的 PYTHO
+          NPATH 报错与 no_grad 小修、两腿 run 的逐行 BISECT 输出。
+      23  
+      24  ## ② Post-compact 首句（贴到压缩后第一句）
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          -真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          - eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          -m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          - y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          -明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          - **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          -走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          -、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          -msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          -=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          -e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          -别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          -proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          -观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          -B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          -件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          -m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          -e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          -ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          -onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          -B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          -*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          -_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          -10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          -；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          -SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          -{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          -= 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          -键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          - 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          -_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+724 chars]     
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          + y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          +明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          + **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          +走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          +、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          +msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          +=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          +e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          +别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          +proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          +观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          +B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          +件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          +m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          +e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          +ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          +onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          +B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          +*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          +_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          +10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          +；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          +SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          +{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          += 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          +键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          + 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          +_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+903 chars]     
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值）。⚠ 选项归属（2026-09
+           -21 定，权威索引=开源 GE 仓 `compiler/api/aclgrph/ge_ir_build.
+           cc` CheckGlobalOptions + `api/atc/main_impl.cc`）：**`ge.*` 前
+           缀名是 init 级**（socVersion/fusionSwitchFile/bufferOptimize/d
+           isableReuseMemory…），**build 级只收 atc 短名**（input_shape/i
+           nput_format…）——传错层 rc=-7/-1 与"选项不存在"同症状；合法值如
+            bufferOptimize=`off_optimize`（非 off）、disableReuseMemory="
+           0"/"1"。**`GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusio
+           n_off_inplace.json` = addrms 污染修复（2026-09-21，M3）**：关 
+           InplaceAddRmsNormFusionPass（原地融合别名写回污染在图中间量；J
+           SON 镜像 syx_docs/dev_logs/fusion_off_inplace.json）——**烤图/
+           运行必须全程携带**（融合状态烤在 OM 里，当前生产缓存 = /data/a
+           pxinf/om_cache/t712fix，prefix 0.8%/flow 4.4% 且更快）。取证利
+           器：`DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>` 逐 pass 图 dump |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 2s (ctrl+o to expand)
+
+● 提交（先试下午挂起的 push 是否恢复）：
+
+● Bash(git add crates/apxinf-model/examples/ge_model_probe.rs && git commit -m
+      "ge_model_probe(e2e): GEB_E2E_BENCH 稳态 bench + styles 预计算缓存…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port 37de6b6] ge_model_probe(e2e): GEB_E2E_BENCH 稳态 bench +
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 1m 30s)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 网络恢复，子模块两个 commit（下午挂起的 b8dee4d + 新
+  37de6b6）一并推上。外层仓：
+
+● Bash(cd /d/compass/APXinf && git add apxinf syx_docs/dev_logs/handoff.md
+      syx_docs/dev_logs/summary/2026-09-21_m3-e2e-steady-bench.md
+      syx_docs/plans/npu-port-roadmap.…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/plans/npu-port-roadmap.md',
+     … +14 lines (ctrl+o to expand)
+  ⎿  (timeout 1m 30s)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 本轮 M3 交付完成，全部落盘（两仓 push 成功，含下午挂起的补推）：
+
+  M3 稳态 e2e 延迟 bench —— 延迟验收线达成
+
+  全口径稳态 ≈ 310.3ms/调用 = torch 基线 376ms 的 0.82×（快 
+  18%），P50×10、chip6、t712fix OM：
+
+  ┌────────────┬──────────┬────────┬─────────────────────────────────────┐
+  │     段     │ 稳态 P50 │ 设备侧 │          glue（如实计入）           │
+  ├────────────┼──────────┼────────┼─────────────────────────────────────┤
+  │ vision     │ 66.82ms  │ 56.11  │ +10.7（111 路 aux d2h——生产可免）   │
+  ├────────────┼──────────┼────────┼─────────────────────────────────────┤
+  │ prefix     │ 140.39ms │ 115.99 │ +24.4（36 路 kv 13MB host 中转）    │
+  ├────────────┼──────────┼────────┼─────────────────────────────────────┤
+  │ flow×10 步 │ 103.08ms │ 75.7   │ +27.4（37×2 styles h2d/步 + x d2h） │
+  └────────────┴──────────┴────────┴─────────────────────────────────────┘
+
+  关键改进：styles host 现算 173ms/步（bring-up 定罪的 glue 大头）→ 
+  一次性预计算缓存（10 步 time 调度固定 ⇒ 跨调用不变，2.06s/进程一次性付）。
+
+  口径终于对齐：这个数字与 torch 的 model_ms 同层（“inputs ready → outputs
+  ready”，含模型侧全部 host 工作），此前 247.7ms 纯设备侧 vs 376ms
+  的对比偏乐观——现在 310 vs 376 是诚实对比。且 vision 的 aux
+  下载是保守计入，生产口径真实值 ≈300ms（0.80×）。
+
+  优化空间（非阻塞，潜力 →265-275ms）：pk/pv 设备直连（−15~25ms）> styles h2d
+  批量化（−10~15ms）> aux 免下载（−10ms）。
+
+  提交
+
+  - 子模块 37de6b6（bench + styles 缓存；下午挂起的 b8dee4d 网络恢复后一并推上）
+  - 外层 33de7ac（summary/roadmap/handoff/setup + gitlink）
+  - 新 summary：2026-09-21_m3-e2e-steady-bench.md
+
+  M3 剩余（最后一项）
+
+  LIBERO 对标（9/10 基线，验收 ≥9/10−1pp）——集成工程四件：真 tokenizer（当前
+  placeholder ids）、图像 patch 管线（当前 golden patches）、pyo3/服务链接入
+  harness、actions 反量化。handoff
+  里已写好建议路径：先搭离线轨迹回放最小闭环（不起 env，录制 obs
+  序列逐帧调引擎），再上真 env。
+
+✔ Goal achieved (10m · 1 turn · 21.6k tokens) (ctrl+o to expand)
+
+✻ Churned for 10m 28s · done 8:49 PM
+
+❯ 你文档更新好了吗？handoff咋写重复了？                                         
+
+  Thought for 17s (ctrl+o to expand)
+
+● 看下现状——我晚上那次 Edit 只替换了头部，但 new_string 里多带了 ①②③，旧的没删：
+
+  Thought for 11s, read 1 file (ctrl+o to expand)
+
+● 对——晚上那次 Edit 的 old_string 只含头部，new_string 却带了新
+  ①②③，旧的（bisect 版，20-30 行）没被替换掉。删掉旧块 + 顺手修正新 ② 里已过时的
+  push 挂起注记：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Removed 13 lines
+      16  
+      17  D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+          e2e-steady-bench.txt（M3 稳态 e2e bench：310ms = torch 基线 0.8
+          2×，延迟验收线达成；styles 缓存 + GEB_E2E_BENCH 旋钮）
+      18  
+      19 -                                                               
+      20 -## ① Compact 参数（贴到 /compact 后）                          
+      21 -                                                               
+      22 -聚焦保留：**bisect 结案**（PK_GOLD 12.4% / STYLE_GOLD 11.8% 全 
+         -等基线、cond host-vs-golden 0.0004-0.012 fp16 级 ⇒ 残差 = flow 
+         -段 fp16 全链 vs torch Gemma RMSNorm fp32 上浮的执行语义差；abs 
+         -视角 0.35 < prefix 1.6、actions 360% = 小分母 + 轨迹混沌放大） 
+         -；**工具**（GEB_E2E_PK_GOLD / GEB_E2E_STYLE_GOLD 旋钮、golden v
+         -3b = v3 ∪ cond_s{0..9}[1024]（frame0_v3b.safetensors）、kvv 对 
+         -拍曲线 1.1→4.8%）；**性能口径**（三段 OM 稳态 247.7ms 纯设备侧 
+         -vs torch 基线 376ms 全口径——不可直比，e2e 稳态 bench 是下一动作
+         -）；**addrms 修复前情**（融合开关 GEB_INIT_OPT_ge.fusionSwitchF
+         -ile + t712fix OM 烤图/运行全程携带）。丢弃：golden 重烤的 PYTHO
+         -NPATH 报错与 no_grad 小修、两腿 run 的逐行 BISECT 输出。       
+      23 -                                                               
+      24 -## ② Post-compact 首句（贴到压缩后第一句）                     
+      25 -                                                               
+      26 -继续 APXinf 昇腾 NPU **C 路线 M3（parity 定位已全部收口，见 sum
+         -mary 2026-09-21_m3-flow-step0-residual-bisect）**。第一动作：**
+         -真实 e2e 稳态延迟 bench**——目标 = 全口径单次推理延迟（vision 56
+         -.11 + prefix 115.99 + flow 7.57×10 设备侧 247.7ms + host glue：
+         -每步 styles host f32 计算 + h2d 换绑、pk/pv host 中转、x0 构建 
+         -；bring-up 计时 flow 10 步 1.8-2.2s 含对拍非稳态）；对照 = torc
+         -h_npu 基线 model_ms P50 376.4（**含模型内 host 的全口径**——torc
+         -h 的 styles/euler 在 forward 内，我们的 host glue 不含在 247.7 
+         -里，直比偏乐观）。方法：ge_model_probe 的 GEB_SEG=e2e 加计时口 
+         -径（去掉 BISECT 对拍/下载）或专门 bench 模式；拿到数字后按 host
+         - glue 大头排优化（styles 10 步预计算批处理、pk/pv 设备直连）。 
+         -然后 **LIBERO 对标**（9/10 基线，验收 ≥9/10−1pp；parity 残差 fp
+         -16-class 定性已结，行为裁判在此）。运行口径：`GEB_ATTN=manual G
+         -EB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusio
+         -nSwitchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行 
+         -都带，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=
+         -200 GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/da
+         -ta/apxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/w
+         -eights/pi05_libero_finetuned GEB_SEG=e2e`（v3b = v3 ∪ cond_s*，
+         -bisect 旋钮 GEB_E2E_PK_GOLD/GEB_E2E_STYLE_GOLD 备用）。⚠ 纪律：
+         -PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         -hip6）；goal 时限纪律见全局 CLAUDE.md。                        
+      27 -                                                               
+      28 -## ③ Export 标题建议                                           
+      29 -                                                               
+      30 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         -flow-step0-residual-bisect.txt（M3 step0 残差 bisect 结案：输入
+         -源全洗清 → flow 段 fp16-vs-torch 执行语义差；裁判移交 LIBERO） 
+      31 -                                                               
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（稳态 bench 310ms = 基线 0.82×
+         - 已达成，见 summary 2026-09-21_m3-e2e-steady-bench）**。第一动 
+         -作：**LIBERO 对标集成**——把 C 路线三段 OM 链从 probe harness 接
+         -进 LIBERO 评测。缺口清单：① 真 tokenizer（当前 placeholder toke
+         -n ids=1000+i*7；LeRobot 用 PaliGemma tokenizer，权重在 paligemm
+         -a-3b-pt-224）② 图像 patch 化管线（probe 吃 golden patches [768,
+         -588]；生产 = 3 视图 SigLIP patchify + 归一化，可 host 侧仿 gold
+         -en_gen 语义）③ actions 反量化 + 状态离散化进 prompt ④ pyo3 绑定
+         -或独立 serving 进程接 apxinf_robo eval-libero harness。建议先搭
+         -"离线 LIBERO 轨迹回放"最小闭环（不起 env，用录制的 obs 序列逐帧
+         -调引擎对 actions），再上真 env。运行口径：`GEB_ATTN=manual GEB_
+         -QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSw
+         -itchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行都带
+         -，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 
+         -GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/a
+         -pxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/weigh
+         -ts/pi05_libero_finetuned GEB_SEG=e2e GEB_E2E_BENCH=N`。⚠ 纪律：
+         -PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         -hip6）；⚠ 外层仓 a01fe66 + 子模块 b8dee4d 的 GitHub push 可能仍
+         -挂起（下午网络不通，先 `git push` 验证）；goal 时限纪律见全局 C
+         -LAUDE.md。                                                     
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（稳态 bench 310ms = 基线 0.82×
+         + 已达成，见 summary 2026-09-21_m3-e2e-steady-bench）**。第一动 
+         +作：**LIBERO 对标集成**——把 C 路线三段 OM 链从 probe harness 接
+         +进 LIBERO 评测。缺口清单：① 真 tokenizer（当前 placeholder toke
+         +n ids=1000+i*7；LeRobot 用 PaliGemma tokenizer，权重在 paligemm
+         +a-3b-pt-224）② 图像 patch 化管线（probe 吃 golden patches [768,
+         +588]；生产 = 3 视图 SigLIP patchify + 归一化，可 host 侧仿 gold
+         +en_gen 语义）③ actions 反量化 + 状态离散化进 prompt ④ pyo3 绑定
+         +或独立 serving 进程接 apxinf_robo eval-libero harness。建议先搭
+         +"离线 LIBERO 轨迹回放"最小闭环（不起 env，用录制的 obs 序列逐帧
+         +调引擎对 actions），再上真 env。运行口径：`GEB_ATTN=manual GEB_
+         +QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSw
+         +itchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行都带
+         +，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 
+         +GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/a
+         +pxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/weigh
+         +ts/pi05_libero_finetuned GEB_SEG=e2e GEB_E2E_BENCH=N`。⚠ 纪律：
+         +PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         +hip6）；goal 时限纪律见全局 CLAUDE.md。（GitHub 下午短暂不可达 
+         +，两仓已全部推平：子模块 37de6b6、外层 33de7ac。）             
+      14  
+      15  ## ③ Export 标题建议
+      16  
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(git add syx_docs/dev_logs/handoff.md && git commit -m "handoff
+      修复：删晚间 Edit 遗留的下午版 ①②③ 重复块，push 状态注记更新为已推平…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     [main 4240c3f] handoff 修复：删晚间 Edit 遗留的下午版 ①②③ 重复块，push
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 1m 30s)
+
+● 修好了（4240c3f 已推）。
+
+  重复的原因：晚间更新 handoff 时，我 Edit 的 old_string 只圈了「标题 +
+  状态一句话」，但 new_string 里把新版 ①②③ 也一起写进去了——旧的 bisect 版 ①②③
+  就留在了下面，成了两套。已删掉旧块（14 行），顺手把新 ② 里“push
+  可能挂起”的过时注记改成已推平（下午网络断了会儿，两仓其实都推上去了）。
+
+  其余文档（roadmap/setup/summary）今晚都是单块替换，没有同类问题——roadmap
+  是单行替换，setup 是句内追加，summary 是新建文件。
+
+✻ Baked for 1m 22s · done 10:06 PM

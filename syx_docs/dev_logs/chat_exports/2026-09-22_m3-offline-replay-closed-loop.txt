@@ -1,0 +1,2422 @@
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+● 修好了（4240c3f 已推）。
+
+  重复的原因：晚间更新 handoff 时，我 Edit 的 old_string 只圈了「标题 +
+  状态一句话」，但 new_string 里把新版 ①②③ 也一起写进去了——旧的 bisect 版 ①②③
+  就留在了下面，成了两套。已删掉旧块（14 行），顺手把新 ② 里“push
+  可能挂起”的过时注记改成已推平（下午网络断了会儿，两仓其实都推上去了）。
+
+  其余文档（roadmap/setup/summary）今晚都是单块替换，没有同类问题——roadmap
+  是单行替换，setup 是句内追加，summary 是新建文件。
+
+✻ Baked for 1m 22s · done Monday 10:06 PM
+
+❯ /export                                                                       
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-e2e-steady-bench 
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-21_m3-e2e-steady-bench.txt
+
+❯ /compact 聚焦保留：**稳态 bench 数字**（310.3ms = 66.82+140.39+103.08 P50×10  
+chip6 t712fix = 376ms 基线 0.82×；设备侧 247.7 + glue 62.6；styles 预计算       
+2.06s/进程一次性）；**口径**（含 host glue 全口径 vs torch model_ms             
+同层可比；vision aux d2h 10.7ms 保守，生产 ≈300ms）；**优化排序**（pk/pv 直连   
+−15~25 > styles h2d 批量 −10~15 > aux 免下载 −10 →                              
+~265-275ms）；**工具**（GEB_E2E_BENCH=N                                         
+三段稳态循环、GEB_E2E_PK_GOLD/STYLE_GOLD bisect 旋钮、golden v3b =              
+frame0_v3b.safetensors）；**parity 定性**（fp16-class 结案，裁判                
+LIBERO）。丢弃：bench 循环代码细节、bring-up 期计时。                           
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\dev_logs\handoff.md (19 lines)
+  ⎿  Read syx_docs\setup.md (191 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (169 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-09-21_m3-e2e-steady-bench.md (41 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 继续 APXinf 昇腾 NPU **C 路线 M3（稳态 bench 310ms = 基线 0.82×         
+已达成，见 summary                                                              
+2026-09-21_m3-e2e-steady-bench）**，如果到凌晨2点还没完成，就停止               
+  ⎿  Goal set: 继续 APXinf 昇腾 NPU C 路线 M3（稳态 bench 310ms = 基线 0.82× 
+     已达成，见 summary 
+     2026-09-21_m3-e2e-steady-bench），如果到凌晨2点还没完成，就停止
+
+  Thought for 1m 31s (ctrl+o to expand)
+
+● 收到 goal：继续 M3，凌晨 2:00 停。当前 M3 剩余 = LIBERO 对标，handoff
+  建议的第一动作是“离线 LIBERO 轨迹回放最小闭环”。先记时间锚点并摸清
+  prompt/state/tokenizer 语义：
+
+● Bash(date)
+  ⎿  Mon, Sep 21, 2026 11:12:04 PM
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "ls
+      /data/apxinf/lerobot/src/lerob…)
+  ⎿  README.md
+     __init__.py
+     __pycache__
+     … +59 lines (ctrl+o to expand)
+
+  Thought for 25s (ctrl+o to expand)
+
+● 11:12 PM 锚点，凌晨 2:00 停 → 约 2 小时 48 分。关键确认：modeling_pi05.py:1128
+  "state_proj shouldn't exist in pi05" ⇒ state 只走 prompt 离散化，不进
+  flow——引擎输入面 = patches + token_ids + noise，闭环可行。继续摸 input 管线与
+  actions 后处理：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "sed -n \"817,940p\"
+      /data/apxinf/…)
+  ⎿      def sample_actions(
+             self,
+             images,
+     … +121 lines (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "sed -n
+      \"1168,1260p\" /data/apxin…)
+  ⎿      def _preprocess_images(self, batch: dict[str, Tensor]) -> tuple[li
+     st[Tensor], list[Tensor]]:
+             """Preprocess images for the model.
+     … +118 lines (ctrl+o to expand)
+
+  Thought for 17s, searched for 1 pattern (ctrl+o to expand)
+
+● 语义全部确认：
+  - prompt = f"Task: {text}, State: {state_str};\nAction: "，state 32 维 pad 后
+    256-bin 离散化（[-1,1]），PaliGemma tokenizer
+  - actions 后处理 = 仅切片 [:, :, :7]，无反归一化（归一化在上游 normalizer 步）
+  - sample_actions 返回 x_t [50,32] 原始
+
+  再看 v1 golden 生成脚本怎么抽
+  patches/token_ids/actions（这是要复用的输入管线）：
+
+  Thought for 30s, read 1 file (ctrl+o to expand)
+
+● 管线全清楚了：v1 golden 用合成帧 + pol.infer(obs, noise=) 带 hook 抽
+  patches（vision_tower 输入 unfold 14/14）和 token_ids（embed_tokens
+  输入）。回放闭环 = 把这套路子从"一帧合成"换成"真 env rollout 逐调用录制"。先看
+  apxinf_robo 的 eval 循环怎么建 env（录制脚本直接镜像）：
+
+  Thought for 4s, searched for 1 pattern (ctrl+o to expand)
+
+● capture_libero.py —— 已有录制 CLI？看它和 eval 循环：
+
+  Thought for 15s, read 2 files (ctrl+o to expand)
+
+● eval 循环全貌在手：run_episode + backend.infer(..., noise=) 返回 (actions, 
+  normalized_actions, timing) —— 录制脚本直接镜像 replan=50 循环 + 挂 golden_gen
+  同款 hook。现在看 Rust 探针 e2e 段现状，规划 GEB_E2E_REPLAY 接入点：
+
+  Thought for 24s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 E2eStage/e2e_run 与三段的 run 尾部，评估复用 Seg 做逐帧重绑的最小改法：
+
+  Thought for 59s, read 1 file (ctrl+o to expand)
+● flow 段的 bench 循环已经是"每调用 noise 重启"的形态——replay
+  只需把三段的输入换绑循环化。确认 Seg/binds 语义：
+
+  Thought for 1m 38s, searched for 1 pattern (ctrl+o to expand)
+
+● 设计定型。三段 replay 循环的接入点都清楚了（h2d_f16 换绑 + binds
+  索引）。有一个真实风险要先记录：真 prompt 的 token 数会随 state 
+  离散值位数浮动（pad token 在 torch 里被 mask，引擎静态 712
+  全可见不等价）——录制后先量 token 长度分布再定对策。看 envs/libero.py
+  帮助函数后写录制脚本：
+
+  Thought for 36s, read 1 file (ctrl+o to expand)
+
+● 全部建材齐了。写录制脚本（本地镜像 + 传服务器 + 后台跑）：
+
+● Write(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Wrote 164 lines to syx_docs\dev_logs\record_rollout.py
+       1 """record_rollout.py — 离线 LIBERO 轨迹回放录制（M3 replay 闭环
+       2 
+       3 真 env（libero_object task N，eval-libero 同协议 init[0]/seed7/1
+       4 + torch policy（npu-torch，阶段 1 的 9/10 路径）replan=5 跑一集
+         ，每个
+       6   - 注入的 noise [50,32]（f32，seed 固定）
+       7   - torch 输出 normalized_actions [50,7]（= x_t 终态前 7 列——引
+       8     actions[:50,:7] 直接对拍量，无 denorm 环节差）
+       9   - hooks 抽模型级输入（golden_gen 同口径）：patches [768,588]（
+      10     pixel_values unfold 14/14——含 empty 视图 -1 pad 行，引擎侧
+     … +183 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'npu-smi info | head -30; docker exec apxinf_npu
+      mkdir -p /data/ap…)
+  ⎿  +---------------------------------------------------------------------
+     -----------------------------------+
+     | npu-smi 26.0.rc1                                 Version: 26.0.rc1
+     … +44 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 芯都空闲，chip7 跑录制。启动（后台分离）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_npu bash -c "export
+      ASCEND_RT_VISIBLE_DEVIC…)
+  ⎿  (No output)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 确认进程活着（一次性验证，不轮询）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "ps aux | grep
+      record_rollou[t] |…)
+  ⎿  root      925957  0.0  0.0   4464  3036 ?        Ss   23:21   0:00 bas
+     h -c export ASCEND_RT_VISIBLE_DEVICES=7; export PYTHONPATH=/data/apxin
+     f/robo_src:/data/apxinf/engine_py/apxinf:$PYTHONPATH; export MUJOCO_GL
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 54s (ctrl+o to expand)
+
+● 录制已在跑（549% CPU 加载中）。趁模型加载写 Rust replay 代码——先看 seg_flow
+  e2e 分支结尾定 Edit 锚点：
+
+  Thought for 18s, read 1 file (ctrl+o to expand)
+
+● 锚点齐了，开始 Edit。①E2eStage + ReplayFrame 结构：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Error editing file
+
+  Thought for 5s (ctrl+o to expand)
+
+● 注释行抄错一个词，重来（教训复现——Edit 前原文要逐字）：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 19 lines
+      1045  //   （executor L714-719：ascl=1+s0 / ash=s1）
+      1046  // ----------------------------------------------------------
+            -----------------
+      1047  
+      1048 +/// GEB_E2E_REPLAY 离线轨迹帧：真 LIBERO rollout（record_roll
+           +out.py 录制，                                                
+      1049 +/// torch npu-torch 路径）——patches/token_ids/noise/nact 为录
+           +制值，三段                                                   
+      1050 +/// 链逐帧产物（vision_out/kv/actions）随回放填充。actions 前
+           + gd 列与                                                     
+      1051 +/// nact（= torch normalized_actions，x_t 终态切片，同 noise 
+           +）对拍 = 离线                                                
+      1052 +/// 行为裁判（闭环 env 前的中间验收）                        
+      1053 +struct ReplayFrame {                                         
+      1054 +    patches: Vec<f16>,     // [VT, V_PATCH_W]（含 empty 视图 
+           +-1 pad 行）                                                  
+      1055 +    token_ids: Vec<u32>,   // PaliGemma tokenizer + state 离 
+           +散化（真 prompt）                                            
+      1056 +    noise: Vec<f16>,       // [HOR, ADIM] 录制时注入         
+      1057 +    nact: Vec<f16>,        // [HOR, 7] torch normalized_actio
+           +ns 参考值                                                    
+      1058 +    vision_out: Vec<f16>,  // [VT, PW] 本帧 vision 段产物    
+      1059 +    kv: Vec<Vec<f16>>,     // 本帧 prefix 36 输出            
+      1060 +    actions: Vec<f16>,     // 本帧 flow 终态 [HOR, ADIM]     
+      1061 +}                                                            
+      1062 +                                                             
+      1063  struct E2eStage {
+      1064      /// 输入（golden 或合成 bring-up）
+      1065      patches: Vec<f16>,          // [VT, V_PATCH_W]
+     ...
+      1073      vision_out: Vec<f16>,       // [VT, PW] post-projector
+      1074      kv: Vec<Vec<f16>>,          // prefix 36 输出（k0,v0,k1,v
+            1,... 各 [p,KVD]）
+      1075      actions: Vec<f16>,          // flow 终态 [HOR, ADIM]
+      1076 +    /// 离线轨迹回放帧（GEB_E2E_REPLAY；token 长度须全帧 = GE
+           +B_TOKENS——                                                   
+      1077 +    /// 真 prompt 的 pad 行在 torch 侧被 mask，引擎静态全可见
+           +不等价，等长                                                 
+      1078 +    /// 真 token 才是精确对拍）                              
+      1079 +    replay: Vec<ReplayFrame>,                                
+      1080  }
+      1081  
+      1082  impl E2eStage {
+
+  Thought for 4s (ctrl+o to expand)
+
+● ②两处构造点补 replay: Vec::new() + ③replay 文件加载块：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 1 line
+      1256                  vision_out: Vec::new(),
+      1257                  kv: Vec::new(),
+      1258                  actions: Vec::new(),
+      1259 +                replay: Vec::new(),                          
+      1260              }
+      1261          }
+      1262          Err(_) => {
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 33 lines
+      1272                  vision_out: Vec::new(),
+      1273                  kv: Vec::new(),
+      1274                  actions: Vec::new(),
+      1275 +                replay: Vec::new(),                          
+      1276              }
+      1277          }
+      1278      };
+      1279 +    // GEB_E2E_REPLAY=<safetensors>：离线轨迹回放（record_rol
+           +lout.py 录制，                                               
+      1280 +    // 键 patches_{i}/token_ids_{i}/noise_{i}/nact_{i}）。bri
+           +ng-up 后三段各                                               
+      1281 +    // 自逐帧换绑重跑（bring-up 的 golden 对拍照旧作金丝雀） 
+      1282 +    if let Ok(path) = std::env::var("GEB_E2E_REPLAY") {      
+      1283 +        let (t, _) = apxinf_loader::safetensors::load_native_
+           +path(std::path::Path::new(&path))                            
+      1284 +            .expect("replay load");                          
+      1285 +        let n = t.keys().filter(|k| k.starts_with("noise_")).
+           +count();                                                     
+      1286 +        assert!(n > 0, "replay 文件无 noise_{{i}} 键: {path}"
+           +);                                                           
+      1287 +        let rf32 = |k: &str| -> Vec<f32> {                   
+      1288 +            t.get(k).unwrap_or_else(|| panic!("replay 缺键 {k
+           +}")).to_f32_vec().unwrap()                                   
+      1289 +        };                                                   
+      1290 +        for i in 0..n {                                      
+      1291 +            let ids: Vec<u32> = rf32(&format!("token_ids_{i}"
+           +)).iter().map(|&v| v as u32).collect();                      
+      1292 +            assert_eq!(                                      
+      1293 +                ids.len(),                                   
+      1294 +                tokens,                                      
+      1295 +                "replay 帧 {i} token 长度 {} ≠ GEB_TOKENS {to
+           +kens}——真 prompt token 数随 \                                
+      1296 +                 state 离散值位数浮动，静态 OM 须按等长真 tok
+           +en 帧过滤/重烤",                                             
+      1297 +                ids.len()                                    
+      1298 +            );                                               
+      1299 +            st.replay.push(ReplayFrame {                     
+      1300 +                patches: rf32(&format!("patches_{i}")).into_i
+           +ter().map(f16::from_f32).collect(),                          
+      1301 +                token_ids: ids,                              
+      1302 +                noise: rf32(&format!("noise_{i}")).into_iter(
+           +).map(f16::from_f32).collect(),                              
+      1303 +                nact: rf32(&format!("nact_{i}")).into_iter().
+           +map(f16::from_f32).collect(),                                
+      1304 +                vision_out: Vec::new(),                      
+      1305 +                kv: Vec::new(),                              
+      1306 +                actions: Vec::new(),                         
+      1307 +            });                                              
+      1308 +        }                                                    
+      1309 +        println!("[e2e] replay: {path} ×{n} 帧（token 等长断 
+           +言已过）");                                                  
+      1310 +    }                                                        
+      1311      let t0 = std::time::Instant::now();
+      1312      seg_vision(be, false, Some(real), Some(&mut st));
+      1313      let t1 = std::time::Instant::now();
+
+  Thought for 8s (ctrl+o to expand)
+
+● ④vision 段 replay 循环：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 23 lines
+      1710          let m = st.vision_out.iter().fold(0f32, |m, v| m.max(
+            v.to_f32().abs()));
+      1711          println!("[e2e] vision_out |max|={m:.4}");
+      1712          st.cmp_mid("vision_out", &st.vision_out);
+      1713 +        // GEB_E2E_REPLAY：逐帧覆写 patches（binds[0] = 段首 
+           +注册的 patches                                               
+      1714 +        // 输入）重跑；aux 输出 buffer 一次分配复用、只下载主
+           +输出 idx0                                                    
+      1715 +        if !st.replay.is_empty() {                           
+      1716 +            let n_out = s.g.num_outputs().unwrap();          
+      1717 +            let routs: Vec<DeviceBuffer> = (0..n_out)        
+      1718 +                .map(|i| ctx.malloc(s.g.output_size(i).unwrap
+           +().max(16)).expect("replay out malloc"))                     
+      1719 +                .collect();                                  
+      1720 +            let h2d = |buf: &DeviceBuffer, vals: &[f16]| {   
+      1721 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      1722 +                ctx.copy_h2d(buf, &bytes).expect("replay h2d"
+           +);                                                           
+      1723 +            };                                               
+      1724 +            let t0 = std::time::Instant::now();              
+      1725 +            for f in st.replay.iter_mut() {                  
+      1726 +                assert_eq!(f.patches.len() * 2, s.binds[0].le
+           +n(), "replay patches 尺寸不符");                             
+      1727 +                h2d(&s.binds[0], &f.patches);                
+      1728 +                let ins = s.ins();                           
+      1729 +                let refs: Vec<&DeviceBuffer> = routs.iter().c
+           +ollect();                                                    
+      1730 +                s.g.run(&ins, &refs, stream).expect("ge run")
+           +;                                                            
+      1731 +                drop(stream.synchronize());                  
+      1732 +                f.vision_out = download_f16(ctx, &routs[0], s
+           +.g.output_size(0).unwrap() / 2);                             
+      1733 +            }                                                
+      1734 +            println!("[e2e] replay vision ×{} {:?}", st.repla
+           +y.len(), t0.elapsed());                                      
+      1735 +        }                                                    
+      1736          return;
+      1737      }
+      1738      parity_and_bench(ctx, stream, &mut s, "vision", &[(t * PW
+            ) as usize], &eager, bench);
+
+  Thought for 5s (ctrl+o to expand)
+
+● ⑤prefix 段 replay 循环：
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 39 lines
+      2153              st.cmp_mid(&format!("kvk_l{}", li + key_off), &st
+            .kv[2 * li]);
+      2154              st.cmp_mid(&format!("kvv_l{}", li + key_off), &st
+            .kv[2 * li + 1]);
+      2155          }
+      2156 +        // GEB_E2E_REPLAY：逐帧重组 x0（本帧 vision_out 可见 
+           +行 + 真 token 查表                                           
+      2157 +        // ×√PW——bring-up 同式）覆写 binds[0]（段首注册的 x0 
+           +）重跑，36 路                                                
+      2158 +        // kv 下载（aux 槽不下载）。嵌入表 2.1GB 一次性物化复
+           +用                                                           
+      2159 +        if !st.replay.is_empty() {                           
+      2160 +            let w = real.expect("replay prefix 需要 GEB_CKPT 
+           +（token 嵌入查表）");                                        
+      2161 +            let n_out = s.g.num_outputs().unwrap();          
+      2162 +            let routs: Vec<DeviceBuffer> = (0..n_out)        
+      2163 +                .map(|i| ctx.malloc(s.g.output_size(i).unwrap
+           +().max(16)).expect("replay out malloc"))                     
+      2164 +                .collect();                                  
+      2165 +            let emb = w.vision.token_embedding.to_f32_vec().u
+           +nwrap();                                                     
+      2166 +            let vocab_w = PW as usize;                       
+      2167 +            let lang_scale = (PW as f32).sqrt();             
+      2168 +            let vis_rows = ((VT - drop_v) * PW) as usize;    
+      2169 +            let h2d = |buf: &DeviceBuffer, vals: &[f16]| {   
+      2170 +                let bytes: Vec<u8> = vals.iter().flat_map(|v|
+           + v.to_bits().to_le_bytes()).collect();                       
+      2171 +                ctx.copy_h2d(buf, &bytes).expect("replay h2d"
+           +);                                                           
+      2172 +            };                                               
+      2173 +            let t0 = std::time::Instant::now();              
+      2174 +            for f in st.replay.iter_mut() {                  
+      2175 +                assert_eq!(f.vision_out.len(), (VT * PW) as u
+           +size, "须先跑 vision replay");                               
+      2176 +                let mut x0 = f.vision_out[..vis_rows].to_vec(
+           +);                                                           
+      2177 +                x0.reserve(f.token_ids.len() * vocab_w);     
+      2178 +                for &id in &f.token_ids {                    
+      2179 +                    let r = id as usize * vocab_w;           
+      2180 +                    assert!(r + vocab_w <= emb.len(), "token 
+           +id {id} 超 vocab");                                          
+      2181 +                    x0.extend(emb[r..r + vocab_w].iter().map(
+           +|&v| f16::from_f32(v * lang_scale)));                        
+      2182 +                }                                            
+      2183 +                assert_eq!(x0.len() * 2, s.binds[0].len(), "r
+           +eplay x0 尺寸不符");                                         
+      2184 +                h2d(&s.binds[0], &x0);                       
+      2185 +                let ins = s.ins();                           
+      2186 +                let refs: Vec<&DeviceBuffer> = routs.iter().c
+           +ollect();                                                    
+      2187 +                s.g.run(&ins, &refs, stream).expect("ge run")
+           +;                                                            
+      2188 +                drop(stream.synchronize());                  
+      2189 +                f.kv = (0..nkv)                              
+      2190 +                    .map(|i| download_f16(ctx, &routs[i], s.g
+           +.output_size(i).unwrap() / 2))                               
+      2191 +                    .collect();                              
+      2192 +            }                                                
+      2193 +            println!("[e2e] replay prefix ×{} {:?}", st.repla
+           +y.len(), t0.elapsed());                                      
+      2194 +        }                                                    
+      2195          return;
+      2196      }
+      2197      let elems = [(p * KVD) as usize];
+
+  Thought for 15s (ctrl+o to expand)
+
+● ⑥pk_base 捕获 + ⑦flow 段 replay 对拍循环：
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 2 lines
+      2297              .unwrap_or_else(|| panic!("GEB_E2E_PK_GOLD 需要 g
+            olden 键 {k}"));
+      2298          v.into_iter().map(f16::from_f32).collect()
+      2299      };
+      2300 +    // pk/pv 注册基址（replay 逐帧换绑用——循环体恰好两次 s.da
+           +ta）                                                         
+      2301 +    let pk_base = s.binds.len();                             
+      2302      for i in 0..depth {
+      2303          let pk_h = e2e
+      2304              .as_ref()
+
+● Update(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Added 59 lines
+      2780              println!("[e2e] 无 golden actions——只验有限性（go
+            lden 对拍/LIBERO 归下一步）");
+      2781          }
+      2782          assert!(st.actions.iter().all(|v| v.to_f32().is_finit
+            e()), "actions 含非有限值");
+      2783 +        // GEB_E2E_REPLAY：逐帧 pk/pv 换绑（36 路 host 中转，
+           +同生产链）+ noise                                            
+      2784 +        // 重启 10 步（styles 预计算缓存跨帧不变）→ actions  
+           +前 gd 列 vs torch                                            
+      2785 +        // normalized_actions（同 noise 对拍 = 离线行为裁判）
+      2786 +        if !st.replay.is_empty() {                           
+      2787 +            let t0 = std::time::Instant::now();              
+      2788 +            let mut rels: Vec<f32> = Vec::with_capacity(st.re
+           +play.len());                                                 
+      2789 +            for (fi, f) in st.replay.iter_mut().enumerate() {
+      2790 +                assert_eq!(f.kv.len(), depth * 2, "须先跑 pre
+           +fix replay");                                                
+      2791 +                for i in 0..depth {                          
+      2792 +                    h2d_f16(&s.binds[pk_base + 2 * i], &f.kv[
+           +2 * i]);                                                     
+      2793 +                    h2d_f16(&s.binds[pk_base + 2 * i + 1], &f
+           +.kv[2 * i + 1]);                                             
+      2794 +                }                                            
+      2795 +                let mut xx = f.noise.clone();                
+      2796 +                for sc in &style_cache {                     
+      2797 +                    for i in 0..depth {                      
+      2798 +                        let b = layer_bases[i];              
+      2799 +                        h2d_f16(&s.binds[b], &sc[4 * i]);    
+      2800 +                        h2d_f16(&s.binds[b + 1], &sc[4 * i + 
+           +1]);                                                         
+      2801 +                        h2d_f16(&s.binds[b + 10], &sc[4 * i +
+           + 2]);                                                        
+      2802 +                        h2d_f16(&s.binds[b + 11], &sc[4 * i +
+           + 3]);                                                        
+      2803 +                    }                                        
+      2804 +                    h2d_f16(&s.binds[fs_idx], &sc[4 * depth])
+           +;                                                            
+      2805 +                    h2d_f16(&s.binds[fs_idx + 1], &sc[4 * dep
+           +th + 1]);                                                    
+      2806 +                    h2d_f16(&s.binds[0], &xx);               
+      2807 +                    let ins = s.ins();                       
+      2808 +                    let oref: Vec<&DeviceBuffer> = vec![&ob];
+      2809 +                    s.g.run(&ins, &oref, stream).expect("ge r
+           +un");                                                        
+      2810 +                    drop(stream.synchronize());              
+      2811 +                    xx = download_f16(ctx, &ob, (HOR * ADIM) 
+           +as usize);                                                   
+      2812 +                }                                            
+      2813 +                f.actions = xx;                              
+      2814 +                let gd = f.nact.len() / 50;                  
+      2815 +                assert!(gd > 0 && gd <= ADIM as usize, "repla
+           +y nact 形状异常（帧 {fi}）");                                
+      2816 +                let mut md = 0f32;                           
+      2817 +                for r in 0..50usize {                        
+      2818 +                    for c in 0..gd {                         
+      2819 +                        let a = f.actions[r * ADIM as usize +
+           + c].to_f32();                                                
+      2820 +                        let b = f.nact[r * gd + c].to_f32(); 
+      2821 +                        md = md.max((a - b).abs());          
+      2822 +                    }                                        
+      2823 +                }                                            
+      2824 +                let rm = f.nact.iter().fold(0f32, |m, v| m.ma
+           +x(v.to_f32().abs()));                                        
+      2825 +                let xm = f.actions.iter().fold(0f32, |m, v| m
+           +.max(v.to_f32().abs()));                                     
+      2826 +                let rel = if rm > 0.0 { md / rm * 100.0 } els
+           +e { md };                                                    
+      2827 +                rels.push(rel);                              
+      2828 +                println!(                                    
+      2829 +                    "[e2e] replay 帧 {fi}: |x|max={xm:.3} max
+           +_diff={md:.5} rel={rel:.1}% (nact|max|={rm:.3})",            
+      2830 +                );                                           
+      2831 +            }                                                
+      2832 +            rels.sort_by(|a, b| a.partial_cmp(b).unwrap());  
+      2833 +            println!(                                        
+      2834 +                "[e2e] REPLAY 对拍 ×{} 帧 {:?}: rel P50={:.1}
+           +% min={:.1}% max={:.1}%（torch normalized_actions，同 noise）
+           +",                                                           
+      2835 +                st.replay.len(),                             
+      2836 +                t0.elapsed(),                                
+      2837 +                rels[rels.len() / 2],                        
+      2838 +                rels[0],                                     
+      2839 +                rels[rels.len() - 1]                         
+      2840 +            );                                               
+      2841 +        }                                                    
+      2842          return;
+      2843      }
+      2844      parity_and_bench(ctx, stream, &mut s, "flow", &[(HOR * AD
+            IM) as usize], &eager, bench);
+
+  Thought for 13s (ctrl+o to expand)
+
+● 七处 Edit 完成。同步服务器 + cargo check，同时看录制进度：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "tail -8
+      /data/apxinf/replay/rec_t…)
+  ⎿  [info] using task orders [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+     [rec] libero_object task 0: 'pick up the alphabet soup and place it in
+      the basket'
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 录制推进正常（env 创建中）。同步 Rust 代码并 check：
+
+● Bash(tar --exclude='.git' --exclude='target' -C
+      "D:/compass/APXinf/apxinf/crates" -cf - apxinf-model | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/…)
+  ⎿      Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.38
+     s
+     Mon Sep 21 15:25:02 UTC 2026
+  ⎿  (timeout 5m)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 1.38s 太快——没碰 example。显式指定 --example：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "source
+      /data/apxinf/rust_env.sh…)
+  ⎿  warning: unused variable: `stream`
+     warning: unused import: `Backend as _`
+     warning: unused import: `apxinf_core::Backend as _`
+     … +14 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 编译干净（3.42s 实际重编，只有历史 unused 警告）。看录制：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "tail -12
+      /data/apxinf/replay/rec_…)
+  ⎿  /usr/local/lib/python3.11/site-packages/torch_npu/dynamo/torchair/_ge_
+     concrete_graph/fx2ge_converter.py:1568: UserWarning: When enable froze
+     n_parameter, Parameters and input tensors with immutable data_ptr mark
+     … +26 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● TorchAir 首编译中（~100s）。预烤 release 二进制（后台），等录制收尾：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "source
+      /data/apxinf/rust_env.…)
+  ⎿  launched
+
+  Thought for 41s (ctrl+o to expand)
+
+● 趁跑，把回放运行脚本落服务器（env 名带点的引号坑写进脚本里避免每次踩）：
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -E \"rec\]\"
+      /data/apxinf/re…)
+  ⎿  [rec] image_features: ['observation.images.image', 'observation.images
+     .image2', 'observation.images.empty_camera_0']
+     [rec] hooks: {'vision_tower': 'paligemma_with_expert.paligemma.model.v
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 第一帧 replan 已出（episode 滚动中）。等收尾，一并查录制+构建：
+
+● Bash(sleep 90; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"rec\]\" /data…)
+  ⎿  [rec] libero_object task 0: 'pick up the alphabet soup and place it in
+      the basket'
+     ..[rec] replan #1 @step0
+     … +16 lines (ctrl+o to expand)
+  ⎿  (timeout 2m 30s)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 构建 ✓（30.9s）。录制 ~5 步/13s，预计还 8 分钟。趁等，查 t712fix
+  当时的烤图命令（应对 token 长度 ≠ 200 需重烤的情况）：
+
+  Thought for 31s, read 1 file (ctrl+o to expand)
+● 烤图口径确认（GEB_SEG 各段 + GEB_SAVE 全路径 + 融合开关 +
+  GEB_CKPT）。预写“等长过滤”脚本——真 prompt 尾部 pad 行 torch 侧被
+  mask，引擎要精确对拍必须剔除 pad、按真实长度 L 重烤 prefix/flow OM：
+
+● Write(syx_docs\dev_logs\replay_filter.py)
+  ⎿  Wrote 52 lines to syx_docs\dev_logs\replay_filter.py
+       1 """replay_filter.py — replay 文件按真实 token 长度过滤（M3 静态 
+       2 
+       3 record_rollout.py 录的 token_ids_{i} 是 tokenizer pad 到 max_len
+       4 （尾部 pad id=0，torch 侧 attention mask=0 被遮蔽）。引擎静态 OM
+       5 ≠ 被遮蔽——精确对拍须：剔除 pad 行、按真实长度 L 重烤 prefix/flow
+          OM
+       7 
+       8 用法（apxinf_npu 容器）：
+         sors [L]
+         到 L 的
+     … +50 lines (ctrl+o to expand)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/replay_filter.py" | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'dock…)
+  ⎿  Error: Exit code 1
+     8
+
+  Thought for 33s (ctrl+o to expand)
+
+● 8 replans（~step40），还在跑。顺手确认 GEB_SAVE 烤图路径逻辑：
+
+  Thought for 4s, searched for 1 pattern (ctrl+o to expand)
+
+● 烤图路径确认。等录制收尾：
+
+● Bash(sleep 120; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  8
+  ⎿  (timeout 3m)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 停在 8 个 replan 两分钟没动——查进程和尾部日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "ps aux | grep
+      record_rollou[t] |…)
+  ⎿  ---
+       File "/usr/local/lib/python3.11/site-packages/torch/_dynamo/convert_
+     frame.py", line 1375, in _compile
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 29s (ctrl+o to expand)
+
+● 录制进程死了：FailOnRecompileLimitHit——恰好 8 次 = dynamo 默认 recompile
+  上限。嫌疑：infer(obs, noise=) 每次调用换新的 sample_noise 闭包 →
+  每帧重编译。看 npu_torch.py 的 noise 注入实现确认机制：
+
+  Thought for 19s, searched for 1 pattern (ctrl+o to expand)
+
+● 机制坐实：infer(noise=) 每次调用换新闭包挂 model.sample_noise → dynamo guard
+  失败 → 每帧重编译，8 次撞上限。修复 = 改成一次性稳定补丁捕获噪声（不注入）——函
+  数身份恒定只编译一次，且捕获的是设备侧真实 f16（比注入对齐更精确）：
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 18 lines
+       83  ]
+       84  print("[rec] hooks:", targets, flush=True)
+       85  
+       86 +# ---- 稳定 sample_noise 捕获（一次性补丁）----               
+       87 +# ⚠ 不能走 pol.infer(noise=) 注入：它每次调用换一个新闭包挂   
+       88 +# model.sample_noise → dynamo fullgraph guard 失败 → 每帧重编 
+          +译，                                                          
+       89 +# 8 次撞 FailOnRecompileLimitHit（2026-09-21 实测）。改为进程 
+          +启动时挂一次                                                  
+       90 +# 稳定捕获函数（身份恒定只编译一次），记录 torch 实际采样的 f1
+          +6 noise                                                       
+       91 +# ——引擎回放喂同值，对齐比注入更精确。                        
+       92 +_orig_sample_noise = model.sample_noise                       
+       93 +noise_rec: list[np.ndarray] = []                              
+       94 +                                                              
+       95 +                                                              
+       96 +def _rec_sample_noise(shape, device):                         
+       97 +    out = _orig_sample_noise(shape, device)                   
+       98 +    noise_rec.append(out.detach().float().cpu().numpy().reshap
+          +e(-1, out.shape[-1]))                                         
+       99 +    return out                                                
+      100 +                                                              
+      101 +                                                              
+      102 +model.sample_noise = _rec_sample_noise                        
+      103 +                                                              
+      104  # ---- env + rollout（eval-libero run_episode 的 replan=5 镜像
+           ）----
+      105  from libero.libero import benchmark  # noqa: E402
+      106  
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 1 line, removed 1 line
+      111  env = make_env(task, SEED)
+      112  init_states = suite.get_task_init_states(TASK)
+      113  
+      114 -rng = np.random.default_rng(20260921)                         
+      114 +rng = np.random.default_rng(20260921)  # 预留：目前 noise 走捕
+          +获，不用注入                                                  
+      115  records = []
+      116  action_plan = collections.deque()
+      117  env.reset()
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 3 lines, removed 3 lines
+      126      if not action_plan:
+      127          images = libero_images(obs["agentview_image"], obs["ro
+           bot0_eye_in_hand_image"])
+      128          state = libero_state_lerobot(obs)
+      129 -        noise = rng.standard_normal((HORIZON, 32)).astype(np.f
+          -loat32)                                                       
+      129          obs_in = {
+      130              pol.image_keys[0]: np.ascontiguousarray(images[0])
+           ,
+      131              pol.image_keys[1]: np.ascontiguousarray(images[1])
+           ,
+      132              pol.state_key: state,
+      133              "prompt": prompt,
+      134          }
+      136 -        res = pol.infer(obs_in, noise=noise)                  
+      135 +        res = pol.infer(obs_in)                               
+      136          acts = np.asarray(res["actions"], dtype=np.float32)
+      137          nact = np.asarray(res["normalized_actions"], dtype=np.
+           float32)
+      138          assert acts.shape == (HORIZON, 7) and nact.shape == (H
+           ORIZON, 7), (acts.shape, nact.shape)
+      140 -        records.append((obs_in, noise, nact))                 
+      139 +        assert noise_rec and noise_rec[-1].shape == (HORIZON, 
+          +32), "noise 捕获计数/形状不符"                                
+      140 +        records.append((obs_in, noise_rec[-1].copy(), nact))  
+      141          action_plan.extend(acts[:REPLAN])
+      142          print(f"[rec] replan #{len(records)} @step{steps}", fl
+           ush=True)
+      143      a = action_plan.popleft()
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 1 line
+      147          success = True
+      148          break
+      149  env.close()
+      150 +model.sample_noise = _orig_sample_noise                       
+      151  for h in handles:
+      152      h.remove()
+      153  print(f"[rec] episode done: success={success} steps={steps} re
+           plans={len(records)}", flush=True)
+
+● 重新上传并启动第二轮录制：
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/record_rollout.py" | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  bash: line 1: docker_dummy_never: command not found
+     relaunched
+
+  Thought for 7s (ctrl+o to expand)
+
+● 上传成功（cat 先执行了，报错的是我拼错的无关命令）+ 已重启。验证后等待：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -c
+      _rec_sample_noise /data/a…)
+  ⎿  2
+     3
+
+  Thought for 22s (ctrl+o to expand)
+
+● 进程活。预写 OM 重烤脚本（prefix/flow 可双芯并行省时；vision 与 token
+  无关直接复用 t712fix 的）：
+
+  Thought for 9s, read 1 file (ctrl+o to expand)
+
+● 烤图脚本有个 bug——GEB_SAVE 没有 export 给 probe。修正重传：
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● 看录制进度：
+● Bash(sleep 100; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  Error: Exit code 1
+     0
+
+  Thought for 12s (ctrl+o to expand)
+
+● 还在首编译（0 replans）。再等：
+
+● Bash(sleep 150; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  3
+       return _contexts.setdefault(threading.currentThread().ident, [])
+  ⎿  (timeout 3m 20s)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 滚动中（3 replans）。等收尾：
+
+● Bash(sleep 180; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  (No output)
+  ⎿  (timeout 4m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -cE \"replan
+      #\" /data/apxin…)
+  ⎿  8
+     0
+     [ERROR] 2026-09-21-23:44:13 (PID:972763, Device:0, RankID:-1) ERR99999
+      UNKNOWN applicaiton exception
+
+  Thought for 23s (ctrl+o to expand)
+
+● 又挂了且时间戳混乱——直接读 log 的异常栈：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -E
+      \"Error|error|Exception|e…)
+  ⎿  Warning: Could not remap state dict keys: Error(s) in loading state_di
+     ct for PI05Policy:
+     torch._dynamo.exc.FailOnRecompileLimitHit: recompile_limit reached wit
+     … +26 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● 崩在 embed_image 的 fullgraph 重编译——不是 noise 闭包问题。查重编译原因记录：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -iE
+      \"recompil|guard|cause\"…)
+  ⎿  W0921 23:43:50.573000 972763 torch/_dynamo/convert_frame.py:1358] [0/8
+     ] torch._dynamo hit config.recompile_limit (8)
+     W0921 23:43:50.573000 972763 torch/_dynamo/convert_frame.py:1358] [0/8
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 00:05，还剩 1h55m。最快实证：CPU 上直接用 paligemma tokenizer 量真实 prompt
+  长度随 state 的分布（30 秒出答案，回答“长度是否变 + 是否 pad 到 200”）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "export
+      HF_ENDPOINT=https://hf-mir…)
+  ⎿  Error: Exit code 127
+     bash: -c: line 1: unexpected EOF while looking for matching `"'
+     bash: -c: line 11: syntax error: unexpected end of file
+     /usr/bin/bash: line 10: nAction:: command not found
+
+  Thought for 4s (ctrl+o to expand)
+
+● 引号地狱——落成文件再跑：
+
+● Bash(cat <<'EOF' | ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      -i apxinf_npu bash -c "cat > /data/apxi…)
+  ⎿  lens = [137, 134, 139, 137, 140, 140, 136, 133, 139, 135, 137, 143]
+     pad_token_id = 0
+     padded len = 200 n_pad = 57
+  ⎿  (timeout 2m)
+
+  Thought for 39s (ctrl+o to expand)
+
+● 长度随 state 位数浮动实锤（133-143）——这就是重编译根因（动态维度 shape 特化，8
+  个长度撞上限），也是静态 OM 的真约束。修 recorder：预处理后手动 pad 到 
+  200（pad id 0 + mask 0）——形状恒定只编译一次，且语义与 torch 全同（pad 被
+  mask，等价 L 可见 token）。查 token 键名：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -n
+      \"OBS_LANGUAGE_TOKENS\|OB…)
+  ⎿  52:    OBS_LANGUAGE_ATTENTION_MASK,
+     53:    OBS_LANGUAGE_TOKENS,
+     1249:        tokens, masks = batch[f"{OBS_LANGUAGE_TOKENS}"], batch[f"
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "sed -n \"45,56p\"
+      /data/apxinf/le…)
+  ⎿  from lerobot.configs.policies import PreTrainedConfig
+     from lerobot.policies.pi05.configuration_pi05 import DEFAULT_IMAGE_SIZ
+     E, PI05Config
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 改 recorder 为 batch 级 pad：
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 1 line
+      36  
+      37  from apxinf_robo.npu_torch import NpuTorchPi05Policy  # noqa: E
+          402
+      38  from apxinf_robo.envs.libero import make_env, libero_images, li
+          bero_state_lerobot  # noqa: E402
+      39 +from lerobot.utils.constants import OBS_LANGUAGE_TOKENS, OBS_LA
+         +NGUAGE_ATTENTION_MASK  # noqa: E402                            
+      40  
+      41  TASK = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+      42  SUITE = os.environ.get("REPLAY_SUITE", "libero_object")
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 27 lines, removed 3 lines
+      133              pol.state_key: state,
+      134              "prompt": prompt,
+      135          }
+      136 -        res = pol.infer(obs_in)                               
+      137 -        acts = np.asarray(res["actions"], dtype=np.float32)   
+      138 -        nact = np.asarray(res["normalized_actions"], dtype=np.
+          -float32)                                                      
+      136 +        # ⚠ token 长度随 state 离散值位数浮动（task0 实测 133-
+          +143）→ 动态                                                   
+      137 +        # shape 触发 dynamo 每长度重编译，8 个长度即 FailOnRec
+          +ompileLimitHit。                                              
+      138 +        # 修法：preprocess 后手动 pad 到 200（pad id=0 + atten
+          +tion mask=0）                                                 
+      139 +        # ——形状恒定只编译一次，且语义与 torch 全同（pad 被 ma
+          +sk ⇒ 数学等价                                                 
+      140 +        # 于 L 可见 token，正是引擎 replay_filter 剔 pad 的口 
+          +径）。不走                                                    
+      141 +        # pol.infer 是因为它不给 batch 插手的缝；以下镜像其内 
+          +部 20 行。                                                    
+      142 +        frame = pol._to_frame(obs_in)                         
+      143 +        batch = pol.preprocess(frame)                         
+      144 +        ids_t = batch[OBS_LANGUAGE_TOKENS]                    
+      145 +        msk_t = batch[OBS_LANGUAGE_ATTENTION_MASK]            
+      146 +        ell = int(ids_t.shape[1])                             
+      147 +        assert ell <= 200, f"token 超长 {ell}（max_length 语义
+          +应截断）"                                                     
+      148 +        if ell < 200:                                         
+      149 +            pad_ids = torch.zeros((1, 200), dtype=ids_t.dtype,
+          + device=ids_t.device)                                         
+      150 +            pad_msk = torch.zeros((1, 200), dtype=msk_t.dtype,
+          + device=msk_t.device)                                         
+      151 +            pad_ids[:, :ell] = ids_t                          
+      152 +            pad_msk[:, :ell] = msk_t                          
+      153 +            batch[OBS_LANGUAGE_TOKENS] = pad_ids              
+      154 +            batch[OBS_LANGUAGE_ATTENTION_MASK] = pad_msk      
+      155 +        with torch.inference_mode():                          
+      156 +            normalized = pol.policy.predict_action_chunk(batch
+          +)                                                             
+      157 +        torch.npu.synchronize()                               
+      158 +        normalized_np = normalized.detach().cpu().numpy()     
+      159 +        acts = pol.postprocess(normalized).detach().cpu().nump
+          +y().astype(np.float32)                                        
+      160 +        if acts.ndim == 3:                                    
+      161 +            acts = acts[0]                                    
+      162 +        nact = np.asarray(normalized_np, dtype=np.float32).squ
+          +eeze(0)                                                       
+      163          assert acts.shape == (HORIZON, 7) and nact.shape == (H
+           ORIZON, 7), (acts.shape, nact.shape)
+      164          assert noise_rec and noise_rec[-1].shape == (HORIZON, 
+           32), "noise 捕获计数/形状不符"
+      165          records.append((obs_in, noise_rec[-1].copy(), nact))
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/record_rollout.py" | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  relaunched-3rd
+
+  Thought for 13s (ctrl+o to expand)
+
+● 第三轮录制跑起来了（00:14 起，预计 00:25 完）。等收尾：
+
+● Bash(sleep 300; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  1
+  ⎿  (timeout 6m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 首帧过了（编译 OK），滚集中。再等：
+
+● Bash(sleep 240; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  8
+  ⎿  (timeout 5m)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 过了 8 的坎（pad 修复生效），episode 在滚但 env 渲染偏慢。继续等：
+
+● Bash(sleep 270; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  Error: Exit code 1
+     8
+     0
+
+  Thought for 4s (ctrl+o to expand)
+
+● 又死在 8。读栈：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "grep -E
+      \"Error|Exception|exc\" /…)
+  ⎿  Warning: Could not remap state dict keys: Error(s) in loading state_di
+     ct for PI05Policy:
+     torch._dynamo.exc.FailOnRecompileLimitHit: recompile_limit reached wit
+     … +19 lines (ctrl+o to expand)
+
+  Thought for 1m 33s (ctrl+o to expand)
+
+● 死因不是 token 形状——run 3 pad 后仍在第 9 次调用崩。三轮回想：官方 eval
+  路径（无 hook、无补丁）跑过 1000+ 次调用从不崩；我三轮全带 hooks。v4
+  方案：彻底去 hook——token_ids 直接从 batch 读（本来就是 tokenize
+  结果）、patches 用 _preprocess_images 自 reproduced（确定性纯函数）+
+  砍步数（env 渲染 2s/步是墙钟大头）：
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 14 lines, removed 11 lines
+       1  """record_rollout.py — 离线 LIBERO 轨迹回放录制（M3 replay 闭环
+          第一步）
+       2  
+       3  真 env（libero_object task N，eval-libero 同协议 init[0]/seed7/
+          10 步 settle）
+       4 -+ torch policy（npu-torch，阶段 1 的 9/10 路径）replan=5 跑一集
+         -，每个                                                         
+       5 -policy 调用记录：                                              
+       6 -  - 注入的 noise [50,32]（f32，seed 固定）                     
+       4 ++ torch policy（npu-torch，阶段 1 的 9/10 路径）跑若干步，每个 
+         +policy 调用记录：                                              
+       5 +  - 真实 token_ids（PaliGemma tokenizer + state 离散化；**长度 
+         +随离散值位数                                                   
+       6 +    浮动**——engine 静态 OM 须按等长帧过滤，replay_filter.py）  
+       7 +  - 捕获的 noise [50,32]（一次性稳定补丁挂 sample_noise——per-ca
+         +ll 换闭包                                                      
+       8 +    或挂 hook 都会触发 dynamo fullgraph 重编译撞 8 上限，2026-0
+         +9-21 三轮实测）                                                
+       9    - torch 输出 normalized_actions [50,7]（= x_t 终态前 7 列——引
+          擎侧
+      10      actions[:50,:7] 直接对拍量，无 denorm 环节差）
+       9 -  - hooks 抽模型级输入（golden_gen 同口径）：patches [768,588] 
+         -（SigLIP                                                       
+      10 -    pixel_values unfold 14/14——含 empty 视图 -1 pad 行，引擎侧 
+      11 -    DROP_EMPTY 剔除）/ token_ids [200]（PaliGemma tokenizer + s
+         -tate 离散化）                                                  
+      12 -  - 原始 obs（uint8 HWC ×2 + 8 维 state——复查/重算用）         
+      11 +  - patches [768,588]：调 policy._preprocess_images 自 reproduc
+         +ed（确定性                                                     
+      12 +    纯函数 = SigLIP 输入；含 empty 视图 -1 pad 行，引擎侧 DROP_
+         +EMPTY 剔除）                                                   
+      13  
+      14 -产物 /data/apxinf/replay/replay_t{task}.safetensors（f32/uint8 
+         -混合）：                                                       
+      15 -  patches_{i} / token_ids_{i} / noise_{i} / nact_{i} / img0_{i}
+         - / img1_{i} /                                                  
+      16 -  state_{i} / meta_success / meta_steps                        
+      14 +模型调用侧 token 手动 pad 到 200（pad id=0 + mask=0）——形状恒定
+         +防重编译，                                                     
+      15 +语义与 torch 全同（pad 被 mask ⇒ 等价 L 可见 token）。         
+      16  
+      17 +产物 /data/apxinf/replay/replay_t{task}.safetensors：          
+      18 +  patches_{i} / token_ids_{i}（真实长度）/ noise_{i} / nact_{i}
+         + / state_{i}                                                   
+      19 +                                                               
+      20  跑法（apxinf_npu 容器）：
+      19 -  MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=7 python3 record_roll
+         -out.py 0                                                       
+      21 +  MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=7 REPLAY_MAX_STEPS=40
+         + REPLAN=1 \                                                    
+      22 +    python3 record_rollout.py 0                                
+      23  """
+      24  import collections
+      25  import os
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 2 lines, removed 31 lines
+      45  SUITE = os.environ.get("REPLAY_SUITE", "libero_object")
+      46  CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
+      47  OUT = f"/data/apxinf/replay/replay_t{TASK}.safetensors"
+      48 -REPLAN = 5                                                     
+      48 +REPLAN = int(os.environ.get("REPLAN", 1))                      
+      49  HORIZON = 50
+      50 -MAX_STEPS = 520                                                
+      50 +MAX_STEPS = int(os.environ.get("REPLAY_MAX_STEPS", 520))       
+      51  WAIT_STEPS = 10
+      52  SEED = 7
+      53  
+     ...
+      58  pol.image_keys = tuple(pol._image_features[:2])
+      59  pol._empty_features = tuple(pol._image_features[2:])
+      60  
+      61 -# ---- hooks：每次调用追加（golden_gen 是首帧即弃，这里要全轨迹
+         -）----                                                         
+      62 -pv_list: list[torch.Tensor] = []                               
+      63 -ids_list: list[torch.Tensor] = []                              
+      64 -                                                               
+      65 -                                                               
+      66 -def pv_hook(mod, args, kwargs, out):                           
+      67 -    if args and torch.is_tensor(args[0]):                      
+      68 -        pv_list.append(args[0].detach().clone())               
+      69 -                                                               
+      70 -                                                               
+      71 -def ids_hook(mod, args, kwargs, out):                          
+      72 -    if args and torch.is_tensor(args[0]):                      
+      73 -        ids_list.append(args[0].detach().clone())              
+      74 -                                                               
+      75 -                                                               
+      76 -targets = {}                                                   
+      77 -for name, mod in model.named_modules():                        
+      78 -    low = name.lower()                                         
+      79 -    if ("vision_tower" in low and "vision_model" not in low) or
+         - mod.__class__.__name__ == "SiglipVisionModel":                
+      80 -        targets.setdefault("vision_tower", name)               
+      81 -    if low.endswith("embed_tokens"):                           
+      82 -        targets.setdefault("embed_tokens", name)               
+      83 -assert len(targets) == 2, f"hook 目标未命中: {targets}"        
+      84 -handles = [                                                    
+      85 -    model.get_submodule(targets["vision_tower"]).register_forwa
+         -rd_hook(pv_hook, with_kwargs=True),                            
+      86 -    model.get_submodule(targets["embed_tokens"]).register_forwa
+         -rd_hook(ids_hook, with_kwargs=True),                           
+      87 -]                                                              
+      88 -print("[rec] hooks:", targets, flush=True)                     
+      89 -                                                               
+      61  # ---- 稳定 sample_noise 捕获（一次性补丁）----
+      62  # ⚠ 不能走 pol.infer(noise=) 注入：它每次调用换一个新闭包挂
+      63  # model.sample_noise → dynamo fullgraph guard 失败 → 每帧重编译
+          ，
+
+  Thought for 15s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 8 lines
+      119          msk_t = batch[OBS_LANGUAGE_ATTENTION_MASK]
+      120          ell = int(ids_t.shape[1])
+      121          assert ell <= 200, f"token 超长 {ell}（max_length 语义
+           应截断）"
+      122 +        # 记录真实长度 ids（pad 前）+ patches（与 predict_acti
+          +on_chunk 内部                                                 
+      123 +        # _preprocess_images 同源——确定性纯函数，无需 hook）  
+      124 +        ids_real = ids_t.detach().float().cpu().numpy().reshap
+          +e(-1)                                                         
+      125 +        imgs, _ = pol.policy._preprocess_images(batch)        
+      126 +        pv = torch.cat([t.detach() for t in imgs], dim=0).floa
+          +t().cpu()  # [V,3,224,224]                                    
+      127 +        flat = pv.reshape(-1, 3, pv.shape[-2], pv.shape[-1])  
+      128 +        u = F.unfold(flat, kernel_size=14, stride=14)         
+          +        # [V,588,256]                                         
+      129 +        patches = u.permute(0, 2, 1).reshape(-1, u.shape[1]).n
+          +umpy()  # 行 (c,kh,kw)                                        
+      130          if ell < 200:
+      131              pad_ids = torch.zeros((1, 200), dtype=ids_t.dtype,
+            device=ids_t.device)
+      132              pad_msk = torch.zeros((1, 200), dtype=msk_t.dtype,
+            device=msk_t.device)
+
+● Update(syx_docs\dev_logs\record_rollout.py)
+  ⎿  Added 7 lines, removed 18 lines
+      144          nact = np.asarray(normalized_np, dtype=np.float32).squ
+           eeze(0)
+      145          assert acts.shape == (HORIZON, 7) and nact.shape == (H
+           ORIZON, 7), (acts.shape, nact.shape)
+      146          assert noise_rec and noise_rec[-1].shape == (HORIZON, 
+           32), "noise 捕获计数/形状不符"
+      147 -        records.append((obs_in, noise_rec[-1].copy(), nact))  
+      147 +        records.append((ids_real, patches, noise_rec[-1].copy(
+          +), nact, state.copy()))                                       
+      148          action_plan.extend(acts[:REPLAN])
+      149 -        print(f"[rec] replan #{len(records)} @step{steps}", fl
+          -ush=True)                                                     
+      149 +        print(f"[rec] replan #{len(records)} @step{steps} ids_
+          +len={ell}", flush=True)                                       
+      150      a = action_plan.popleft()
+      151      obs, _, done, _ = env.step(a.tolist())
+      152      steps += 1
+     ...
+      155          break
+      156  env.close()
+      157  model.sample_noise = _orig_sample_noise
+      158 -for h in handles:                                             
+      159 -    h.remove()                                                
+      158  print(f"[rec] episode done: success={success} steps={steps} re
+           plans={len(records)}", flush=True)
+      159  
+      160  # ---- 落盘 ----
+      163 -assert len(pv_list) == len(records) == len(ids_list), (       
+      164 -    f"hook 计数不符 pv={len(pv_list)} ids={len(ids_list)} call
+          -s={len(records)}")                                            
+      161  out = {}
+      162  lens = []
+      167 -for i, (obs_in, noise, nact) in enumerate(records):           
+      168 -    pv = pv_list[i].float().cpu()                             
+      169 -    flat = pv.reshape(-1, 3, pv.shape[-2], pv.shape[-1])      
+      170 -    u = F.unfold(flat, kernel_size=14, stride=14)             
+          -    # [V, 588, 256]                                           
+      171 -    patches = u.permute(0, 2, 1).reshape(-1, u.shape[1]).numpy
+          -()   # 行 (c,kh,kw)                                           
+      172 -    ids = ids_list[i].reshape(-1).cpu().numpy()               
+      173 -    lens.append(int(ids.size))                                
+      163 +for i, (ids_real, patches, noise, nact, state) in enumerate(re
+          +cords):                                                       
+      164 +    lens.append(int(ids_real.size))                           
+      165      out[f"patches_{i}"] = patches.astype(np.float32)
+      175 -    out[f"token_ids_{i}"] = ids.astype(np.float32)            
+      166 +    out[f"token_ids_{i}"] = ids_real.astype(np.float32)       
+      167      out[f"noise_{i}"] = noise
+      168      out[f"nact_{i}"] = nact
+      178 -    out[f"img0_{i}"] = np.asarray(obs_in[pol.image_keys[0]], d
+          -type=np.uint8)                                                
+      179 -    out[f"img1_{i}"] = np.asarray(obs_in[pol.image_keys[1]], d
+          -type=np.uint8)                                                
+      180 -    out[f"state_{i}"] = np.asarray(obs_in[pol.state_key], dtyp
+          -e=np.float32)                                                 
+      181 -    print(f"[rec] frame {i}: ids_len={ids.size} head={ids[:12]
+          -.tolist()} "                                                  
+      169 +    out[f"state_{i}"] = state                                 
+      170 +    print(f"[rec] frame {i}: ids_len={ids_real.size} head={ids
+          +_real[:12].tolist()} "                                        
+      171            f"nact|max|={float(np.abs(nact).max()):.3f}", flush=
+           True)
+      172  out["meta_success"] = np.array([1.0 if success else 0.0], dtyp
+           e=np.float32)
+      173  out["meta_steps"] = np.array([float(steps)], dtype=np.float32)
+
+● Bash(cat "D:/compass/APXinf/syx_docs/dev_logs/record_rollout.py" | ssh -i
+      /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'doc…)
+  ⎿  v4-launched
+     Mon Sep 21 04:06:08 PM UTC 2026
+
+  Thought for 8s (ctrl+o to expand)
+
+● （时间校正：现在才 00:06，剩 1h54m——比刚才自估的宽裕。）v4 赑 40 帧预计 ~10
+  分钟收尾：
+
+● Bash(sleep 420; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -E \"episode done…)
+  ⎿  Error: Exit code 1
+     [rec] episode done: success=False steps=40 replans=40
+     [rec] token 长度分布: [(200, 40)]
+     saved: /data/apxinf/replay/replay_t0.safetensors (40 帧)
+     40
+     0
+
+  Thought for 13s (ctrl+o to expand)
+
+● v4 成功：40 帧落盘（hook 果然是元凶，进程跑满 40 调用无崩溃）。token 全长 200
+  = processor 本来就 pad 到 max_length（真实长度藏在 pad 里）。跑过滤取众数 L：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "export
+      PYTHONPATH=/data/apxinf/ro…)  ⎿  [filter] 40 帧 token 真实长度分布: [(144, 32), (145, 8)]
+     [filter] 选 L=144: 保留 32/40 帧（其余 pad 行数不同，静态 OM 不等价）
+     saved: /data/apxinf/replay/replay_t0_L144.safetensors
+  ⎿  (timeout 2m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● L=144，32/40 帧保留（80%）。双芯并行烤 prefix/flow OM：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "mkdir -p
+      /data/apxinf/om_cache/t…)
+  ⎿  total 814392
+     drwxr-xr-x  2 root root      4096 Sep 21 16:14 .
+     drwxr-xr-x 11 root root      4096 Sep 21 16:14 ..
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 烤图跑起来了（00:14）。趁烤，先两步提交 Rust 改动：
+
+● Bash(cd /d/compass/APXinf/apxinf && git add
+      crates/apxinf-model/examples/ge_model_probe.rs && git commit -m "M3
+      replay: GEB_E2E_REPLAY 离线轨迹回放（真 LIBERO 输入逐帧换绑对拍）…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     _probe.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port e9d9335] M3 replay: GEB_E2E_REPLAY 离线轨迹回放（真 LIBER
+     … +4 lines (ctrl+o to expand)
+
+● Bash(cd /d/compass/APXinf && git add apxinf
+      syx_docs/dev_logs/record_rollout.py syx_docs/dev_logs/replay_filter.py &&
+      git commit -m "M3 replay 离线闭环工具：record_rollout/…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/record_rollout.py',
+      LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/replay_filter.py',
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 两仓推平（e9d9335 / a40e784）。查烤图：
+
+● Bash(sleep 120; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "tail -3 /tmp/bake_pre…)
+  ⎿       Running `target/release/examples/ge_model_probe`
+     [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+     … +11 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● flow OM 已出（7.62ms/步 与 t712fix 持平）。prefix 还在加载/编译，再等：
+
+● Bash(sleep 240; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "tail -4 /tmp/bake_pre…)
+  ⎿  prefix_PARITY_OK n_in=138 worst=0.16406 rel=1.0%
+     OM saved: /data/apxinf/om_cache/tl144/prefix_real.om
+     prefix GE OM: 103.3117 ms (median/2, rounds=3)
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 7s (ctrl+o to expand)
+
+● prefix OM 就绪（parity 1.0%，103.3ms@656 行）。三件套齐，开跑回放：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "export
+      GEB_TOKENS=144 GEB_OM_…)
+  ⎿  replay-launched
+     Mon Sep 21 04:21:17 PM UTC 2026
+
+● Bash(sleep 270; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "grep -E \"e2e\]|PROBE…)
+  ⎿  [e2e] replay 帧 16: |x|max=3.957 max_diff=5.20117 rel=223.8% (nact|max
+     |=2.324)
+     [e2e] replay 帧 17: |x|max=3.598 max_diff=4.45996 rel=192.7% (nact|max
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 5m 30s)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 离线回放闭环全链打通：32 帧 × 真实 LIBERO 输入（真
+  tokenizer/paches/noise）跑完三段链 3.6s，对拍 rel P50=194%（与 golden frame0
+  的 363% 同源量级——fp16 残差 + 10 步混沌放大）。抓 vision/prefix
+  段的回放行补全数字：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "grep -E
+      \"replay|vision_out|pref…)
+  ⎿  /data/apxinf/replay/run_replay.sh: line 9: export: `GEB_INIT_OPT_ge.fu
+     sionSwitchFile=/data/apxinf/fusion_off_inplace.json': not a valid iden
+     tifier
+     … +16 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 全链数字齐了：vision 65.7ms/帧 + prefix 128ms/帧 + flow 113ms/帧 ≈
+  307ms/帧（与 310ms bench 自洽）。另发现 run_replay.sh 的 export 带点名在 bash
+  里非法（我自己文档里记过的坑）——本次无碍（融合状态烤在 OM
+  里，烤图时是对的），修掉。落文档：
+
+● Write(syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md)
+  ⎿  Wrote 53 lines to
+     syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md
+      1 # M3 离线 LIBERO 轨迹回放闭环打通：真实输入三段链 ×32 帧对拍
+      3 日期：2026-09-22（凌晨班）　前置：[e2e 稳态 bench 310ms](2026-09-
+        标）
+      4 
+      6 
+        out 40 调用录制（真实 tokenizer ids / SigLIP patches / 捕获 noise
+        prefix/flow OM → 引擎三段链逐帧回放对拍：**rel P50=194%（min 170.
+        6 / max 226.9，abs max_diff 4-5 on |nact|max≈2.3），32 帧紧簇无离
+        （tokenizer/patch 管线/噪声对齐）已接真值——行为裁判仍待闭环 env。
+      9 ## 录制（record_rollout.py，apxinf_npu，chip7）
+     … +82 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 修服务器上的 run_replay.sh（export→env 前缀）：
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 文档三连更新——roadmap：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      138    - **✅ M3 addrms 污染根因终结 + 修复落地（2026-09-21 下午——
+           见 summary/2026-09-21_inplace-addrms-fusion-root-cause）**：上
+           轮"内存计划重叠"的实体 = **`InplaceAddRmsNormFusionPass` 把 Ad
+           dRmsNorm 融合成原地算子 `InplaceAddRmsNorm`**（310P/910b 注册
+           表同构：outputs 名就叫 x1/x2——结果写回输入 buffer 本体），别名
+           与静态内存计划在读在图中间量时污染；Data 输入因用户 buffer 受
+           保护而免疫（与 16 步证据全兼容）。**修复 = init 级 `ge.fusionS
+           witchFile` 关该 pass**（官方可关融合规则）：MIN 复现图 11.041%
+           →0.159%、全量 attn 图 45.224%→0.159%。**生产三段重烤（t712fix
+           ）**：prefix worst 100%+→**0.8%** 且 124.61→**115.99ms（快 7%
+           ）**、flow 37.4%→4.4%（fp16 累加序残余）且 7.89→7.57ms、vision
+            不变——**修复零代价净赚**。取证新工具：`DUMP_GE_GRAPH=3` 逐 pa
+           ss 图 dump（发现融合的破局点）、GE 开源仓（本地 D:\compass\ge
+           ）选项归属索引（`ge.*` 名 init 级 / atc 短名 build 级；bufferO
+           ptimize 合法值 `off_optimize`）。skill ge-offline-om 陷阱 #31 
+           + 工具箱 #6/#7 回填
+      139  - **✅ M3 step0 残差 bisect 结案（2026-09-21 下午——见 summary/
+           2026-09-21_m3-flow-step0-residual-bisect）**：三候选输入源两腿
+           正交替入全洗清——PK_GOLD（pk/pv←golden）12.4% 不动、STYLE_GOLD
+           （cond←golden）11.8% 全等基线（cond host-vs-golden 仅 0.0004-0
+           .012 fp16 量化级，te/mlp 语义正确）⇒ **残差 = flow 段执行语义
+           （fp16 全链 vs torch Gemma RMSNorm fp32 上浮）**；abs 视角 ste
+           p0 0.35 < prefix l17 1.6（rel% 小分母假象），actions ~360% = 
+           小分母 + 10 步轨迹混沌放大（noise 敏感同源）。**parity 追查止
+           于此，裁判移交 LIBERO**。工具：GEB_E2E_PK_GOLD/STYLE_GOLD 旋钮
+            + golden v3b（cond_s{0..9}）；kvv 对拍曲线 1.1→4.8% 与 k 侧对
+           称
+      140  - **✅ M3 真实 e2e 稳态延迟 bench（2026-09-21 晚——见 summary/2
+           026-09-21_m3-e2e-steady-bench）**：**全口径稳态 ≈310.3ms/调用
+           （vision 66.82 + prefix 140.39 + flow 103.08，P50×10，chip6，t
+           712fix）= torch 基线 376ms 的 0.82×（快 18%），延迟验收线"显著
+           优于 378"达成**。口径对齐说明：含全部 host glue（36 路 kv 13MB
+            host 中转 d2h、37×2 styles h2d/步、x d2h），vision +10.7ms au
+           x d2h 属保守计入（生产可免，真实 ≈300ms/0.80×）。styles host 
+           计算 173ms/步（bring-up 定罪的大头）→ 一次性预计算缓存 2.06s/
+           进程（10 步调度固定跨调用不变）。新旋钮 `GEB_E2E_BENCH=<N>` 三
+           段稳态循环。优化潜力排序：pk/pv 设备直连（−15~25ms）> styles h
+           2d 批量/设备化（−10~15ms）> aux 不下载（−10ms）→ ~265-275ms 可
+           达（非阻塞）
+      141 -- **M3 剩余**：**LIBERO 对标**（9/10 基线，验收 ≥9/10−1pp）—— 
+          -集成工程：真 tokenizer、图像 patch 管线、pyo3/服务链接入 harne
+          -ss、actions 反量化；（不达标才做）RMSNorm fp32 上浮对齐；后置 
+          -优化：pk/pv 设备直连、styles 设备化、懒加载（100s 加载）      
+      141 +- **✅ M3 离线轨迹回放闭环（2026-09-22 凌晨——见 summary 2026-0
+          +9-22_m3-offline-replay-closed-loop）**：真 env rollout 40 调用
+          +录制（真 tokenizer ids/SigLIP patches/捕获 noise/torch normali
+          +zed_actions）→ 等长过滤 32 帧（**真实 token 长度随 state 位数 
+          +浮动 144/145——静态 OM 新约束，分桶/动态 shape/prompt 工程三选 
+          +为生产开放项**）→ tl144 OM（prefix 103.3ms@656 parity 1.0% / f
+          +low 7.62ms）→ 引擎逐帧回放对拍 **rel P50=194% 紧簇无离群**（fp
+          +16 残差 + flow 混沌放大，与 golden 363% 同源）；逐帧 ≈307ms 与
+          + bench 自洽。集成四件已通三件（tokenizer/patch 管线/噪声对齐）
+          +。过程战果：torchair fullgraph 编译区挂 forward hooks = per-ca
+          +ll 重编译撞 8 上限（四轮排除定罪）；`export` 带点 env 名 bash 
+          +非法（须 env 前缀）                                           
+      142 +- **M3 剩余**：**闭环 env 对标**（9/10 基线，验收 ≥9/10−1pp）—
+          +—三段链包成 policy（pyo3/服务进程）接 eval-libero harness；变 
+          +长 token 分桶 OM 按帧挑桶（或先跑单长任务子集）；actions 反量 
+          +化语义已核清（= x_t 终态 [:, :7] 切片，无 denorm 环节）；（行 
+          +为不达标才做）RMSNorm fp32 上浮对齐；后置优化：pk/pv 设备直连 
+          +、styles 设备化、懒加载（100s 加载）                          
+      143    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      144      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      145    - 完成后 checkpoint bench → LIBERO 对标（M3）
+
+  Thought for 8s (ctrl+o to expand)
+● setup.md 登记旋钮：
+
+● Update(syx_docs\setup.md)
+  ⎿  Added 1 line, removed 1 line
+      155  | `ascendc/ge_builder/build/geb_main` | C++ 独立驱动（matmul 
+           链 verify/bench + trans 模式） |
+      156  | `cargo run --example ge_builder_probe -p apxinf-ascend` | Ru
+           st 全链 FFI 探针（对拍 + bench，APXINF_GE_BUILDER_LIB 可覆盖 .
+           so） |
+      157  | `cargo run --example ge_layer_probe --features ascend -p apx
+           inf-model` | 单层 GE 化探针（GEB_SUB 1-9 编译冒烟矩阵 / GEB_AR
+           PE=1 / GEB_BENCH=1） |
+      158 -| `cargo run --example ge_model_probe --features ascend -p apx
+          -inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          -flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          -文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          -m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          -t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          -.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          -阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          -真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          - eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          -m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          - y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          -明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          - **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          -走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          -、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          -msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          -=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          -e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          -别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          -proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          -观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          -B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          -件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          -m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          -e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          -ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          -onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          -B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          -*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          -_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          -10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          -；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          -SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          -{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          -= 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          -键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          - 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          -_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+903 chars]     
+      158 +| `cargo run --example ge_model_probe --features ascend -p apx
+          +inf-model` | **C2 三段 OM 全量探针**（GEB_SEG=vision\|prefix\|
+          +flow / GEB_DEPTH / GEB_TOKENS / GEB_BENCH / GEB_SAVE=**全路径 
+          +文件名**（传目录会 -2）GEB_LOAD=路径——OM 缓存在 /data/apxinf/o
+          +m_cache/（**当前版 {vision,prefix,flow}_real.om = 真 checkpoin
+          +t 权重烤入版**（GEB_CKPT 接入，bench 与 r3 打平 55.86/124.61/7
+          +.89ms；r3 = 合成权重版）/ GEB_OPTEST=... 单算/组合/数值验证矩 
+          +阵（**wgt = NZ 权重税裁决**：nd/cst/nz 三形态 mm / **oproj =  
+          +真数据 o_proj 单算裁决**（golden m0_vis × L0 真权重，cst/nd vs
+          + eager，2026-09-21 实证逐位 0.000%）/ **arm = 真数据 AddRmsNor
+          +m 单算**（golden res0 输入；rc=-3 已结案 2026-09-21：addrms 的
+          + y 绑图输出会触发 GE 自动补绑悬空 rstd/x_out → 模型输出数 > 声
+          +明 → run rc=-3；输出一律按 num_outputs() introspection 分配）/
+          + **attn = 最小图对拍全家**（2026-09-21 定罪复现器：真 x0_vis  
+          +走 [attention→o_proj→MLP→L1 k]；`GEB_ATTN_MIN=1` 复现 11.041% 
+          +、`GEB_ATTN_L1=mm` 去 addrms 0.036% 干净对照——[在图中间量→AddR
+          +msNorm] 污染；变体 GEB_ATTN_FAKE/RES_GOLDEN/SWAPADD/MLP_PAD/L1
+          +=bar|swap|rshp|mbar|norm）/ **wmm~wmm5 = 单算与组合矩阵**（gat
+          +e 宽N/down 大K/MLP 组合阶梯/h1 作 Data 输入/addrms 输入来源判 
+          +别）——attn/wmm 系都须配 GEB_E2E_GOLDEN=frame0_v3 + GEB_CKPT（o
+          +proj））/ GEB_TRACE 中间量打印（含 head）/ GEB_DBG=1 层 0 各级
+          +观察 / GEB_NO_AUX=1 跳过 LN 辅输出（数值坏，隔离实验用）/ **GE
+          +B_ATTN=manual + GEB_QKV3=1 + GEB_ROPEFLAT=1 + GEB_WCONST=1 四 
+          +件套 = 当前最优组合**（全模型 263ms = 378 线 0.70×；WCONST = m
+          +m 权重 Const 入图编译期折叠 NZ 转换，OM 变 per-checkpoint；rop
+          +e 表已改 f16 量化 inv_freq——torch golden 同源）/ **GEB_CKPT=<d
+          +ir> 真 checkpoint 权重**（Pi05Weights host 解析 + bf16→f16 + C
+          +onst 路径，~61s 加载；⚠ GEB_LOAD 真 OM 必须配 GEB_CKPT）/ **GE
+          +B_ROUNDS+GEB_PER bench 规模参数化——假设检验用 5+3，十几秒出数*
+          +*；⚠ parity ≥20% 段必须带 GEB_BENCH，否则静默 exit(1)）/ **GEB
+          +_SEG=e2e 三段链式 e2e**（M3：x0 真嵌入/styles 真值/pk-pv 直连/
+          +10 步换绑；须配四件套+GEB_CKPT，OM 从 GEB_OM_DIR 读 *_real.om 
+          +；GEB_E2E_GOLDEN=<safetensors> 对拍——**golden v3 中间量逐段 BI
+          +SECT**（键 vision_out/x0/x0_vis/m0/h1/m0_vis/h1_vis/res0/kvk_l
+          +{0..17}/step0_x1，**golden_gen_v3.py 产 frame0_v3.safetensors 
+          += 712 空视图剔除语义、自洽 0.03-0.12%**；v2 frame0 的 replay  
+          +键是 968 全开旧语义、与 infer 键混世界——已废弃，教训见 summary
+          + 2026-09-21）/ **bisect 隔离旋钮（2026-09-20 晚）**：GEB_DEPTH
+          +_VISION/GEB_DEPTH_PREFIX 分段深度、GEB_ATT … [+1284 chars]    
+      159  | `GEB_OPT_<key>=<val>` / `GEB_INIT_OPT_<key>=<val>` | ge_buil
+           der 的 build 级 / init 级编译选项直通（env 名带点必须用 `env "
+           GEB_OPT_ge.xxx=..."` 包引号，不能裸赋值）。⚠ 选项归属（2026-09
+           -21 定，权威索引=开源 GE 仓 `compiler/api/aclgrph/ge_ir_build.
+           cc` CheckGlobalOptions + `api/atc/main_impl.cc`）：**`ge.*` 前
+           缀名是 init 级**（socVersion/fusionSwitchFile/bufferOptimize/d
+           isableReuseMemory…），**build 级只收 atc 短名**（input_shape/i
+           nput_format…）——传错层 rc=-7/-1 与"选项不存在"同症状；合法值如
+            bufferOptimize=`off_optimize`（非 off）、disableReuseMemory="
+           0"/"1"。**`GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusio
+           n_off_inplace.json` = addrms 污染修复（2026-09-21，M3）**：关 
+           InplaceAddRmsNormFusionPass（原地融合别名写回污染在图中间量；J
+           SON 镜像 syx_docs/dev_logs/fusion_off_inplace.json）——**烤图/
+           运行必须全程携带**（融合状态烤在 OM 里，当前生产缓存 = /data/a
+           pxinf/om_cache/t712fix，prefix 0.8%/flow 4.4% 且更快）。取证利
+           器：`DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>` 逐 pass 图 dump |
+      160  
+      161  ⚠ **msprof 采集纪律**（`ascend-msprof` skill）：全量 bench 采
+           集 = 1.1GB + 8-10 分钟分析——假设检验先缩规模（GEB_ROUNDS=5 GEB
+           _PER=3 或 GEB_DEPTH=2）；产物在 /data/apxinf/prof/<段名>/，用
+           完清理。导出可能静默失败（exit 0 无 CSV），重跑一次通常就好。
+
+  Thought for 8s (ctrl+o to expand)
+
+● handoff 全量刷新：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 5 lines, removed 5 lines
+       1 -# Handoff（2026-09-21 晚 e2e 稳态 bench 310ms = 基线 0.82× / 压
+         -缩用）                                                         
+       1 +# Handoff（2026-09-22 凌晨 离线回放闭环打通 rel P50=194% / 压缩
+         +用）                                                           
+       2  
+       3  ## 状态一句话
+       4  
+       5 -**M3 延迟验收线达成：全口径稳态 e2e ≈310.3ms/调用（vision 66.82
+         - + prefix 140.39 + flow 103.08 P50×10，chip6，t712fix OM，含全 
+         -部 host glue——36 路 kv 13MB host 中转、37×2 styles h2d/步、x d2
+         -h）= torch 基线 376ms 的 0.82×（快 18%）**；styles host 现算 17
+         -3ms/步 已改一次性预计算缓存（2.06s/进程，10 步调度固定跨调用不 
+         -变）；vision +10.7ms aux d2h 保守计入（生产可免，真实 ≈300ms/0.
+         -80×）。优化潜力（非阻塞）：pk/pv 设备直连 −15~25ms > styles h2d
+         - 批量化 −10~15ms > aux 不下载 −10ms → ~265-275ms。**M3 剩余 = L
+         -IBERO 对标**（9/10 基线，验收 ≥9/10−1pp；集成工程 = 真 tokenize
+         -r〔当前 placeholder ids〕、图像 patch 管线〔当前 golden patches
+         -〕、pyo3/服务链接入 harness、actions 反量化）；parity 已定性 fp
+         -16-class 不再追（step0 残差 bisect 结案：PK_GOLD/STYLE_GOLD 两 
+         -腿全洗清 ⇒ flow 段 fp16 vs torch Gemma RMSNorm fp32 上浮的执行 
+         -语义差，见 summary 2026-09-21_m3-flow-step0-residual-bisect）。
+         -本轮 bench 见 summary 2026-09-21_m3-e2e-steady-bench；addrms 修
+         -复前情 = summary 2026-09-21_inplace-addrms-fusion-root-cause（ 
+         -融合开关全程携带）。                                           
+       5 +**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-rep
+         +lay-closed-loop）**：真 env（libero_object task0）rollout 40 调
+         +用录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/Sig
+         +LIP patches/捕获 noise/torch normalized_actions）→ **真实 token
+         + 长度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_fil
+         +ter 等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 10
+         +3.3ms@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：*
+         +*rel P50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3
+         +）= fp16 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage
+         +-1 已证本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307m
+         +s 与稳态 bench 310ms 自洽。集成四件已通三件（tokenizer/patch 管
+         +线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.82×，summary
+         + 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 结案（summ
+         +ary 2026-09-21_m3-flow-step0-residual-bisect）。两仓已推平：子 
+         +模块 e9d9335、外层 a40e784。                                   
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**稳态 bench 数字**（310.3ms = 66.82+140.39+103.08 P5
+         -0×10 chip6 t712fix = 376ms 基线 0.82×；设备侧 247.7 + glue 62.6
+         -；styles 预计算 2.06s/进程一次性）；**口径**（含 host glue 全口
+         -径 vs torch model_ms 同层可比；vision aux d2h 10.7ms 保守，生产
+         - ≈300ms）；**优化排序**（pk/pv 直连 −15~25 > styles h2d 批量 −1
+         -0~15 > aux 免下载 −10 → ~265-275ms）；**工具**（GEB_E2E_BENCH=N
+         - 三段稳态循环、GEB_E2E_PK_GOLD/STYLE_GOLD bisect 旋钮、golden v
+         -3b = frame0_v3b.safetensors）；**parity 定性**（fp16-class 结案
+         -，裁判 LIBERO）。丢弃：bench 循环代码细节、bring-up 期计时。   
+       9 +聚焦保留：**回放闭环结果**（32 帧 L=144 rel P50=194% 紧簇；逐帧
+         + 65.7+128+113≈307ms 与 bench 自洽）；**token 长度约束**（真实长
+         +度随 state 位数浮动 144/145，torch pad 200 + mask，静态 OM 须等
+         +长过滤 + 按长重烤；生产三选 = 分桶 OM/动态 shape/定宽 state 格 
+         +式化）；**工具链**（record_rollout.py 录制〔REPLAN/REPLAY_MAX_S
+         +TEPS 可调〕、replay_filter.py 等长过滤、bake_one.sh <seg> <L> <
+         +chip>、run_replay.sh；GEB_E2E_REPLAY 旋钮须配 GEB_TOKENS/OM_DIR
+         + 对应）；**两大新坑**（torchair fullgraph 编译区挂 forward hook
+         +s = per-call 重编译撞 8 上限，四轮排除定罪；`export` 带点 env  
+         +名 bash 非法须 env 前缀）；**actions 语义**（normalized_actions
+         + = x_t 终态 [:, :7]，无 denorm 环节）。丢弃：三轮 dynamo 排除的
+         +中间轮次细节、录制脚本演进过程。                               
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU **C 路线 M3（稳态 bench 310ms = 基线 0.82×
+         - 已达成，见 summary 2026-09-21_m3-e2e-steady-bench）**。第一动 
+         -作：**LIBERO 对标集成**——把 C 路线三段 OM 链从 probe harness 接
+         -进 LIBERO 评测。缺口清单：① 真 tokenizer（当前 placeholder toke
+         -n ids=1000+i*7；LeRobot 用 PaliGemma tokenizer，权重在 paligemm
+         -a-3b-pt-224）② 图像 patch 化管线（probe 吃 golden patches [768,
+         -588]；生产 = 3 视图 SigLIP patchify + 归一化，可 host 侧仿 gold
+         -en_gen 语义）③ actions 反量化 + 状态离散化进 prompt ④ pyo3 绑定
+         -或独立 serving 进程接 apxinf_robo eval-libero harness。建议先搭
+         -"离线 LIBERO 轨迹回放"最小闭环（不起 env，用录制的 obs 序列逐帧
+         -调引擎对 actions），再上真 env。运行口径：`GEB_ATTN=manual GEB_
+         -QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1` + `GEB_INIT_OPT_ge.fusionSw
+         -itchFile=/data/apxinf/fusion_off_inplace.json`（**烤图/运行都带
+         -，OM 用 t712fix**）+ `GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=200 
+         -GEB_OM_DIR=/data/apxinf/om_cache/t712fix GEB_E2E_GOLDEN=/data/a
+         -pxinf/golden/frame0_v3b.safetensors GEB_CKPT=/data/apxinf/weigh
+         -ts/pi05_libero_finetuned GEB_SEG=e2e GEB_E2E_BENCH=N`。⚠ 纪律：
+         -PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（c
+         -hip6）；goal 时限纪律见全局 CLAUDE.md。（GitHub 下午短暂不可达 
+         -，两仓已全部推平：子模块 37de6b6、外层 33de7ac。）             
+      13 +继续 APXinf 昇腾 NPU **C 路线 M3（离线回放闭环已打通，见 summar
+         +y 2026-09-22_m3-offline-replay-closed-loop）**。第一动作：**闭 
+         +环 env 对标**——把三段 OM 链包成 policy（pyo3 或独立 serving 进 
+         +程）接 apxinf_robo eval-libero harness 跑真成功率（9/10 基线， 
+         +验收 ≥9/10−1pp）。要点：① 变长 token 用分桶 OM 按帧挑桶（tl144 
+         +已是第一桶；或先跑单长任务子集）② policy 输入语义全在 record_ro
+         +llout.py（token pad 200+mask、patches reproduce、noise 捕获）③ 
+         +actions = x_t[:, :, :7] 直接输出 ④ 运行口径：run_replay.sh 同款
+         + env（GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 + 
+         +融合开关〔env 前缀不是 export〕+ GEB_PREFIX_DROP_EMPTY=256 + GE
+         +B_CKPT + GEB_OM_DIR=tl144）。⚠ 纪律：PYTHONPATH 追加勿覆盖；GEB
+         +_SAVE 全路径文件名；bench 同芯对照（chip6）；torchai 编译区禁 h
+         +ooks/per-call 换闭包；goal 时限纪律见全局 CLAUDE.md。（行为不达
+         +标才做 RMSNorm fp32 对齐；后置优化 pk/pv 直连/styles 设备化/懒 
+         +加载。）                                                       
+      14  
+      15  ## ③ Export 标题建议
+      16  
+      17 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-21_m3-
+         -e2e-steady-bench.txt（M3 稳态 e2e bench：310ms = torch 基线 0.8
+         -2×，延迟验收线达成；styles 缓存 + GEB_E2E_BENCH 旋钮）         
+      17 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-22_m3-
+         +offline-replay-closed-loop.txt（M3 离线回放闭环：真 LIBERO 输入
+         + ×32 帧对拍 P50=194%；token 长度约束 + tl144 OM + dynamo hooks 
+         +坑）                                                           
+      18  
+
+  Thought for 23s (ctrl+o to expand)
+
+● 提交文档：
+
+● Bash(git add syx_docs/dev_logs/handoff.md
+      syx_docs/dev_logs/summary/2026-09-22_m3-offline-replay-closed-loop.md
+      syx_docs/plans/npu-port-roadmap.md syx_docs/setup.md…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/plans/npu-port-roadmap.md',
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● push 输出可疑，验证后并行开下一波（L=145 桶烤图 + task1 录制）：
+
+● Bash(git log --oneline -1 origin/main 2>/dev/null; git push 2>&1 | tail -2)
+  ⎿  a40e784 M3 replay 离线闭环工具：record_rollout/replay_filter + 探针 bu
+     mp e9d9335
+     Please make sure you have the correct access rights
+     and the repository exists.
+
+  Thought for 6s (ctrl+o to expand)
+
+● push 挂了（SSH 访问被拒——又是网络波动）。重试一次，不行先记账：
+
+● Bash(sleep 15; git push 2>&1 | tail -3; git log --oneline -1)
+  ⎿  Please make sure you have the correct access rights
+     and the repository exists.
+     502f02a M3 离线回放闭环文档：summary + roadmap/handoff/setup 回填
+
+  Thought for 6s (ctrl+o to expand)
+
+● GitHub 又不可达（同昨日，VPN 波动）——本地 502f02a
+  安全，收尾时再推。继续干活：L=145 桶 + task1 录制并行开：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "mkdir -p
+      /data/apxinf/om_cache/t…)
+  ⎿  l145-bake+task1-rec-launched
+     Mon Sep 21 04:30:18 PM UTC 2026
+
+  Thought for 9s (ctrl+o to expand)
+
+● 趁跑，把 L=145 的 8 帧子集先过滤出来：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "python3
+      /data/apxinf/replay/repla…)
+  ⎿  [filter] 40 帧 token 真实长度分布: [(144, 32), (145, 8)]
+     [filter] 选 L=145: 保留 8/40 帧（其余 pad 行数不同，静态 OM 不等价）
+     saved: /data/apxinf/replay/replay_t0_L145.safetensors
+
+  Thought for 7s (ctrl+o to expand)
+
+● 等烤图（~4 分钟）：
+
+● Bash(sleep 230; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "tail -3 /tmp/bake_pre…)
+  ⎿  OM saved: /data/apxinf/om_cache/tl145/prefix_real.om
+     prefix GE OM: 106.5549 ms (median/2, rounds=3)
+     GE_PREFIX_PROBE_OK
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 第二桶就绪。跑 L=145 回放（8 帧，验桶机制）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "export
+      GEB_TOKENS=145 GEB_OM_…)
+  ⎿  L145-replay-launched
+
+● Bash(sleep 200; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "grep -E \"replay 帧|RE…)
+  ⎿  [e2e] replay 帧 0: |x|max=4.457 max_diff=5.13574 rel=196.5% (nact|max|
+     =2.613)
+     [e2e] replay 帧 1: |x|max=3.941 max_diff=4.63184 rel=180.6% (nact|max|
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 4m 20s)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 桶机制验证 ✓（L=145：P50=179%，与 144 桶同类）。task1 也录完 40
+  帧——看它的真实长度分布：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "python3
+      /data/apxinf/replay/repla…)  ⎿  [filter] 40 帧 token 真实长度分布: [(145, 28), (146, 12)]
+     [filter] 选 L=144: 保留 0/40 帧（其余 pad 行数不同，静态 OM 不等价）
+     /dev/sdd        1.8T  577G  1.1T  35% /data
+
+  Thought for 6s (ctrl+o to expand)
+
+● task1 桶心在 145（28/40）——正好已烤，跨任务直接回放验桶共享：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "python3
+      /data/apxinf/replay/repla…)
+  ⎿  [filter] 40 帧 token 真实长度分布: [(145, 28), (146, 12)]
+     [filter] 选 L=145: 保留 28/40 帧（其余 pad 行数不同，静态 OM 不等价）
+     t1-L145-replay-launched
+
+● Bash(sleep 210; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "grep -E \"REPLAY 对拍|P…)
+  ⎿  [e2e] REPLAY 对拍 ×28 帧 3.22104467s: rel P50=222.5% min=160.0% max=32
+     9.5%（torch normalized_actions，同 noise）
+     GE_E2E_PROBE_OK
+  ⎿  (timeout 4m 30s)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 跨任务桶共享 ✓（task1@tl145：P50=222.5%，同类量级）。补 summary
+  追记并收尾提交：
+
+● Update(syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md)
+  ⎿  Added 7 lines
+      40  
+      41  tl144 OM（prefix parity worst 1.0% / 103.3ms@656 行；flow 7.62m
+          s/步）落 `/data/apxinf/om_cache/tl144/`（vision 复用 t712fix）
+          。
+      42  
+      43 +## 追记（同日凌晨：第二桶 + 跨任务）                           
+      44 +                                                               
+      45 +- **tl145 第二桶**（prefix 106.6ms@657 / flow 7.60ms）：task0  
+         +的 L=145 帧 8 个回放 **rel P50=179.2%（161.6-197.3）**——桶机制 
+         +验证 ✓                                                         
+      46 +- **跨任务桶共享**：task1（"put the cream cheese…"）长度分布 14
+         +5(28)/146(12)——桶心随任务漂移；其 28 个 L=145 帧直接吃 tl145 桶
+         +回放 **rel P50=222.5%（160-330）**，同类量级（略宽 = 不同任务/ 
+         +分布）                                                         
+      47 +- 录制器跨任务复用 ✓（task1 40 调用零崩）；磁盘 1.1T 余量 = 分 
+         +桶路线便宜（每桶 ≈4.4GB）                                      
+      48 +- 覆盖小结：task0 40/40（144+145 两桶）、task1 28/40（差 L=146 
+         +一桶）——**闭环 policy 的桶集 = 遇到新长度按需补烤**（bake_one.s
+         +h ~4 分钟/桶对）                                               
+      49 +                                                               
+      50  ## 下一步（M3 收官路径）
+      51  
+      52  1. **闭环 env 集成**：把三段链包成 policy（pyo3/服务进程），接 
+          eval-libero harness 跑真成功率——变长 token 用「分桶 OM + 按帧挑
+          桶」或先跑单长子集任务
+
+  Thought for 8s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        -ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        -录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        - patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        -度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        -等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        -@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        -50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        -6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        -本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        - bench 310ms 自洽。集成四件已通三件（tokenizer/patch 管线/噪声对
+        -齐）。前情：延迟验收线已达成（310.3ms = 0.82×，summary 2026-09-2
+        -1_m3-e2e-steady-bench）；parity fp16-class 结案（summary 2026-09
+        --21_m3-flow-step0-residual-bisect）。两仓已推平：子模块 e9d9335 
+        -、外层 a40e784。                                                
+      5 +**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        +ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        +录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        + patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        +度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        +等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        +@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        +50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        +6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        +本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        + bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        +%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        +；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        +按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        +zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        +2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        +结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。两仓已
+        +推平：子模块 e9d9335、外层 a40e784。                            
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Bash(git add
+      syx_docs/dev_logs/summary/2026-09-22_m3-offline-replay-closed-loop.md
+      syx_docs/dev_logs/handoff.md && git commit -m "M3 回放追记：tl145 第二桶 +
+      跨任务桶共享（task1 P5…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-22_
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 推送仍挂（GitHub SSH 不通；a40e784/e9d9335 已在远端，502f02a/7861270
+  本地待推）。修正 handoff 推送注记 + 补 task1 的 L=146
+  桶（把两个任务的桶集补完整）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        -ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        -录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        - patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        -度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        -等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        -@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        -50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        -6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        -本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        - bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        -%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        -；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        -按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        -zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        -2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        -结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。两仓已
+        -推平：子模块 e9d9335、外层 a40e784。                            
+      5 +**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        +ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        +录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        + patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        +度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        +等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        +@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        +50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        +6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        +本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        + bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        +%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        +；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        +按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        +zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        +2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        +结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。推送状
+        +态：子模块 e9d9335、外层 a40e784 已在远端；**外层 502f02a/786127
+        +0 本地待推**（GitHub SSH 凌晨再断，恢复后 `git push` 即可）。   
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_rust bash -c "mkdir -p
+      /data/apxinf/om_cache/t…)
+  ⎿  l146-bake-launched
+     Mon Sep 21 04:43:43 PM UTC 2026
+
+  Thought for 18s (ctrl+o to expand)
+
+● 趁 L146 烤，把闭环集成施工图写进 summary（下 session 直接开工用）：
+
+● Update(syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md)
+  ⎿  Added 7 lines, removed 3 lines
+      49  
+      50  ## 下一步（M3 收官路径）
+      51  
+      52 -1. **闭环 env 集成**：把三段链包成 policy（pyo3/服务进程），接 
+         -eval-libero harness 跑真成功率——变长 token 用「分桶 OM + 按帧挑
+         -桶」或先跑单长子集任务                                         
+      53 -2. （行为不达标才做）RMSNorm fp32 上浮对齐——194% 的 rel 残差主 
+         -源                                                             
+      54 -3. 后置优化不变（pk/pv 直连、styles 设备化、懒加载）           
+      52 +### 闭环集成施工图（下 session 直开）                          
+      53  
+      54 +1. **引擎常驻驱动**：probe 加 `GEB_E2E_SERVE` 模式（或 pyo3——先
+         +用 probe 内加模式，零新构建依赖）：常驻进程，请求文件/FIFO 进（
+         +patches+token_ids+noise），actions npy 出。多桶并存 = Seg 槽多 
+         +实例（ge_builder 多模型槽已预留）——每桶一套 {prefix,flow} OM + 
+         +vision 共享单实例                                              
+      55 +2. **policy 适配层**（Python，镜像 record_rollout.py 语义）：wi
+         +re obs → `_to_frame`（HWC→CHW /255 + state 8 维 + prompt）→ `po
+         +l.preprocess` → token ids（**L = count_nonzero(ids) 选桶 tl{L}*
+         +*；桶缺失 = lazy 补烤 ~4 min——eval 无墙钟约束可接受；延迟敏感部
+         +署再上动态 shape/定宽 state）→ `_preprocess_images` → unfold 14
+         +/14 → 引擎调用 → `x_t[:, :, :7]` 返回                          
+      56 +3. **noise**：运行期自采样（回放对拍才需配对 torch）；**actions
+         + 反量化不存在**（= x_t 切片，已核清）                          
+      57 +4. 接 `eval-libero --backend in-process`：引擎 policy 注册成 np
+         +u-torch 同形 Backend（replan=5 起步，9/10 对照 replan 研究）   
+      58 +5. （行为不达标才做）RMSNorm fp32 上浮对齐——194% rel 残差主源；
+         +后置优化不变（pk/pv 直连、styles 设备化、懒加载）              
+      59 +                                                               
+      60  ## 工具与坑
+      61  
+      62  - `GEB_E2E_REPLAY=<safetensors>`（须配 GEB_TOKENS=等长、GEB_OM_
+          DIR=对应长 OM 目录；GEB_TOKENS=200 时才可带 GEB_E2E_GOLDEN 金丝
+          雀）
+
+● Bash(sleep 200; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "tail -2 /tmp/bake_pre…)
+  ⎿  prefix GE OM: 106.3530 ms (median/2, rounds=3)
+     GE_PREFIX_PROBE_OK
+     flow GE OM: 7.5130 ms (median/2, rounds=3)
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 4m 20s)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_rust bash -c "export
+      GEB_TOKENS=146 GEB_OM_…)
+  ⎿  launched
+
+● Bash(sleep 190; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "grep -E \"REPLAY 对拍|P…)
+  ⎿  [e2e] REPLAY 对拍 ×12 帧 1.323296s: rel P50=197.7% min=161.0% max=259.
+     0%（torch normalized_actions，同 noise）
+     GE_E2E_PROBE_OK
+  ⎿  (timeout 4m 10s)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 三桶全验，两任务 80/80 帧全覆盖。最终更新 summary 数字并提交：
+
+● Update(syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md)
+  ⎿  Added 1 line, removed 1 line
+      45  - **tl145 第二桶**（prefix 106.6ms@657 / flow 7.60ms）：task0 
+          的 L=145 帧 8 个回放 **rel P50=179.2%（161.6-197.3）**——桶机制
+          验证 ✓
+      46  - **跨任务桶共享**：task1（"put the cream cheese…"）长度分布 14
+          5(28)/146(12)——桶心随任务漂移；其 28 个 L=145 帧直接吃 tl145 桶
+          回放 **rel P50=222.5%（160-330）**，同类量级（略宽 = 不同任务/
+          分布）
+      47  - 录制器跨任务复用 ✓（task1 40 调用零崩）；磁盘 1.1T 余量 = 分
+          桶路线便宜（每桶 ≈4.4GB）
+      48 -- 覆盖小结：task0 40/40（144+145 两桶）、task1 28/40（差 L=146 
+         -一桶）——**闭环 policy 的桶集 = 遇到新长度按需补烤**（bake_one.s
+         -h ~4 分钟/桶对）                                               
+      48 +- 覆盖小结（终态）：**三桶 tl144/145/146 全验，task0 40/40 + ta
+         +sk1 40/40 = 80/80 帧全覆盖回放**——tl146 = task1 ×12 P50=197.7% 
+         +（161-259）；四组对拍 P50 带 179-223% 全同类（fp16 残差 + 混沌 
+         +放大，无集成性离群）。**闭环 policy 的桶集 = 遇到新长度按需补烤
+         +**（bake_one.sh ~4 分钟/桶对，磁盘 1.1T 余）                   
+      49  
+      50  ## 下一步（M3 收官路径）
+      51  
+
+● Bash(git add
+      syx_docs/dev_logs/summary/2026-09-22_m3-offline-replay-closed-loop.md
+      syx_docs/dev_logs/handoff.md && git commit -m "M3 回放收口：tl146
+      第三桶，80/80 帧全覆盖（四组 P50…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-22_
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● push 恢复了（a40e784..fb4e811）——全部落远端。handoff
+  的“待推”注记过时了，一行修正：
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        -ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        -录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        - patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        -度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        -等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        -@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        -50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        -6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        -本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        - bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        -%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        -；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        -按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        -zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        -2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        -结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。推送状
+        -态：子模块 e9d9335、外层 a40e784 已在远端；**外层 502f02a/786127
+        -0 本地待推**（GitHub SSH 凌晨再断，恢复后 `git push` 即可）。   
+      5 +**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        +ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        +录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        + patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        +度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        +等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        +@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        +50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        +6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        +本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        + bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        +%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        +；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        +按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        +zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        +2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        +结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。推送状
+        +态：**两仓已全部推平**（子模块 e9d9335、外层 fb4e811；GitHub SSH
+        + 凌晨断过一阵后恢复）。                                         
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Bash(git add syx_docs/dev_logs/handoff.md && git commit -m "handoff:
+      推送状态更新（GitHub 恢复，两仓推平至 fb4e811）…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     [main 2e37d5e] handoff: 推送状态更新（GitHub 恢复，两仓推平至
+     fb4e811）
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 17s (ctrl+o to expand)
+
+● 继续填剩余时间窗（01:50 前收口）：并行录 task2/task3，把闭环 eval
+  要用的桶集再扩两个任务：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec -d apxinf_npu bash -c "export
+      ASCEND_RT_VISIBLE_DEVIC…)
+  ⎿  t2-chip7-t3-chip4-launched
+     Mon Sep 21 04:52:27 PM UTC 2026
+
+● Bash(sleep 540; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_npu bash -c "grep -hE \"episode don…)
+  ⎿  [rec] libero_object task 2: 'pick up the salad dressing and place it i
+     n the basket'
+     [rec] token 长度分布: [(200, 40)]
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 两任务录完。过滤看真实长度：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "python3
+      /data/apxinf/replay/repla…)
+  ⎿  [filter] 40 帧 token 真实长度分布: [(146, 22), (145, 17), (144, 1)]
+     [filter] 选 L=144: 保留 1/40 帧（其余 pad 行数不同，静态 OM 不等价）
+     [filter] 40 帧 token 真实长度分布: [(146, 22), (145, 14), (144, 4)]
+     [filter] 选 L=144: 保留 4/40 帧（其余 pad 行数不同，静态 OM 不等价）
+  ⎿  (timeout 1m 30s)
+
+  Thought for 7s (ctrl+o to expand)
+
+● task2/3 长度全落在已有三桶（144/145/146 = 100%
+  覆盖，零新烤）。过滤六个子集，双芯并行回放：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'docker exec apxinf_npu bash -c "cd
+      /data/apxinf/replay; for t in…)
+  ⎿  saved: replay_t2_L144.safetensors
+     saved: replay_t2_L145.safetensors
+     saved: replay_t2_L146.safetensors
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      root@192.168.13.119 'for spec in "2 144 6" "2 145 4" "2 146 6" "3 144 4"
+      "3 145 6" "3…)
+  ⎿  six-replays-queued
+     Mon Sep 21 05:02:42 PM UTC 2026
+
+  Thought for 33s (ctrl+o to expand)
+
+● 六个回放已并发排队（每芯 3 个，内存应可容纳）。等收：
+
+● Bash(sleep 380; ssh -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts root@192.168.13.119 'docker exec
+      apxinf_rust bash -c "for f in /tmp/replay_…)
+  ⎿  == /tmp/replay_t2_L144.log
+     [e2e] REPLAY 对拍 ×1 帧 95.02461ms: rel P50=188.7% min=188.7% max=188.
+     7%（torch normalized_actions，同 noise）
+     … +20 lines (ctrl+o to expand)
+  ⎿  (timeout 7m 30s)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 四任务 × 三桶全绿，160/160 帧。终版数字入 summary、收口提交：
+
+● Update(syx_docs\dev_logs\summary\2026-09-22_m3-offline-replay-closed-loop.md)
+  ⎿  Added 10 lines, removed 1 line
+      45  - **tl145 第二桶**（prefix 106.6ms@657 / flow 7.60ms）：task0 
+          的 L=145 帧 8 个回放 **rel P50=179.2%（161.6-197.3）**——桶机制
+          验证 ✓
+      46  - **跨任务桶共享**：task1（"put the cream cheese…"）长度分布 14
+          5(28)/146(12)——桶心随任务漂移；其 28 个 L=145 帧直接吃 tl145 桶
+          回放 **rel P50=222.5%（160-330）**，同类量级（略宽 = 不同任务/
+          分布）
+      47  - 录制器跨任务复用 ✓（task1 40 调用零崩）；磁盘 1.1T 余量 = 分
+          桶路线便宜（每桶 ≈4.4GB）
+      48 -- 覆盖小结（终态）：**三桶 tl144/145/146 全验，task0 40/40 + ta
+         -sk1 40/40 = 80/80 帧全覆盖回放**——tl146 = task1 ×12 P50=197.7% 
+         -（161-259）；四组对拍 P50 带 179-223% 全同类（fp16 残差 + 混沌 
+         -放大，无集成性离群）。**闭环 policy 的桶集 = 遇到新长度按需补烤
+         -**（bake_one.sh ~4 分钟/桶对，磁盘 1.1T 余）                   
+      48 +- 覆盖小结（终态）：**task0-3 四任务 × tl144/145/146 三桶 = 160
+         +/160 帧全覆盖回放，零集成性离群**——                            
+      49  
+      50 +  | task | L=144 | L=145 | L=146 | P50 带 |                    
+      51 +  |---|---|---|---|---|                                        
+      52 +  | task0 | ×32 194.1% | ×8 179.2% | — | 179-194% |            
+      53 +  | task1 | — | ×28 222.5% | ×12 197.7% | 198-223% |           
+      54 +  | task2 | ×1 188.7% | ×17 187.3% | ×22 181.8% | 182-189% |   
+      55 +  | task3 | ×4 207.3% | ×14 206.2% | ×22 202.9% | 203-207% |   
+      56 +                                                               
+      57 +  全部 fp16 残差 + 混沌放大同类；**闭环 policy 的桶集 = 遇到新 
+         +长度按需补烤**（bake_one.sh ~4 分钟/桶对，磁盘 1.1T 余）       
+      58 +                                                               
+      59  ## 下一步（M3 收官路径）
+      60  
+      61  ### 闭环集成施工图（下 session 直开）
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        -ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        -录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        - patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        -度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        -等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        -@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        -50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        -6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        -本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        - bench 310ms 自洽。**桶机制已验**：tl145 第二桶（task0 P50=179.2
+        -%）+ 跨任务共享（task1 长度 145/146，28 帧吃 tl145 P50=222.5%） 
+        -；task0 40/40 覆盖、task1 28/40（差 L=146 桶）——闭环 policy 桶集
+        -按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokeni
+        -zer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.8
+        -2×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 
+        -结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。推送状
+        -态：**两仓已全部推平**（子模块 e9d9335、外层 fb4e811；GitHub SSH
+        - 凌晨断过一阵后恢复）。                                         
+      5 +**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-repl
+        +ay-closed-loop）**：真 env（libero_object task0）rollout 40 调用
+        +录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP
+        + patches/捕获 noise/torch normalized_actions）→ **真实 token 长 
+        +度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 
+        +等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms
+        +@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P
+        +50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp1
+        +6 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证 
+        +本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态
+        + bench 310ms 自洽。**桶机制已验**：tl144/145/146 三桶 × task0-3 
+        +四任务 = **160/160 帧全覆盖回放，P50 带 179-223% 全同类零离群**—
+        +—闭环 policy 桶集按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四 
+        +件已通三件（tokenizer/patch 管线/噪声对齐）。前情：延迟验收线已 
+        +达成（310.3ms = 0.82×，summary 2026-09-21_m3-e2e-steady-bench） 
+        +；parity fp16-class 结案（summary 2026-09-21_m3-flow-step0-resid
+        +ual-bisect）。推送状态：**两仓已全部推平**（子模块 e9d9335、外层
+        + fb4e811；GitHub SSH 凌晨断过一阵后恢复）。                     
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Bash(git add
+      syx_docs/dev_logs/summary/2026-09-22_m3-offline-replay-closed-loop.md
+      syx_docs/dev_logs/handoff.md && git commit -m "M3 回放终态：task0-3 × 三桶
+      160/160 帧全覆盖，P…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-22_
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 今晚 M3 里程碑：离线 LIBERO 轨迹回放闭环全链打通，已全部落盘推送（2539dc1 / 
+  子模块 e9d9335），01:07 完成于时限内。
+
+  干了什么
+
+  录制 → 过滤 → 按长烤桶 → 引擎逐帧回放四步闭环，全部真值输入：
+
+  1. 录制（record_rollout.py，真 env + torch 9/10 路径）：libero_object task0-3
+     各 40 调用，每帧记真实 tokenizer ids（state 离散化进 prompt）、SigLIP
+     patches、捕获的 noise、torch normalized_actions
+  2. 发现静态 OM 新约束：真实 token 长度随 state 位数浮动（144/145/146）——torch
+     pad 200 后 mask 掉，引擎全可见不等价 ⇒ 等长帧过滤 + 按长重烤三桶
+     OM（tl144/145/146）
+  3. 回放对拍：4 任务 × 3 桶 = 160/160 帧全覆盖，rel P50 带
+     179-223%，紧簇无离群（fp16 残差 + 10 步 flow 混沌放大，与 golden 363%
+     同源）；逐帧 ≈307ms 与 310ms bench 自洽
+
+  今晚踩掉的两个坑（已入 summary）
+
+  - torchair fullgraph 编译区挂 forward hooks = 每调用重编译，8 次撞
+    FailOnRecompileLimitHit——四轮排除定罪（闭包/token 形状都洗清，v4 去 hook
+    后零崩）
+  - export 带点 env 名 bash 非法（GEB_INIT_OPT_ge.x=… 必须用 env
+    前缀）——run_replay.sh 首版踩了自家文档记过的坑，已修
+
+  M3 剩余
+
+  闭环 env 对标（9/10 基线）：三段链包成 policy 接 eval-libero
+  harness。施工图已写进 summary（常驻驱动 + Python 适配层 + 桶选择 lazy 补烤 +
+  replan=5 起步），下 session 可直开。集成四件已通三件（tokenizer/patch
+  管线/噪声对齐；actions = x_t 切片无反量化，已核清）。
+
+✔ Goal achieved (1h · 1 turn · 97.9k tokens) (ctrl+o to expand)
+
+✻ Worked for 1h 57m 13s · done 1:07 AM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   223.1k/1m tokens (22%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 220.5k tokens (22.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 776.6k (77.7%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ M3还剩下什么没做完？                                                          
+  Thought for 10s (ctrl+o to expand)
+
+● M3 = 「LIBERO 对标（9/10 基线，验收 ≥9/10−1pp）」，已完成：延迟验收线（310.3ms
+  = 0.82×）、parity 定性收口（fp16-class）、离线回放闭环（160/160
+  帧，输入侧三件——tokenizer/patch 管线/噪声对齐——全部接真值）。
+
+  剩下就一件事：闭环 env 对标——把三段 OM 链从 probe 接进真 LIBERO
+  评测跑成功率。具体缺口三块（施工图在 summary
+  2026-09-22_m3-offline-replay-closed-loop.md 末尾）：
+
+  #: ①
+  缺口: 引擎常驻驱动
+  说明: probe 现在是单发进程；要加 GEB_E2E_SERVE 模式（或 pyo3）——常驻 +
+  多桶并存（tl144/145/146 三套 prefix/flow OM + 共享 vision，ge_builder
+  多模型槽已预留）
+  ────────────────────────────────────────
+  #: ②
+  缺口: Python policy 适配层
+  说明: 镜像 record_rollout.py 语义：wire obs → _to_frame → preprocess → token
+  ids 按 L 选桶（缺桶 lazy 补烤 ~4 min，eval 无墙钟约束可接受）→
+  _preprocess_images + unfold → 引擎调用 → x_t[:, :, :7] 返回
+  ────────────────────────────────────────
+  #: ③
+  缺口: 接 eval-libero harness
+  说明: 注册成 in-process Backend，replan=5 起步，跑 10 任务对照 9/10
+
+  风险点（不是缺口，是判定前的已知不确定性）：逐帧 actions rel
+  ~180-220%，闭环行为是否守住成功率取决于 fp16 残差在轨迹层面的表现——stage-1
+  replan 研究证过本 checkpoint
+  对实现噪声敏感但成功率同分布，所以这是“要跑才知道”，不是“已知会坏”。
+
+  条件项与后置项（不算 M3 缺口）：
+  - 行为不达标才做：RMSNorm fp32 上浮对齐（194% 残差主源）
+  - 后置优化：pk/pv 设备直连（−15~25ms）、styles h2d 批量化（−10~15ms）、aux
+    免下载（−10ms）、进程加载懒加载（100s）
+
+✻ Brewed for 17s · done 9:23 AM
+
+※ recap: 昇腾 NPI 适配 M3：离线 LIBERO 回放闭环已打通并全部推送（160/160 帧），M3 只剩闭环 env 成功率对标。下一步：按 summary 里的施工图做常驻驱动加 policy 适配层，接 eval-libero 跑 9/10 对照。
