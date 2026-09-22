@@ -108,6 +108,10 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 31 | 图内 AddRmsNorm 读**在图中间量**时数值确定性错 11-45%（行剖面平坦/通道结构扁平、**同值作 Data 输入 0.073% 干净**、五类屏障与端口对调变体**逐位不变**、改图形状/垫 M 即变值）；`ge.exec.disableReuseMemory=1` 与 `ge.bufferOptimize=off_optimize` 均无效 | **`InplaceAddRmsNormFusionPass` 把 AddRmsNorm 融合成原地版本**（算子注册表 output0 名就叫 `x1`、output2 叫 `x2`——结果写回两个输入 buffer 本体）；原地别名与静态 OM 内存的交互在读中间量时污染数值，Data 输入因用户 buffer 全程受保护而免疫（机制细粒度未钉死，推测与别名 buffer 的计划复用有关）。disableReuseMemory 管不到它也自洽——Const 别名/复用不在其管辖 | **`ge.fusionSwitchFile`（init 级）关该 pass**：JSON `{"Switch":{"GraphFusion":{"InplaceAddRmsNormFusionPass":"off"},"UBFusion":{}}}`（第 4 层直接是字符串 "on"/"off"）——实测 MIN 复现图 11.041%→0.159%、全图 45.2%→0.159%。取证链见工具箱 #6/#7 |
 | 32 | `geb_run` rc=-3，报 "n_out N != model M"（模型输出数 > 声明数，如 8 vs 10） | 绑**多输出算子**（AddRmsNorm 的 y、ARPE 的 q 等）的某个输出作图输出时，GE 把悬空的兄弟输出端口（rstd/x_out）**自动补绑为额外图输出**——声明 1 个实得 3 个 | 输出 buffer 一律按**模型 introspection** 分配（加载后 `num_outputs()` 逐个查 size），按值对号；不要按声明数 malloc |
 | 33 | 把图中间量绑成图输出做调试对拍，读到的是**过期/被改写**的值（同图其他声明的输出正常） | 图输出 buffer 可被静态内存计划**复用**给图内在其后写入的张量（运行期读回时机在全部执行之后）——绑出 ≠ 快照 | 判读一律**按值不按槽**：先验证该槽值与已知量级/结构是否自洽（行剖面、|max|）；不可信时改用一次性专门图（GEB_DUMP_MID 类槽位落盘 + 与 golden 交叉验证）；#31 定罪过程即靠"wmm4 同值 Data 输入"绕开槽判读 |
+| 34 | Cast 算子编译 rc=-7（dst_type attr 传 int 枚举猜测值） | **Cast.dst_type 是 DataType 类型 attr**，proto 枚举序不能拍脑袋（DT_FLOAT/DT_FLOAT16 的 int 值跨版本不保证） | 走字符串管道：FFI 加 `geb_set_attr_dtype`（复用 C++ ParseDtype 的 "fp16"/"fp32" → ge::DataType 转换 + Operator::SetAttr(DataType) 重载） |
+| 35 | ReduceSumD 编译 rc=-7（attr 名 "axis"）；TileD 输入 [rows,1]+multiples=[1,w] 被 infershape 推成 [1,rows*w]；RealDiv 广播 [m,w]÷[m,1] 编译拒（mul E80013 同族） | 归约族 attr 名是 **"axes"**（list）非 "axis"；TileD 只有 [1,x] 前导 1 输入域可靠；除法/乘法算子无广播 kernel | ReduceSumD 用 "axes"；行广播（per-row 标量铺满行）用 **1-D Tile 域 + 双 Reshape 桥**：[rows,1]→Reshape [rows]→TileD multiples=[w]→[rows*w]→Reshape [rows,w]（每步都是已验证形态） |
+| 36 | 图拓扑静默错乱：编译报 `GetInputDesc of node[<Data 名>] invalid index 1..N`（pass 停在 OptimizeSubgraph 前），或下游算子拿到错 shape | **SetInput(dst, port, src) 的两参数变体只认 Data 节点名**——src 是算子名时边不落图/错挂（多输出算子尤甚，陷阱 #8 同族泛化） | 连**算子输出**一律用带 src_port 的变体（`link_out`/三参 wire）；封装层自动分派：src 在 Data 名集合 → link，否则 → link_out |
+| 37 | 大图（算子数近翻倍）编译 rc=-8，小深度同图全通 | 疑编译资源/节点规模上限（本轮 prefix 18 层 +37 处 fp32 组合 norm 触发；12 层通） | 候选：节点精简（广播桥/常量折叠）、GE 编译内存类 init 选项、按层拆 OM 接力——开放项（2026-09-22 记） |
 
 ## 环境与自检
 
@@ -133,6 +137,7 @@ GE 内存编译走 **TeFusion 算子编译器**，它依赖 python 子进程栈�
 5. **strace 找环境探测失败**：`strace -f -e trace=execve,wait4 ./程序`——第三方库起子进程探测环境（python3-config 等）失败的特征是子进程退出码 127 且主库随后报 init 失败。比读反汇编字符串快。
 6. **编译期逐 pass 图 dump**：env `DUMP_GE_GRAPH=3 DUMP_GRAPH_PATH=<dir>`——落盘每个优化 pass 前后的图（ge_proto .txt + onnx .pbtxt，目录下按 `pid_*_deviceid_*`）。查融合/插算子/格式决策的 ground truth（陷阱 #31 靠它发现 InplaceAddRmsNormFusionPass）。
 7. **编译选项层级判别**（传错层 rc=-7/-1，与"选项不存在"同症状）：`ge.*` 前缀名是 **init 级**（aclgrphBuildInitialize 的 global_options——socVersion/fusionSwitchFile/bufferOptimize/disableReuseMemory…）；**build 级** map 只收 atc 风格短名（input_shape/input_format…）。合法值要查源码/文档（如 bufferOptimize 是 `off_optimize` 不是 `off`；disableReuseMemory 是 "0"/"1"）。开源 GE 仓（gitee mindspore/ge）的 `compiler/api/aclgrph/ge_ir_build.cc` `CheckGlobalOptions` 与 `api/atc/main_impl.cc` 是选项归属的权威索引。
+8. **编译错误直吐 stdout**：`ASCEND_SLOG_PRINT_TO_STDOUT=1 ASCEND_GLOBAL_LOG_LEVEL=1`——GE/TEFUSION 的 `[ERROR]` 行（含算子预编译的 **python 完整异常栈**）直接进进程输出，比翻 plog 快且信息全（rc=-7 排障的破局工具，2026-09-22；GE 编译失败在 plog 里常无 ERROR 级行）。
 
 ## 边界
 
