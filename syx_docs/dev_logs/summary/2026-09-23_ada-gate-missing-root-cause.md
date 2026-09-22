@@ -47,8 +47,19 @@ GE 图 vs eager 镜像**同 bug**（eager 闭包同样丢 gate + 错残差基）
 2. **天花板三证据全部有替代解释**：段级守恒（gate 项守恒——它是与 norm 语义无关的常量偏差）、行为敏感度（norm16 patch 恰好也破坏 gate 通路？不——norm16 只动 _norm；但引擎 10% 级 gate 偏差 >> 一切）、replay 饱和（噪声化输出下 rel 无分辨力）。**多源合流指向"原理性"结论前，先做一个分布形态刑侦**（成本 20 分钟，本轮它直接翻案）。
 3. 时间感知漂移 2 小时（心算外推 vs date 实测）——CLAUDE.md 纪律"任何一次 date 都能直接算剩余"是有原因的。
 
+## 终审：全量 eval 10/10（2026-09-23 02:17 CST）
+
+**`LIBERO [libero_object] complete: 10/10 successes`（eval_gateall，success_rate 1.0）**——超越 torch 基线 9/10（基线挂 task7；我们 task7 125 步成功；单 trial 差异在采样随机性内）。逐任务步数 122-163 全部健康：
+
+| task | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| steps | 161 | 127 | 122 | 163 | 137 | 129 | 162 | 125 | 155 | 127 |
+| 成功 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**M3 双口径达成**：行为 10/10 ≥ 基线 9/10 − 1pp ✓；延迟 model_ms P50 = 325.3ms = 基线 376ms 的 **0.87×**（eval 口径含 serve spool 轮询；纯引擎稳态 bench 310.3ms = 0.82×）。
+
 ## 服务器现场（本轮收尾时）
 
-- tl{138..145,147} + tl200n32/t712fix 的 flow 均已重烤为 gate 版（prebake_gate.sh 9 桶并行；tl146 陈旧 flow 已删走 lazy bake）
-- supervisor 已起（SERVE_CHIPS="6 4 7 5"，/tmp/supervisor_gate.log）；task0 eval 进行中（eval_gatet0）
+- tl{138..145,147} + tl200n32/t712fix 的 flow 均已重烤为 gate 版（prebake_gate.sh 9 桶并行；tl146/tl148 陈旧 flow 已删走 lazy bake 重烤）
+- supervisor 与全部桶引擎已停（stop_serve_gate.sh，芯片回基线 1.3-1.6GB）；⚠ 旧会话残留的 stale ready/pid 文件会让 client 撞死桶挂起（tl143/tl148 两次卡死根因）——**下次起 serve 前先清 serve/tl*/ready+pid+shutdown 只留活桶**；另 tl148 曾带着 pre-gate 陈旧 flow OM 被误 spawn（清理时只删了标记没查 OM——**清桶要连 OM 一起查三件套新鲜度**）
 - NORM32 系：tl{n}n32 桶的 flow 仍是旧版（缺 gate）——n32 路线后续要用需重烤 + 修 ssum 饱和（l17 29.5% 回归）
