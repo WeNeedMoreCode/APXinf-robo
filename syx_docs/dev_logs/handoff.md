@@ -1,18 +1,17 @@
-# Handoff（2026-09-22 凌晨 离线回放闭环打通 rel P50=194% / 压缩用）
+# Handoff（2026-09-22 晚 闭环 0/10 定罪 + NORM32 depth12 通 / 压缩用）
 
 ## 状态一句话
 
-**M3 离线轨迹回放闭环打通（见 summary 2026-09-22_m3-offline-replay-closed-loop）**：真 env（libero_object task0）rollout 40 调用录制（真 PaliGemma tokenizer ids〔state 离散化进 prompt〕/SigLIP patches/捕获 noise/torch normalized_actions）→ **真实 token 长度随 state 位数浮动（144/145）= 静态 OM 新约束**，replay_filter 等长过滤 32 帧（L=144，80% 覆盖）→ tl144 OM 重烤（prefix 103.3ms@656 parity 1.0% / flow 7.62ms/步）→ 引擎三段链逐帧回放：**rel P50=194%（170.6-226.9 紧簇无离群，abs 4-5 on |nact|max≈2.3）= fp16 残差 + 10 步 flow 混沌放大（与 golden 363% 同源，stage-1 已证本 checkpoint 噪声实现敏感但成功率同分布）**；逐帧 ≈307ms 与稳态 bench 310ms 自洽。**桶机制已验**：tl144/145/146 三桶 × task0-3 四任务 = **160/160 帧全覆盖回放，P50 带 179-223% 全同类零离群**——闭环 policy 桶集按需补烤（~4 分钟/桶对，磁盘 1.1T 余）。集成四件已通三件（tokenizer/patch 管线/噪声对齐）。前情：延迟验收线已达成（310.3ms = 0.82×，summary 2026-09-21_m3-e2e-steady-bench）；parity fp16-class 结案（summary 2026-09-21_m3-flow-step0-residual-bisect）。推送状态：**两仓已全部推平**（子模块 e9d9335、外层 fb4e811；GitHub SSH 凌晨断过一阵后恢复）。
+**M3 闭环 eval 已跑通并出结果：行为 0/10（全 520 步打满）vs 基线 9/10——管线本身零技术故障**（10 任务 × 104 replans、engine 0.315s/次与稳态 bench 自洽、分桶 OM/lazy bake/死桶守护全实战验证，见 summary 2026-09-22_m3-closed-loop-eval）；**根因已因果定罪 = GemmaRMSNorm 的 fp32 方差上浮差**（norm16 对照：torch 单变量去上浮 → task0 同样打满失败；与 step0 残差 bisect 结论闭环）；**NORM32 修复（组合手搓 fp32 RMS 图）已验证到 depth12 编译全通**——全深度 18 层 rc=-8（规模相关，节点数翻倍）放下一轮。推送状态：⚠ **GitHub SSH 断连中**（18:04 起 >2h，凌晨那款 20 分钟自愈，本次未恢复）——本地 commit 齐全：子模块 7df3674（NORM32）+4e4399f（serve）、外层 0dfddcd（收口）+e510fe0（npu-ge 集成），网络恢复后重推。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**回放闭环结果**（32 帧 L=144 rel P50=194% 紧簇；逐帧 65.7+128+113≈307ms 与 bench 自洽）；**token 长度约束**（真实长度随 state 位数浮动 144/145，torch pad 200 + mask，静态 OM 须等长过滤 + 按长重烤；生产三选 = 分桶 OM/动态 shape/定宽 state 格式化）；**工具链**（record_rollout.py 录制〔REPLAN/REPLAY_MAX_STEPS 可调〕、replay_filter.py 等长过滤、bake_one.sh <seg> <L> <chip>、run_replay.sh；GEB_E2E_REPLAY 旋钮须配 GEB_TOKENS/OM_DIR 对应）；**两大新坑**（torchair fullgraph 编译区挂 forward hooks = per-call 重编译撞 8 上限，四轮排除定罪；`export` 带点 env 名 bash 非法须 env 前缀）；**actions 语义**（normalized_actions = x_t 终态 [:, :7]，无 denorm 环节）。丢弃：三轮 dynamo 排除的中间轮次细节、录制脚本演进过程。
+聚焦保留：**闭环结果**（0/10 全打满 vs 9/10；管线零故障：104 replans/任务、0.315s/次、分桶/lazy bake/守护全实战）；**根因定罪链**（norm16 对照 = torch 去 GemmaRMSNorm fp32 方差上浮 → 同崩；194% rel = 同源系统性偏差）；**NORM32 现状**（GEB_NORM32 组合图：Cast→Mul²→ReduceSumD(axes)→RealDiv(w)→Sqrt→1-D TileD→Reshape→Mul(γ)→Cast；GE IR 五坑定罪：dst_type 是 DataType attr/ReduceSumD attr 名 axes/TileD [rows,1] 域推断扁平化/RealDiv 广播拒/**link 只配 Data 名连算子输出必须 wire**；depth12 通、18 层 rc=-8 规模问题）；**serve 架构**（apxinf_npu torch 前处理 + apxinf_rust serve 进程/桶/supervisor 守护，/data 文件轮询；processor 恒 pad 200 须非零前缀截真长）；**运行坑**（pkill -f 自匹配两变种、kill -0 对 zombie 假阳 + fd 持显存、bash 命令替换子 shell 计数器、ASCEND_SLOG_PRINT_TO_STDOUT=1 抓 GE 编译错误是破局工具）；**下一轮**（rc=-8 攻坚：节点精简/拆 OM 接力 → tl144n32 烤桶 → replay rel 降幅判定 → 全桶 eval 复测）。丢弃：rc=-7 排障的中间轮次、深度二分的逐档输出。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU **C 路线 M3（离线回放闭环已打通，见 summary 2026-09-22_m3-offline-replay-closed-loop）**。第一动作：**闭环 env 对标**——把三段 OM 链包成 policy（pyo3 或独立 serving 进程）接 apxinf_robo eval-libero harness 跑真成功率（9/10 基线，验收 ≥9/10−1pp）。要点：① 变长 token 用分桶 OM 按帧挑桶（tl144 已是第一桶；或先跑单长任务子集）② policy 输入语义全在 record_rollout.py（token pad 200+mask、patches reproduce、noise 捕获）③ actions = x_t[:, :, :7] 直接输出 ④ 运行口径：run_replay.sh 同款 env（GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 + 融合开关〔env 前缀不是 export〕+ GEB_PREFIX_DROP_EMPTY=256 + GEB_CKPT + GEB_OM_DIR=tl144）。⚠ 纪律：PYTHONPATH 追加勿覆盖；GEB_SAVE 全路径文件名；bench 同芯对照（chip6）；torchai 编译区禁 hooks/per-call 换闭包；goal 时限纪律见全局 CLAUDE.md。（行为不达标才做 RMSNorm fp32 对齐；后置优化 pk/pv 直连/styles 设备化/懒加载。）
+继续 APXinf 昇腾 NPU **C 路线 M3（闭环 0/10 已定罪 RMSNorm fp32，NORM32 depth12 通，见 summary 2026-09-22_m3-closed-loop-eval）**。第一动作：**攻 rc=-8**（NORM32 全深度 18 层编译失败、12 层通 = 规模相关）——候选：① 每处 norm 节点精简（1-D Tile+双 Reshape 换 TransData 或 gamma 折进 Cast 常量；12→~7 节点）② GE 编译内存/超时参数（ASCEND_GLOBAL_LOG_LEVEL=0 看 pass、`ge.` init 选项里 memory/parallel 类）③ 按层拆 prefix OM 接力（M2 多图接力已验证）→ 全深度过后：**tl144n32 烤桶（GEB_NORM32=1 全套 env + GEB_SAVE=/data/apxinf/om_cache/tl144n32/）→ serve 起（supervisor 外手动 env：GEB_OM_DIR=tl144n32 + GEB_E2E_SERVE 独立 spool）→ smoke.py 对拍 replay 帧 rel 降幅**——显著降（<100%？）才值得全桶 + eval 复测；降不动则回查 softmax fp32 等剩余 torch 混合点。⚠ 两仓 push 欠着（GitHub 断连），恢复后 `cd apxinf && git push fork ascend-port` + 外层 push。⚠ 纪律照旧（PYTHONPATH 追加/GEB_SAVE 全路径/bench 同芯 chip6/pkill 用 pgrep 取 pid/长命令带 date）。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-22_m3-offline-replay-closed-loop.txt（M3 离线回放闭环：真 LIBERO 输入 ×32 帧对拍 P50=194%；token 长度约束 + tl144 OM + dynamo hooks 坑）
-
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-22_m3-closed-loop-eval.txt（M3 闭环 eval：0/10 定罪 RMSNorm fp32 + NORM32 组合图五坑 + serve 系统五坑）
