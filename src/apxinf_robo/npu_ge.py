@@ -49,6 +49,37 @@ GD = 7       # LIBERO deployable action width
 _SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve"))
 _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT", "1800"))
 _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "180"))
+# 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust）或
+# inproc（进程内直调 PyO3 GeServeModel，免 spool 轮询 ~15ms）。
+# ⚠ inproc 前提：宿主进程链接 9.0.1 CANN（LD_LIBRARY_PATH 带 ge_builder +
+# toolkit lib64）且**不同时加载 torch_npu**（8.5.1 与 9.0.1 同进程互斥）；
+# 另 GE 库在 python 宿主内的 TBE 子进程管理存在已知兼容障碍（见
+# syx_docs summary 2026-09-23）——import/open 失败自动回落 spool。
+_TRANSPORT = os.environ.get("APXINF_GE_TRANSPORT", "spool")
+_OM_ROOT = Path(os.environ.get("APXINF_GE_OM_ROOT", str(_SERVE_ROOT.parent / "om_cache")))
+
+
+class _InprocClient:
+    """In-process engine client (PyO3 ``apxinf_py.GeServeModel``) — the
+    crate library surface (``GeServe``), same frame implementation as the
+    serve processes. ``request`` is signature- and byte-compatible with
+    ``_BucketClient.request`` so the policy switches transports unchanged.
+    """
+
+    def __init__(self, length: int, model_dir: str, *, fast: bool = True):
+        import apxinf_py  # ImportError -> caller falls back to spool
+
+        self.L = length
+        om_dir = _OM_ROOT / f"tl{length}"
+        self._m = apxinf_py.GeServeModel.open(str(om_dir), length, model_dir, fast)
+
+    def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        acts, (tv, tp, tf) = self._m.infer(
+            np.ascontiguousarray(patches, dtype=np.float32),
+            np.ascontiguousarray(ids, dtype=np.uint32),
+            np.ascontiguousarray(noise, dtype=np.float32),
+        )
+        return acts, (tv, tp, tf)
 
 
 class _BucketClient:
@@ -175,19 +206,37 @@ class GeServePi05Policy:
             model_dir, tokenizer_dir=tokenizer_dir, precision=precision, **kwargs
         )
         self._torch = self._torch_pol._torch
-        self._buckets: Dict[int, _BucketClient] = {}
+        self._model_dir = str(model_dir)
+        self._buckets: Dict[int, Any] = {}
 
         self.metadata: Dict[str, Any] = dict(self._torch_pol.metadata)
         self.metadata.update({"engine": "npu-ge", "precision": "fp16"})
 
     # -- bucket routing ----------------------------------------------------
 
-    def _bucket(self, length: int) -> _BucketClient:
+    def _bucket(self, length: int):
+        """Transport-aware bucket client (APXINF_GE_TRANSPORT=inproc|spool).
+
+        inproc = in-process PyO3 engine (crate library surface). Falls back
+        to the spool bucket on import/availability failure so eval keeps
+        running in the torch_npu container, where the 9.0.1-linked extension
+        cannot coexist with the 8.5.1 torch_npu runtime.
+        """
         client = self._buckets.get(length)
         if client is None:
-            client = _BucketClient(length)
+            client = self._make_client(length)
             self._buckets[length] = client
         return client
+
+    def _make_client(self, length: int):
+        if _TRANSPORT == "inproc":
+            try:
+                return _InprocClient(length, self._model_dir)
+            except Exception as exc:  # ImportError or engine-side failure
+                print(
+                    f"[npu-ge] inproc 客户端不可用（{exc!r}），回落 spool 桶 tl{length}"
+                )
+        return _BucketClient(length)
 
     # -- Policy protocol ----------------------------------------------------
 
