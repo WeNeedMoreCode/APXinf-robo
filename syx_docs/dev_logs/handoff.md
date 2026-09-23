@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-继续 APXinf 昇腾 NPU（**M3 收官 10/10 + 0.87× → 性能第一点 GEB_SERVE_FAST 已落地：task0 254.3ms = 0.68×，bit 恒等**）。第一动作：**全量 10 任务 eval 回归（fast 版）**——起 fast supervisor（`GEB_SERVE_FAST=1 SERVE_CHIPS="6 4 7 5" nohup bash /data/apxinf/serve/supervisor.sh`，脚本 start_supervisor_fast.sh；桶 OM 无需重烤）→ `run_ge_eval.sh all gatefastall`（~40min）→ 判 10/10 保持 + model_ms 全量口径（预计 ~265ms）。过则更新 0.68× 终数；随后 ④ 余项 C in-process（去 spool 15ms）→ E msprof vision 65ms → D int8 probe。验证梯（性能改动防行为回归，10/10 是回归基线）：golden step0_x1/actions（4min，≤0.1%/≤2%）→ replay/smoke corr（fast 路径首选 serve 冒烟 A/B bit 同一性）→ task0（~15min）→ 全量（25-40min，只在大改后跑）。⚠ 复现 eval 前置：起 serve 前清 serve/tl*/ready+pid+shutdown + 核对桶内三件 OM 新鲜度；**直起桶后起冒烟客户端须 touch ready（mtime 判定陷阱）**；eval summary 开跑即写骨架（null ≠ 崩溃）；⚠ 纪律照旧（PYTHONPATH 追加/GEB_SAVE 全路径/kill 用 pgrep+方括号+stat 判 Z/长命令带 date/验证档位梯/服务器脚本"本地写 → scp → bash 文件"三步——docker exec 嵌套引号必翻车）。
+继续 APXinf 昇腾 NPU（**M3 收官 10/10 + 0.87× → 性能第一点 GEB_SERVE_FAST 落地：task0 254.3ms = 0.68×，bit 恒等**）。**下一轮主线已改（2026-09-23 与用户对齐）：引擎正式接入 apxinf-robo 主路径**（此前一直是 ge_model_probe 探针 + spool 文件轮询的脚手架形态——行为/性能已达标，接入才算"适配完成"）。施工四步：① 执行器库化（三段执行器 + styles 预计算 + E2eStage 含 GEB_SERVE_FAST 从 example 沉到 crate 库面）② PyO3 最小接口（apxinf-py `--features ascend` 构建先例；暴露 load + infer(obs)→actions）③ engine.py 路由 `engine="npu-ge"`（阶段 1 npu-torch 同构先例）④ 动态 L 定形（预置桶集先行，padding+mask/shape_range 后置）——做完 ①-③ 即进程内直调（= ④C in-process，spool 15ms 顺便消失），全量 10/10 回归收口。**接入前先跑全量回归（fast 版）锁 0.68× 终数**：fast supervisor（start_supervisor_fast.sh）→ `run_ge_eval.sh all gatefastall`（~40min）。性能余项降为顺路：E msprof vision 65ms 回归源、D int8 单算 probe。验证梯（10/10 是回归基线）：golden step0_x1/actions（4min，≤0.1%/≤2%）→ smoke A/B bit 同一性 → task0（~15min）→ 全量（25-40min，只在大改后跑）。⚠ 复现 eval 前置：起 serve 前清 serve/tl*/ready+pid+shutdown + 核对桶内三件 OM 新鲜度；**直起桶后起冒烟客户端须 touch ready（mtime 判定陷阱）**；eval summary 开跑即写骨架（null ≠ 崩溃）；⚠ 纪律照旧（PYTHONPATH 追加/GEB_SAVE 全路径/kill 用 pgrep+方括号+stat 判 Z/长命令带 date/验证档位梯/服务器脚本"本地写 → scp → bash 文件"三步——docker exec 嵌套引号必翻车）。
 
 ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
 
@@ -25,7 +25,7 @@
 | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：vision 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、attention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 | 低：纯实验性，逐项 golden 对拍守护 |
 | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集 vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归档决策 | 部署 TTFB/运维 | — | 低 |
 
-**建议路线**：~~A+B 先做~~ **已完成（254.3ms task0 口径 = 0.68×，超预期）**；下一轮 = 全量 10 任务回归（fast 版）定终数 → C 随生产化排期（325 vs 310 的 spool 差）→ D 立单算 probe（1-2 天定生死）→ E 用 msprof 数据顺路做（vision 65 vs 55.9 回归源）。
+**建议路线**：~~A+B 先做~~ **已完成（254.3ms task0 口径 = 0.68×，超预期）**。**主线改为引擎接入（2026-09-23 与用户对齐）= ④C in-process + ④F 生产化的合并施工**：执行器库化 → PyO3 → engine.py 路由 → 动态 L，全量 10/10 回归收口；D int8 probe / E msprof 降为顺路项。
 
 ## ③ Export 标题建议
 
