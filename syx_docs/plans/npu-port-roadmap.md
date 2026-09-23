@@ -149,6 +149,7 @@
   - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为回退
     - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_norm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；feature 挂接；M2 构建半
   - 完成后 checkpoint bench → LIBERO 对标（M3）
+- **✅ 性能轮第一点（2026-09-23，handoff ④A+B）——GEB_SERVE_FAST 段间设备直连 + styles 设备驻留**（见 summary/2026-09-23_serve-fast-device-direct.md）：serve 热路径 host 往返全消灭——prefix 36 路 kv 异步 d2d 直连、flow x 设备驻留 + 去 per-step sync（10→1）、styles 每步独立视图一次上传帧内零拷贝（env 开关，legacy 保留，**OM 无需重烤**）。**task0 model_ms 316.1→254.3ms = 376 基线 0.68×（破 0.70× 目标线）**，bit 级恒等（冒烟 A/B max_diff 四位小数全同）+ task0 success 1.0；全量 10 任务回归 = 下一轮第一动作。余项：C in-process serving（去 spool）、E msprof（vision 65ms 回归源）、D int8 单算 probe、全量 eval 口径 P50 复测
 - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm、silu、add/mul/scale、embedding、rope
 - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
 - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，再热点融合

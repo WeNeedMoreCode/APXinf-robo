@@ -51,7 +51,11 @@ spawn_bucket() { # spawn_bucket <L>：清残留→缺 OM 烤→spawn（bake 串�
   [ -f "$OM/tl$L/vision_real.om" ] || cp "$OM/t712fix/vision_real.om" "$OM/tl$L/vision_real.om"
   ci=$((ci + 1)); c=$(next_chip)
   echo "[sup] spawn tl$L (chip$c) $(date)" >> "$LOG"
-  env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
+  # GEB_SERVE_FAST 透传（2026-09-23 性能轮：kv d2d 直连 + styles 驻留 +
+  # x 驻留零 sync；supervisor 自身环境带上即启用全部桶）
+  FASTENV=()
+  [ -n "$GEB_SERVE_FAST" ] && FASTENV=(GEB_SERVE_FAST=1)
+  env "${FASTENV[@]}" "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
     ASCEND_RT_VISIBLE_DEVICES=$c \
     LD_LIBRARY_PATH="/data/apxinf/ascendc/ge_builder/build:/usr/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}" \
     PYTHONPATH="/usr/local/Ascend/ascend-toolkit/latest/python/site-packages:${PYTHONPATH:-}" \
