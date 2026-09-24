@@ -6,7 +6,7 @@
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**M3 终局数字**（eval_gateall：10/10、122-163 步、model_ms P50 325.3ms=0.87×、task0 单测 132 步 eval_gatet0b；golden：step0_x1 0.0%/actions 0.9%）；**gate 修复形态**（e2e_style_pair 三元组、每层 l{i}_agate/mgate [1,AW] Data（qkv3 位 16/17）、gatew=TileD dim0+Mul 两处、残差基 xstream 双轨、四处绑定 6-stride b+16/b+17、aops::gate_mul_fp16；torch 语义 = dense(cond) chunk3 + _gated_residual residual+branch·gate 两处 + suffix 全双向）；**刑侦方法论**（动作每维 std≈1.00=噪声分布 ⇒ flow 未收敛数据流形；镜像参考系同 bug 时组件 parity 全绿是假阴性；多源合流的"原理性"结论前先做分布刑侦）；**serve 运维坑**（stale ready/pid 让 client 撞死桶；清桶须连 OM 三件套新鲜度一起查；eval 的 L 漂移 lazy bake 每新桶 ~4-5min 串行）。丢弃：supervisor 僵尸清理细节、预烤引号翻车过程、中间 golden 数字。
+聚焦保留：**python 宿主 GE 障碍终局机制**（gdb 栈 = pymalloc get_state SEGV @ PyO3 into_new_object——te fusion py_decouple static path 的 `TE_PyEval_SaveThread` 偷走 PyO3 持有的 GIL 并存走 thread state；修复 = `GeServeModel::open` 主体包 `Python::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ `ge_init_once` 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（forkserver 并行编译 = 中途静默死必要条件）——子模块 2dbffe9；验证 = open 176s 完整返回 + infer ×9 与 spool 逐位同 0.0244 + RC 0/0/0 三进程稳定）；**性能现状锚点**（fast 全量 10/10 + per-call P50 256.3ms = 0.682×；三段 vision 65-68 / prefix 105-114 / flow 80ms；vision 曾到 55.9 存在 ~10ms 回归待查）；**A3 性价比重估**（inproc 收益实测仅 ~4-6ms/帧 vs python 3.11/3.12 abi 墙 + 轻量预处理宿主重写——降级可选）；**关键纪律**（GeServe::open env 钉死不含 GEB_DEPTH；容器 core_pattern 走不存在的 apport ⇒ core 永不落盘，用 gdb --batch live；docker exec 脚本自落盘；CARGO_TARGET_DIR 隔离编译）。丢弃：判决实验中间态、GE 源码逐文件阅读过程、gdb 输出全文。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
@@ -29,4 +29,4 @@
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-23_ada-gate-root-cause.md（M3 收官：ada-gate 缺失真凶 + 动作刑侦翻案 + 全量 eval 10/10 + 0.87×）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-24_pyhost-ge-survival.md（python 宿主 GE 障碍终结：GIL 劫持 gdb 定罪 + allow_threads 两行修复 + 3×3 稳定复验全绿）
