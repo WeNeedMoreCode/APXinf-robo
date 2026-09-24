@@ -100,7 +100,7 @@ prefix 102ms 设备时间里 matmul 若占 60-75ms → int8 后 ~20-31ms → pre
 
 ## 遗留与下一步
 
-- ~~spool 口径疑点~~ **销案（同日 13:28）**：task0 复跑 model_ms P50 = **258.0**（首跑 264.0、gatefast 时代 254.3）——跨次波动 ±3%（芯片分配/桶 warmup 噪声），无真回归；spool 往返开销 ~12-18ms 属已知口径差
+- ~~spool 口径疑点~~ **销案（同日 13:28-13:38 三连）**：task0 model_ms P50 = 264.0 / 258.0 / **262.5**（第三次 = asm 缓存版新二进制，success 1.0）——跨次波动 ±3%（芯片分配/桶 warmup 噪声），无真回归；**教训：spool 单 task0 口径分辨不了 <3ms 的改进，小改进用直调 check.py 口径判**（asm 缓存直调 246.1→245.5 可见）
 - ~~prefix asm 2.5ms~~ **已修（同日 13:30，子模块 1bf4201）**：token 查表缓存（prompt 跨 replan 恒定）→ asm 2.5→1.5ms，sum 稳态 245.5，bit 恒等 0.0244。⚠ supervisor 桶进程要用新二进制须重启（本轮 eval 用的旧 inode）
 - C2 立项内容（若做）：smooth 因子静态校准（多样本）→ s_k 折权重 + smooth_scale 输入 → prefix OM int8 重烤 → golden parity → LIBERO 行为 → 全量回归
 - B 动态 L 定形 / M2 eager 补 gate / A3 inproc 可选——handoff 原序不变
