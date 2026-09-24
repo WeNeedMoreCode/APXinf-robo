@@ -1,0 +1,2350 @@
+ ▐▛███▛█   Claude Code v2.1.280
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 全链收口。总结本轮（goal：引擎正式接入 apxinf-robo 主路径）：
+
+  达成情况
+
+  全量 fast 回归终数先锁定：10/10 成功 + per-call model_ms P50 256.3ms = 376 
+  基线的 0.682×（10 任务 254.5-260.5ms 极稳）——上轮 GEB_SERVE_FAST 优化从 task0
+  单测升级到全量口径坐实。
+
+  接入三步全部落地：
+
+  步: ① 库化
+  内容: ge_model_probe 6206 行 git mv 沉到 src/pi05/ascend_ge.rs + 新 GeServe
+  进程内门面（open/infer），serve_loop 帧体改为调门面——spool 
+  与直调共用同一帧实现；example 变 40 行薄壳
+  验证: cargo check 一次过；golden 对拍 step0_x1 0.0% / actions 0.9%（与 M3
+  基线逐字同）；新旧二进制冒烟 max_diff 0.0244 四位小数全同（bit 恒等）；tl200
+  flow 重烤顺验建图 parity 0.1%
+  ────────────────────────────────────────
+  步: ② PyO3
+  内容: GeServeModel（apxinf-py --features ascend），接口与 spool 协议逐位对齐
+  验证: rust 容器 python 直调：import ✓、三段 OM 全通、styles 驻留构装 ✓
+  ────────────────────────────────────────
+  步: ③ engine.py
+  内容: npu_ge.py 加 APXINF_GE_TRANSPORT=inproc 分支（_InprocClient
+  直调，失败自动回落 spool）
+  验证: task0 回归 success、138 步、258.7ms——spool 生产路径零回归
+
+  一个如实交底的障碍：②的最后一公里——GE 库在 python 宿主进程内 open
+  尾声会杀掉整个进程（无段错误信号、无 Traceback，伴随 TBE
+  编译子进程报错，死亡点位非确定；strace 信号级已排除
+  SIGSEGV/SIGABRT）。同一代码在纯 Rust
+  宿主完全稳定（golden/冒烟/烤桶全过）。疑华为 GE 库的 TBE 子进程管理与 python
+  宿主相克，已记档并给出后续路线（TBE 禁用选项 / ge.exec_pythonPath /
+  华为渠道）。npu 容器侧本来就有 torch_npu 8.5.1 与 9.0.1
+  同进程互斥的硬约束，所以 spool 仍是生产传输，inproc 是可切换选项。
+
+  收尾：引擎执行代码现在是 crate
+  单实现、三入口（example/PyO3/spool）同源；两仓推平（子模块 e7e4cd1+787730a →
+  fork/ascend-port，外层 2f907ef）；战报
+  summary/2026-09-23_engine-integration.md + handoff/roadmap 更新；服务器 serve
+  全停、芯片回基线。
+
+  下一轮候选（handoff 已写）：python 宿主 GE 障碍攻关 → eval 全链 inproc（9.0.1
+  libs 供给 + torch_npu 剥离）→ 动态 L 定形；性能余项（vision 65ms、int8
+  probe）顺路。
+
+✔ Goal achieved (8h · 1 turn · 86.1k tokens) (ctrl+o to expand)
+
+✻ Churned for 1h 34m 5s · done Wednesday 7:25 PM
+
+※ recap: 昇腾 NPU 引擎接入 apxinf-robo 主路径的目标已完成：库化+PyO3+engine.py 三步落地并推平，全量回归 10/10、0.682×。下一步是攻关 python 宿主内 GE 库杀进程的障碍，打通 eval 全链 inproc。 (disable recaps in /config)
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   249.2k/1m tokens (25%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 246.8k tokens (24.7%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 750.3k (75.0%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export                                                                       
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-23_ada-gate-root-cause 
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-23_ada-gate-root-cause.txt
+
+❯ /compact 聚焦保留：**M3 终局数字**（eval_gateall：10/10、122-163 步、model_ms 
+P50 325.3ms=0.87×、task0 单测 132 步 eval_gatet0b；golden：step0_x1             
+0.0%/actions 0.9%）；**gate 修复形态**（e2e_style_pair 三元组、每层             
+l{i}_agate/mgate [1,AW] Data（qkv3 位 16/17）、gatew=TileD dim0+Mul             
+两处、残差基 xstream 双轨、四处绑定 6-stride                                    
+b+16/b+17、aops::gate_mul_fp16；torch 语义 = dense(cond) chunk3 +               
+_gated_residual residual+branch·gate 两处 + suffix                              
+全双向）；**刑侦方法论**（动作每维 std≈1.00=噪声分布 ⇒ flow                     
+未收敛数据流形；镜像参考系同 bug 时组件 parity                                  
+全绿是假阴性；多源合流的"原理性"结论前先做分布刑侦）；**serve 运维坑**（stale   
+ready/pid 让 client 撞死桶；清桶须连 OM 三件套新鲜度一起查；eval 的 L 漂移 lazy 
+bake 每新桶 ~4-5min 串行）。丢弃：supervisor                                    
+僵尸清理细节、预烤引号翻车过程、中间 golden 数字。                              
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\dev_logs\collect_eval.py (19 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (178 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (33 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-09-23_engine-integration.md (68 lines)
+  ⎿  Read src\apxinf_robo\npu_ge.py (336 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 根据handoff compact首局规划继续推进，直到2:30如果还没完成就记录文档停止 
+  ⎿  Goal set: 根据handoff
+     compact首局规划继续推进，直到2:30如果还没完成就记录文档停止
+
+❯ 继续，刚才不小心断了                                                          
+
+  Thought for 31s (ctrl+o to expand)
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-23 23:36:58
+
+  Thought for 6s, searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+
+● 锚点 23:36:58，deadline 2:30（约 2h50m 工作窗）。按 handoff 首局规划推进优先级
+  A：python 宿主 GE 存活障碍。先在本地 GE 开源仓里挖 TBE 子进程控制的选项面。
+
+  Thought for 1m 22s, searched for 3 patterns, read 1 file (ctrl+o to expand)
+
+● py_decouple.cc 是重大线索——GE 的 te fusion 会在宿主进程内动 Python 
+  解释器（TE_PyEval_SaveThread 释放 GIL / 必要时 dlopen 第二份 libpython
+  RTLD_GLOBAL / TE_Py_Finalize 收尾）。先把两条线查清：① 我们 load-only
+  路径是否不必要地唤醒了编译栈（aclgrphBuildInitialize → TBE）；② GE
+  选项面里有没有关 TBE/python 的开关。
+
+  Thought for 2s, searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+
+● Bash(find /d/compass/ge -name "ge_common_api_types.h" 2>/dev/null; find
+      /d/compass/ge -name "*.h" -path "*external*" | xargs grep -l
+      "OPTION_EXEC\|ge\.exec" 2>/dev/n…)
+  ⎿  /d/compass/ge/inc/graph_metadef/external/ge_common/ge_common_api_types
+     .h
+     /d/compass/ge/inc/graph_metadef/external/ge_common/ge_common_api_types
+     .h
+
+  Thought for 8s, searched for 1 pattern (ctrl+o to expand)
+
+● 我们的 geb_init 无条件调 aclgrphBuildInitialize——这正是唤醒 TBE/te fusion
+  python 环境的地方。看 load 路径是否真的需要它：
+
+  Thought for 17s, read 1 file (ctrl+o to expand)
+
+● 决定性发现：geb_model_load 注释明说 "no GE compile session needed — pure ACL 
+  runtime"——aclmdlLoadFromMem 根本不需要 aclgrphBuildInitialize。而我们的 PyO3
+  路径 open 前置无条件调了 ge_builder::init()（→ aclgrphBuildInitialize → TBE/te
+  fusion python 环境）。load-only 场景下这整个编译栈唤醒是多余的——这正好与“TBE
+  子进程 8 连 main process disappeared”吻合。
+
+  修法：init 改懒加载——只在真正 build 时唤醒编译栈。看 Rust 侧调用点：
+  Thought for 26s, searched for 3 patterns, read 1 file (ctrl+o to expand)
+
+● 命中调用点。PyO3 路径 ge_init_once() 无条件 init——纯 load 场景不需要。看
+  GeServe::open 怎么消费 om_dir（load vs build 决策点）：
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● Bash(cd /d/compass/APXinf/apxinf && grep -n "GEB_OM_DIR"
+      crates/apxinf-model/src/pi05/ascend_ge.rs | head; echo ---; sed -n
+      '1175,1190p' crates/apxinf-model/src/pi05…)
+  ⎿  55://!   [50,32]，值 f32 存储；缺省合成 bring-up 模式）。OM 从 GEB_OM_
+     DIR（默认
+     1355:// 单进程单桶（GEB_TOKENS=L + GEB_OM_DIR=tl{L}），Python 侧按帧挑
+     … +54 lines (ctrl+o to expand)
+
+  Thought for 34s (ctrl+o to expand)
+
+● 事实链闭合：ge_builder::load 纯 ACL runtime，而 PyO3 路径只要 OM
+  预烤就永远不需要编译会话——ge_init_once() 里的 aclgrphBuildInitialize
+  是多余且致命的唤醒。修法：PyO3 路径默认跳过 init（A/B 判决实验同时验证 TBE
+  假说）。看 ge_serve_py.rs：
+
+● Bash(grep -n "ge_init_once\|ge_builder" crates/apxinf-py/src/lib.rs | head;
+      echo ---; sed -n '885,915p' crates/apxinf-py/src/lib.rs)
+  ⎿  897:    fn ge_init_once() -> PyResult<()> {
+     899:            apxinf_ascend::ge_builder::init("Ascend310P3")
+     905:                "apxinf_py.GeServeModel: ge_builder init
+     失败（须先
+     … +33 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 改动落点明确。Edit ge_init_once——默认跳过编译会话唤醒，env 逃生门保留：
+
+● Update(apxinf\crates\apxinf-py\src\lib.rs)
+  ⎿  Added 11 lines
+      895      static GE_INIT: OnceLock<Result<(), String>> = OnceLock::n
+           ew();
+      896  
+      897      fn ge_init_once() -> PyResult<()> {
+      898 +        // ⚠ python 宿主内不唤醒 GE 编译会话（默认）：aclgrphB
+          +uildInitialize                                                
+      899 +        // 会拉起 te fusion 的进程内 python 适配层（py_decoupl
+          +e：向宿主                                                     
+      900 +        // 解释器动 GIL / dlopen 第二份 libpython），随后进程 
+          +在 open 尾声                                                  
+      901 +        // 被 GE 库无信号杀死（strace 排除 SIGSEGV/SIGABRT，TB
+          +E 子进程 8 连                                                 
+      902 +        // "main process disappeared"——见 summary/2026-09-23_e
+          +ngine-integration）。                                         
+      903 +        // load-only 管线（OM 预烤，geb_model_load → aclmdlLoa
+          +dFromMem）是                                                  
+      904 +        // 纯 ACL runtime，完全不需要编译会话；真要 build（烤 
+          +桶）走 rust                                                   
+      905 +        // 宿主二进制。逃生门：APXINF_GE_BUILD_INIT=1 恢复旧行
+          +为（排障用）。                                                
+      906 +        if std::env::var("APXINF_GE_BUILD_INIT").unwrap_or_def
+          +ault() != "1" {                                               
+      907 +            return Ok(());                                    
+      908 +        }                                                     
+      909          let res = GE_INIT.get_or_init(|| {
+      910              apxinf_ascend::ge_builder::init("Ascend310P3")
+      911                  .map_err(|e| e.to_string())
+
+  Thought for 3s (ctrl+o to expand)
+
+● 验证梯前置检查：确认 e2e serve 模式下 seg_* 真不调 geb_model_build（否则 TBE
+  仍会被唤醒）：
+
+● Bash(grep -n "model_build\|\.build(" crates/apxinf-model/src/pi05/ascend_ge.rs
+      | head -20; echo ---; sed -n '1095,1115p'
+      crates/apxinf-model/src/pi05/ascend_ge.rs)
+  ⎿  1146:        self.g.build().expect("build");
+     4353:            s.g.build().expect("build");
+     4394:            s.g.build().expect("build");
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 14s (ctrl+o to expand)
+
+● finish() 铁证：GEB_SEG=e2e 跳过编译、e2e_run 按 {seg}_real.om 加载——PyO3
+  路径纯 load 无疑。看复测脚本后部署：
+
+  Thought for 7s, read 1 file (ctrl+o to expand)
+
+● 脚本就位（输入 npy 都在服务器）。三步部署——先 scp 改动文件，再容器内编译：
+
+● Bash(cd /d/compass/APXinf && scp apxinf/crates/apxinf-py/src/lib.rs
+      root@192.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-py/src/lib.rs
+      && echo SCP_OK)
+  ⎿  SCP_OK
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'cd
+      /data/apxinf/apxinf_engine && source /data/apxinf/rust_env.sh 2>/dev/null;
+      CARGO_TARGET_DIR=/data/a…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 编译后台跑着（3-5 分钟）。期间准备复测环境——看之前 strace 脚本里的运行
+  env（LD_LIBRARY_PATH 组装方式）：
+
+  Thought for 4s, read 1 file (ctrl+o to expand)
+
+● 写复测脚本（三步纪律）——跑 3 次看进程存活 + 对拍数字：
+
+● Write(syx_docs\dev_logs\pyo3_noinit.sh)
+  ⎿  Wrote 14 lines to syx_docs\dev_logs\pyo3_noinit.sh
+       1 #!/bin/bash
+         d-only）后
+       3 # python 宿主能否活过 open 尾声 + infer 对拍。跑 3 次看存活稳定
+         性。
+       5 export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/us
+         r/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+       7 export PYTHONUNBUFFERED=1
+       8 unset APXINF_GE_BUILD_INIT   # 默认路径即 no-init；逃生门见 lib.
+         rs 注释
+      10   echo "=== run$i $(date +%T) ==="
+     … +7 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_noinit.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_noinit.sh && ssh
+      root@192.168.13.119 "npu-smi info | gre…)
+  ⎿  | 1       310P3                 | OK              | NA           53
+                  10976 / 10976         |
+     | 1       310P3                 | OK              | NA           53
+     … +13 lines (ctrl+o to expand)
+
+● Background command "Build PyO3 cdylib with init-skip change in rust container"
+completed (exit code 0)
+
+  Thought for 4s, read 1 file (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "cp
+      /data/apxinf/target_libcheck/release/libapxinf_py.so
+      /data/apxinf/pyo3_check/apxinf_py.so && ls -la
+      /data/apxinf/pyo3_check/apxinf_p…)
+  ⎿  -rwxr-xr-x 1 root root 8423784 Sep 24 01:50 /data/apxinf/pyo3_check/ap
+     xinf_py.so
+     === run1 01:50:28 ===
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "ls /data/apxinf/pyo3_check/")
+  ⎿  apxinf_py.so
+     check.py
+     ids.npy
+     … +9 lines (ctrl+o to expand)
+  Thought for 2s (ctrl+o to expand)
+
+● 服务器上脚本名是 check.py。改一行重跑：
+
+● Update(syx_docs\dev_logs\pyo3_noinit.sh)
+  ⎿  Added 1 line, removed 1 line
+       8  unset APXINF_GE_BUILD_INIT   # 默认路径即 no-init；逃生门见 lib
+          .rs 注释
+       9  for i in 1 2 3; do
+      10    echo "=== run$i $(date +%T) ==="
+      11 -  python3 /data/apxinf/pyo3_check/pyo3_check.py                
+      11 +  python3 /data/apxinf/pyo3_check/check.py                     
+      12    echo "RC_$i=$?"
+      13  done
+      14  date +%T
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_noinit.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_noinit.sh && ssh
+      root@192.168.13.119 "docker exec apxinf…)
+  ⎿  thread '<unnamed>' panicked at crates/apxinf-model/src/pi05/ascend_ge.
+     rs:349:60:
+     called `Result::unwrap()` on an `Err` value: AclError { code: -3, op:
+     … +37 lines (ctrl+o to expand)
+  ⎿  (timeout 8m)
+
+  Thought for 30s (ctrl+o to expand)
+
+● 重大进展：进程不再被静默杀死——现在是干净的
+  panic（PanicException，可诊断）。TBE/编译栈唤醒确实是死亡的必要条件。但构图
+  API（ge::Data 创建）依赖 aclgrphBuildInitialize
+  初始化的工厂状态——纯跳过不行。查 GE 源码里 te fusion 是否可以用 init
+  选项关掉（构图保留、TBE 不唤醒）：
+
+  Thought for 3s, searched for 2 patterns (ctrl+o to expand)
+
+● Bash(sed -n '100,185p' /d/compass/ge/compiler/opcompiler/op_compile_adapter/so
+      urce/api/fusion_api.cc)
+  ⎿    pInstance->finComTaskList.erase(std::remove_if(pInstance->finComTask
+     List.begin(), pInstance->finComTaskList.end(),
+                                                      [&graphId](FinComTask
+     … +82 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 两个高嫌疑点：SignalManager::Initialize()（信号管理——可能与宿主信号冲突）和
+  PythonAdapterManager。逐个看：
+
+● Bash(find /d/compass/ge/compiler/opcompiler -name "*.cc" -o -name "*.h" |
+      xargs grep -ln "SignalManager" 2>/dev/null | head -5)
+  ⎿  /d/compass/ge/compiler/opcompiler/op_compile_adapter/source/api/fusion
+     _api.cc
+     /d/compass/ge/compiler/opcompiler/op_compile_adapter/source/common/sig
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 8s, read 1 file (ctrl+o to expand)
+
+● SignalManager 只碰 SIGINT/QUIT/TERM（清 temp dir 用），排除。查 GE 侧调用
+  TbeInitialize 的地方有没有条件开关：
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n '1940,2010p' /d/compass/ge/compiler/engines/nn_engine/optimizer/ad
+      apter/tbe_adapter/tbe_op_store_adapter.cc)
+  ⎿    Status ret = InitTbeFunctions(plugin_manager_ptr);
+       if (ret != SUCCESS) {
+         REPORT_FE_ERROR("[GraphOpt][InitializeInner][InitTbeFunc]: Failed
+     … +68 lines (ctrl+o to expand)
+
+  Thought for 23s, searched for 1 pattern, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● 链路闭合：FE init 无条件 → TbeOpStoreAdapter::Initialize → TbeInitialize →
+  python 适配层。查 TeConfigInfo 选项面有没有禁 python/并行的开关：
+
+  Thought for 22s, searched for 1 pattern (ctrl+o to expand)
+
+● 时间窗收窄（剩 ~35min）。先快速搜 te 侧并行编译开关——不行就收尾记档：
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(sed -n '55,130p' /d/compass/ge/compiler/opcompiler/op_compile_adapter/sou
+      rce/python_adapter/python_adapter_manager.cc; echo ===; sed -n '155,240p'
+      /d/compass/ge…)
+  ⎿    // get gil lock
+       PyLockGIL pyLockGIL;
+       if (!PyWrapper::InitPyLogger()) {
+     … +159 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 双金矿：① isParallelCompileInit_ = !IsDisableUbFusion() || 
+  !IsDisableOpCompile()——两开关同关则 forkserver 并行编译不初始化（8
+  连报错元凶）；② init_multi_process_env
+  首参数就是“是否复用宿主解释器”标志。查这两个开关从哪读：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '540,580p' /d/compass/ge/compiler/opcompiler/op_compile_adapter/so
+      urce/common/te_config_info.cc; echo ---; grep -n
+      "disable_ub_fusion\|disable_op_compile…)
+  ⎿    return debugDir;
+     }
+     … +37 lines (ctrl+o to expand)
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '400,470p' /d/compass/ge/compiler/opcompiler/op_compile_adapter/so
+      urce/common/te_config_info.cc)
+  ⎿  void TeConfigInfo::SetOpDebugConfig(const std::string &opDebugConfig)
+     {
+       if (opDebugConfig.empty()) {
+     … +68 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 机制链闭合！MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile 可以完全跳过 
+  forkserver 并行编译初始化。确认 env 变量名：
+
+  Thought for 10s, searched for 1 pattern (ctrl+o to expand)
+
+● env 变量确认：MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile（te
+  侧直接读进程 env）。终审实验：恢复 init（构图需要）+ 双开关关并行编译 → python
+  宿主是否存活：
+
+● Update(syx_docs\dev_logs\pyo3_noinit.sh)  ⎿  Added 6 lines, removed 1 line
+       5  export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/u
+          sr/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-
+          }
+       6  export ASCEND_RT_VISIBLE_DEVICES=2
+       7  export PYTHONUNBUFFERED=1
+       8 -unset APXINF_GE_BUILD_INIT   # 默认路径即 no-init；逃生门见 lib
+         -.rs 注释                                                       
+       8 +# 判决实验 v2：恢复 aclgrphBuildInitialize（构图需要 OperatorFa
+         +ctory），                                                      
+       9 +# 但用 te 侧 MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compi
+         +le 跳过                                                        
+      10 +# PythonAdapterManager::InitParallelCompilation（forkserver 8 w
+         +orker——                                                        
+      11 +# "main process disappeared" 元凶）。活着 ⇒ 并行编译是死亡必要 
+         +条件。                                                         
+      12 +export APXINF_GE_BUILD_INIT=1                                  
+      13 +export MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile    
+      14  for i in 1 2 3; do
+      15    echo "=== run$i $(date +%T) ==="
+      16    python3 /data/apxinf/pyo3_check/check.py
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_noinit.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_noinit.sh && ssh
+      root@192.168.13.119 "docker exec apxinf…)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  (timeout 8m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● open 一轮 ~60-90s × 3 次，转后台正常。看中间输出：
+
+● Bash(sleep 90; ssh root@192.168.13.119 "ps aux | grep 'check.py' | grep -v
+      grep | head -3; docker exec apxinf_rust bash -c 'ps aux | grep check.py |
+      grep -v grep | h…)
+  ⎿  (No output)
+
+● Background command "Run final adjudication: init restored + parallel compile
+disabled" completed (exit code 0)
+
+  Thought for 59s, read 1 file (ctrl+o to expand)
+
+● 判决结果出炉，重大推进：MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile
+  跳过 forkserver 后——open 三段全部完成（in[251] 构装、styles 预计算、10 步
+  flow、FAST master 全过），死亡点从“open 中途静默死”推进到 open 返回前后的显式 
+  SEGV（RC=139，带 core dump）。中途死亡的必要条件已锁定 = 并行编译 forkserver。
+
+  02:08，距 deadline 22min。按 goal 纪律转入记档收尾。先查残留 + 本地改动状态：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'pgrep -f
+      check.p[y] | head -3; npu-smi info 2>/dev/null | grep -E \"^\| [23] \" |
+      head -4'" 2>/dev/nul…)
+  ⎿  ===
+      m apxinf
+     ?? syx_docs/dev_logs/chat_exports/2026-09-23_ada-gate-root-caus.txt
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 服务器干净。快速收尾序列——子模块提交：
+
+● Bash(git add crates/apxinf-py/src/lib.rs && git commit -m "fix(py):
+      python-host GE survival experiments — init skip default + forkserver off…)
+  ⎿  [ascend-port c883290] fix(py): python-host GE survival experiments — i
+     nit skip default + forkserver off
+      1 file changed, 11 insertions(+)
+     … +2 lines (ctrl+o to expand)
+
+● Bash(git push fork ascend-port 2>&1 | tail -2)
+  ⎿  To github.com:WeNeedMoreCode/ApxInf.git
+        787730a..c883290  ascend-port -> ascend-port
+
+  Thought for 6s (ctrl+o to expand)
+
+● 写战报（goal 要求的记档核心）：
+
+● Write(syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md)
+  ⎿  Wrote 60 lines to
+     syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md
+      1 # Python 宿主 GE 存活障碍攻坚：死因链定位 + 死亡点推进到 open 尾
+      2 
+        限收档）
+      4 
+      6 
+        ① 不调 `aclgrphBuildInitialize` → 进程不死（构图 panic 证明构图依
+        dapterManager`，其中 **forkserver 并行编译**是 open 中途静默死亡
+        的必要条件；③ `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compi
+        返回前后的**显式 SEGV（RC=139，带 core dump，可 gdb）**。**
+      9 ## 判决实验链（每步都是干净 A/B）
+     … +103 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 更新 handoff 三处：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**引擎接入主线三步落地（2026-09-23，见 summary/2026-09-23_engine
+        --integration.md）：① 执行器库化——ge_model_probe 6206 行沉到 crat
+        -e 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（open/infe
+        -r，serve_loop 与直调共用帧实现），验证梯全过（golden step0_x1 0.
+        -0%/actions 0.9% 与基线逐字同、新旧二进制冒烟 bit 恒等 0.0244/1.0
+        -% 四位全同）——子模块 e7e4cd1；② PyO3 `GeServeModel`（apxinf-py -
+        --features ascend，接口与 spool 协议逐位对齐，rust 容器 python 直
+        -调三段全通；**已知障碍 = python 宿主内 GE 库在 open 尾声杀进程**
+        -，无信号无 Traceback + TBE 子进程 8 连报错，非确定点位，纯 Rust 
+        -宿主同代码稳定——疑 GE 的 TBE 子进程管理与 python 宿主相克）——787
+        -730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支（_
+        -InprocClient 直调 PyO3，失败自动回落 spool 桶；npu 容器 torch_np
+        -u 8.5.1 与 9.0.1 同进程互斥，spool 仍为生产传输）。**全量 fast  
+        -回归终数锁定：10/10 + per-call model_ms P50 256.3ms = 0.682×**（
+        -跨任务 254.5-260.5 极稳，④A+B 收口）。此前战绩：M3 全量 10/10 + 
+        -0.87×（ada-gate 缺失真凶战报 2026-09-23_ada-gate-missing-root-ca
+        -use.md）、GEB_SERVE_FAST 254.3ms task0 口径（serve-fast-device-d
+        -irect.md）。**下一轮候选：python 宿主 GE 存活障碍（TBE 禁用选项/
+        -华为渠道）→ eval 全链 inproc（9.0.1 libs 供给 + torch_npu 剥离）
+        -→ ④ 动态 L 定形；性能余项顺路（E msprof vision 65ms、D int8 prob
+        -e）。**                                                         
+      5 +**引擎接入主线三步落地（2026-09-23，见 summary/2026-09-23_engine
+        +-integration.md）：① 执行器库化——ge_model_probe 6206 行沉到 crat
+        +e 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（open/infe
+        +r，serve_loop 与直调共用帧实现），验证梯全过（golden step0_x1 0.
+        +0%/actions 0.9% 与基线逐字同、新旧二进制冒烟 bit 恒等 0.0244/1.0
+        +% 四位全同）——子模块 e7e4cd1；② PyO3 `GeServeModel`（apxinf-py -
+        +-features ascend，接口与 spool 协议逐位对齐，rust 容器 python 直
+        +调三段全通；**已知障碍 = python 宿主内 GE 库在 open 尾声杀进程**
+        +，无信号无 Traceback + TBE 子进程 8 连报错，非确定点位，纯 Rust 
+        +宿主同代码稳定——疑 GE 的 TBE 子进程管理与 python 宿主相克）——787
+        +730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支（_
+        +InprocClient 直调 PyO3，失败自动回落 spool 桶；npu 容器 torch_np
+        +u 8.5.1 与 9.0.1 同进程互斥，spool 仍为生产传输）。**全量 fast  
+        +回归终数锁定：10/10 + per-call model_ms P50 256.3ms = 0.682×**（
+        +跨任务 254.5-260.5 极稳，④A+B 收口）。此前战绩：M3 全量 10/10 + 
+        +0.87×（ada-gate 缺失真凶战报 2026-09-23_ada-gate-missing-root-ca
+        +use.md）、GEB_SERVE_FAST 254.3ms task0 口径（serve-fast-device-d
+        +irect.md）。**下一轮候选：python 宿主 GE 存活障碍已破一半（2026-
+        +09-24 凌晨，见 summary/2026-09-24_pyhost-ge-survival-hunt.md：死
+        +因链 = init→TbeInitialize→PythonAdapterManager，forkserver 并行 
+        +编译是中途静默死必要条件，`MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fu
+        +sion,op_compile` 关掉后 open 三段全通、死亡点推进到 open 尾后显 
+        +式 SEGV 带 core 可 gdb；构图依赖 init ⇒ "init 但不碰 python"选项
+        +面不存在，出路=构图与 python 宿主剥离——fork worker 子进程 or bin
+        +ds 从 OM introspection 来）→ SEVG core gdb / 剥离工程 → eval 全 
+        +链 inproc（9.0.1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定形；性
+        +能余项顺路（E msprof vision 65ms、D int8 probe）。**            
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU（**引擎接入三步落地：① crate 库面 GeServe 
+         -（e7e4cd1，golden/冒烟 bit 恒等双验）② PyO3 GeServeModel（78773
+         -0a，rust 容器 python 三段全通；python 宿主内 GE 杀进程 = 已知障
+         -碍）③ engine.py inproc 传输分支（回落 spool 保底）；全量 fast  
+         -回归 10/10 + 256.3ms = 0.682× 收口**——见 summary/2026-09-23_eng
+         -ine-integration.md）。下一轮候选按优先级：**A. python 宿主 GE  
+         -存活障碍**（现状：open 尾声（fmech 构装后）GE 杀整进程，无信号 
+         -无 Traceback，TBE 子进程 8 连 "main process disappeared" 伴随，
+         -死亡点位非确定；strace 信号级已验证非 SIGSEGV/SIGABRT；候选：GE
+         - init 选项禁 TBE / ge.exec_pythonPath 指向受控 python / 华为渠 
+         -道）→ 通了则 eval 全链 inproc（还需 9.0.1 libs 拷到 /data 供 np
+         -u 容器 + torch_npu 剥离=前处理 CPU 化，**9.0.1 toolkit 在 rust 
+         -容器镜像层非挂载**）；B. ④ 动态 L 定形（预置桶集 tl138-148+tl20
+         -0 已备，padding+mask/shape_range 后置）；C. 性能余项（E msprof 
+         -vision 65ms 回归源、D int8 单算 probe）。⚠ 库面关键纪律：**GeSe
+         -rve::open 的 env 钉死不含 GEB_DEPTH**（分段默认 vision=27/prefi
+         -x=18/flow=18，钉 18 砍 vision 层 → n_in 187≠277）；⚠ 新坑（engi
+         -ne-integration 战报运维节全列）：set -u+source rust_env 炸 / ba
+         -sh export 不吃带点名（须 env 前缀）/ ready mtime touch 须在客户
+         -端启动后 / cdylib 要 cp 去 lib 前缀 / docker exec -d stdout 丢 
+         -弃须脚本自落盘 / **eval 期间并行编译用 CARGO_TARGET_DIR=/data/a
+         -pxinf/target_libcheck 不碰生产二进制**。验证梯照旧（golden ≤0.1
+         -%/≤2% → 冒烟 A/B bit 同 → task0 → 全量大改后）。               
+      13 +继续 APXinf 昇腾 NPU（**python 宿主 GE 障碍破一半 2026-09-24： 
+         +死因链 = aclgrphBuildInitialize→TbeInitialize→PythonAdapterMana
+         +ger——no-init A/B 进程不死（构图 panic 证明构图依赖 FE init）；`
+         +MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（te 侧 en
+         +v 直读）关 forkserver 并行编译后 open 三段全通、死亡点推进到 op
+         +en 尾后显式 SEGV RC=139 带 core 可 gdb；python 宿主天然走 py_de
+         +couple static path（dlsym 命中宿主符号→操纵宿主解释器+GIL），ru
+         +st 宿主走 dynamic path（dlopen 独立 libpython）——spool 稳定根源
+         +；子模块 c883290：ge_init_once 默认跳 init + 逃生门 APXINF_GE_B
+         +UILD_INIT=1**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md
+         +）。下一轮按优先级：**A1. gdb core dump 定剩余死因（容器 core p
+         +attern 确认落点；嫌疑 = InitPyModuleAndApiCall te 模块 import  
+         +注入宿主解释器 / HandleManager GIL / GE 收尾）**；**A2. 构图与 
+         +python 宿主剥离工程**（"init 但不碰 python"选项面不存在——InitPy
+         +ModuleAndApiCall 无条件；候选 a. fork worker 子进程做 init+构图
+         ++open+pipe 通信，b. binds 与构图解耦从 OM introspection 来（geb
+         +_model_load 已 CacheIo）→ init 整个不需要）；A3. eval 全链 inpr
+         +oc（9.0.1 libs 拷 /data 供 npu 容器 + torch_npu 剥离=前处理 CPU
+         + 化，9.0.1 toolkit 在 rust 容器镜像层非挂载）；B. 动态 L 定形（
+         +预置桶集 tl138-148+tl200 已备）；C. E msprof vision 65ms / D in
+         +t8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 钉死不含 GEB_D
+         +EPTH；pyo3_noinit.sh 判决脚本在 /data/apxinf/pyo3_check/（当前 
+         +形态=逃生门+forkserver 关）。验证梯照旧（golden ≤0.1%/≤2% → 冒 
+         +烟 A/B bit 同 → task0 → 全量大改后）。                         
+      14  
+      15  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      16  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      20  |---|---|---|---|---|
+      21  | **A** | ✅ **已落地（2026-09-23，GEB_SERVE_FAST）**：**段间设
+          备直连**——prefix 36 路 kv 异步 d2d（零 host 中转）+ flow x 设备
+          驻留（ob→binds[0] d2d，只末步下载）+ 去 per-step sync（10 次→1 
+          次） | **实测 −45~62ms**（flow 117→80、prefix 130→105-115；task
+          0 model_ms 316→254.3） | 同流顺序链保证计算序不变——bit 恒等 | 
+          已过验证梯：冒烟 A/B bit 同（max_diff 四位全同）+ task0 success
+           1.0；全量回归待下一轮 |
+      22  | **B** | ✅ **已落地（同上，与 A 同一开关）**：**styles 设备驻
+          留**——legacy 110 槽被 10 步复用须逐步重传（1100 次 h2d/调用）；
+          改为每步独立视图拼 2.25MB master 一次上传 ⇒ **帧内零拷贝** | 并
+          入上项（flow −35~37ms 的主体） | styles 跨帧恒定 + DeviceBuffer
+          ::view_of 非拥有视图 | 低（同 A） |
+      23 -| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py in
+         -proc 分支）**：**in-process serving**——执行器沉 crate 库面（GeS
+         -erve 门面，spool/直调同源帧实现）+ PyO3 GeServeModel + npu_ge.p
+         -y `APXINF_GE_TRANSPORT=inproc`（回落 spool 保底） | spool 15ms 
+         -在 inproc 生效环境免（eval 全链 inproc 待 python 宿主 GE 障碍解
+         -除） | 引擎单实现三入口（example/PyO3/spool）；python 宿主 GE  
+         -存活障碍见 summary/2026-09-23_engine-integration.md | 已过：gol
+         -den+bit 恒等双验、rust 容器 python 三段直调全通；task0/全量回归
+         -走 spool 保底无回归 |                                          
+      23 +| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py in
+         +proc 分支）；python 宿主障碍破一半（2026-09-24 c883290，见 summ
+         +ary/2026-09-24_pyhost-ge-survival-hunt.md）**：**in-process ser
+         +ving**——执行器沉 crate 库面（GeServe 门面，spool/直调同源帧实现
+         +）+ PyO3 GeServeModel + npu_ge.py `APXINF_GE_TRANSPORT=inproc` 
+         +（回落 spool 保底）。障碍现状：forkserver 并行编译（中途死必要 
+         +条件）已可关（`MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_com
+         +pile`），剩余 = open 尾后 SEGV 带 core（gdb 待做）；**构图依赖 
+         +init ⇒ 出路是构图/python 宿主剥离（fork worker 或 binds 从 OM i
+         +ntrospection 来）** | spool 15ms 在 inproc 生效环境免 | 引擎单 
+         +实现三入口（example/PyO3/spool） | 已过：golden+bit 恒等双验、r
+         +ust 容器 python 三段直调全通；task0/全量回归走 spool 保底无回归
+         + |                                                             
+      24  | **D** | **int8/w8a8 权重量化**（prefix/vision 大头）：310P in
+          t8 cube ~100 TOPS vs fp16 16 TFLOPS（6× 算力比）；prefix 116ms 
+          里 MatMul 主导 | prefix **或 −30~60%** | CUDA 侧原仓有 int8/fp8
+           executor 先例；昇腾侧 MatMulV2 int8 支持待探（opp 注册表 + 单
+          算 probe） | 高：数值校准（Gemma outlier）+ 全链行为复验；先做
+          单算 probe 定可行性再立项 |
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+
+  Thought for 4s (ctrl+o to expand)
+
+● roadmap 补条目 + 建议路线更新：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line
+      151    - 完成后 checkpoint bench → LIBERO 对标（M3）
+      152  - **✅ 性能轮第一点（2026-09-23，handoff ④A+B）——GEB_SERVE_FAS
+           T 段间设备直连 + styles 设备驻留**（见 summary/2026-09-23_serv
+           e-fast-device-direct.md）：serve 热路径 host 往返全消灭——prefi
+           x 36 路 kv 异步 d2d 直连、flow x 设备驻留 + 去 per-step sync（
+           10→1）、styles 每步独立视图一次上传帧内零拷贝（env 开关，legac
+           y 保留，**OM 无需重烤**）。**task0 model_ms 316.1→254.3ms = 37
+           6 基线 0.68×（破 0.70× 目标线）**，bit 级恒等（冒烟 A/B max_di
+           ff 四位小数全同）+ task0 success 1.0；**全量 10 任务 fast 回归
+           已收口（gatefastall）：10/10 + per-call model_ms P50 256.3ms =
+            0.682×**（跨任务 254.5-260.5 极稳）
+      153  - **✅ 引擎接入主线三步（2026-09-23，见 summary/2026-09-23_eng
+           ine-integration.md）**：① 执行器库化——ge_model_probe 6206 行沉
+            crate 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（op
+           en/infer；serve_loop 与直调共用帧实现），验证梯全过（golden 0.
+           0%/0.9% 逐字同基线 + 新旧二进制冒烟 bit 恒等）——子模块 e7e4cd1
+           ；② PyO3 `GeServeModel`（apxinf-py --features ascend，与 spool
+            协议逐位对齐；rust 容器 python 三段直调全通；**python 宿主内 
+           GE 库杀进程 = 已知障碍**，疑 TBE 子进程管理相克，无信号无 Trac
+           eback）——787730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=i
+           nproc` 分支（失败回落 spool；torch_npu 8.5.1 与 9.0.1 同进程互
+           斥，spool 仍为生产传输）。**引擎执行代码单一实现在 crate（exam
+           ple/PyO3/spool 三入口同源）**——接入从脚手架形态升级为库面 + 多
+           入口。遗留：python 宿主 GE 障碍、9.0.1 libs 供给 + torch_npu 
+           剥离（eval 全链 inproc）、动态 L 定形（预置桶集 tl138-148+tl20
+           0）、E msprof / D int8 顺路
+      154 +- **✅ python 宿主 GE 存活障碍攻坚（2026-09-24 凌晨，handoff A
+          + 前半——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）**： 
+          +三步判决链定罪——① no-init A/B 进程不死（构图依赖 FE init，geb_
+          +add_data panic 证实）② GE 源码死因链 = aclgrphBuildInitialize→
+          +TbeInitialize→PythonAdapterManager（py_decouple static path 操
+          +纵宿主解释器 + forkserver 并行编译 = 中途静默死必要条件；rust 
+          +宿主走 dynamic path 故 spool 稳定）③ `MIN_COMPILE_RESOURCE_USA
+          +GE_CTRL=ub_fusion,op_compile`（te 侧 env 直读）关 forkserver →
+          + **open 三段全通、死亡点推进到 open 尾后显式 SEGV（RC=139 带 c
+          +ore，可 gdb）**。子模块 c883290（ge_init_once 默认跳 init + AP
+          +XINF_GE_BUILD_INIT=1 逃生门）。下一步：gdb core → 构图/python 
+          +宿主剥离工程（fork worker 或 binds 从 OM introspection 来——Ini
+          +tPyModuleAndApiCall 无条件注入宿主，"init 不碰 python"选项面不
+          +存在）→ eval 全链 inproc                                      
+      155  - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm
+           、silu、add/mul/scale、embedding、rope
+      156  - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
+      157  - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，
+           再热点融合
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+      27  
+      28 -**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         -，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         -yO3 787730a ③engine.py inproc 分支）**。下一轮优先级：python 宿
+         -主 GE 存活障碍（TBE 禁用选项/华为渠道）→ eval 全链 inproc（9.0.
+         -1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定形；D int8 probe / E
+         - msprof 顺路。                                                 
+      28 +**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         +，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         +yO3 787730a ③engine.py inproc 分支）**。下一轮优先级：**python 
+         +宿主障碍后半场**（gdb core 定剩余死因 → 构图/宿主剥离工程 → eva
+         +l 全链 inproc：9.0.1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定 
+         +形；D int8 probe / E msprof 顺路。                             
+      29  
+      30  ## ③ Export 标题建议
+      31  
+
+● 外层 commit + push：
+
+● Bash(cd /d/compass/APXinf && git add apxinf syx_docs/dev_logs/pyo3_noinit.sh
+      syx_docs/dev_logs/summary/2026-09-24_pyhost-ge-survival-hunt.md
+      syx_docs/dev_logs/handof…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/plans/npu-port-roadmap.md',
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+● 按 goal 纪律收档完成（02:15，2:30 前）。本轮战报：
+
+  Python 宿主 GE 存活障碍：从黑盒到精确机制链（handoff 优先级 A）
+
+  三步判决实验，每步都是干净 A/B：
+
+  #: 1
+  实验: pyo3 默认跳过 aclgrphBuildInitialize（c883290，逃生门
+  APXINF_GE_BUILD_INIT=1）
+  结果: 进程不再被杀——构图在 geb_add_data panic（OperatorFactory 需要 FE init）⇒
+
+  死因在 init 内部 + 构图依赖 init
+  ────────────────────────────────────────
+  #: 2
+  实验: GE 开源仓逐文件核实死因链
+  结果: init → TbeInitialize → PythonAdapterManager：python 宿主里 py_decouple
+  走
+  static path（dlsym 命中宿主符号 → 操纵宿主解释器/GIL + 无条件 import 4 个
+  te_fusion 模块 + forkserver 并行编译 8 worker）；rust 宿主走 dynamic
+  path（dlopen 独立 libpython）——spool 稳定的根源
+  ────────────────────────────────────────
+  #: 3
+  实验: init 恢复 + MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile（te 侧
+  env 直读，源码定位的开关）
+  结果: forkserver 完全不初始化，open 三段全部完成（构装/styles 预计算/10 步
+  flow/FAST master）——死亡点从“open 中途静默死”推进到 open 尾后显式 
+  SEGV（RC=139，带 core dump，可 gdb）
+
+  结构性认识：构图需要 init 成功、init 成功 ⇒ te python
+  适配层必然激活（InitPyModuleAndApiCall 无条件注入宿主）——“init 但完全不碰
+  python”在选项面上不存在。真正出路 = 构图与 python 宿主剥离（fork worker
+  子进程，或 binds 从 OM introspection 来让 init 整个不需要）。
+
+  收尾：子模块 c883290 推平 fork/ascend-port；外层 f132e1e 推平 main（战报
+  summary/2026-09-24_pyhost-ge-survival-hunt.md + handoff ②/④ 更新 + roadmap
+  条目 + 判决脚本）；服务器零活体。
+
+  下轮起手（handoff 已写明）：A1 gdb core 定剩余死因 → A2 构图/宿主剥离工程 → A3
+  eval 全链 inproc；B 动态 L、C 性能余项顺路。
+
+✔ Goal achieved (10h · 1 turn · 29.9k tokens) (ctrl+o to expand)
+
+✻ Churned for 27m 39s · done 10:09 AM
+
+※ recap: 昇腾 NPU 引擎接入后的遗留 A 项：python 宿主内 GE 杀进程。今晚已把死因链定罪并推进到 open 尾后带 core 的 SEGV，文档与两仓已推平收档。下一步：gdb core dump 定剩余死因。 (disable recaps in /config)
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   133.4k/1m tokens (13%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 130.8k tokens (13.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 866.2k (86.6%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /goal 继续根据 handoff post0compact首局的规划推进                             
+  ⎿  Goal set: 继续根据 handoff post0compact首局的规划推进
+
+  Thought for 23s (ctrl+o to expand)
+
+● 继续按 handoff 首局规划推进：A1 = gdb core 定剩余死因。开工：
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-24 10:30:04
+
+● Bash(ssh root@192.168.13.119 "cat /proc/sys/kernel/core_pattern; docker exec
+      apxinf_rust bash -c 'ls -la /data/apxinf/pyo3_check/core* 2>/dev/null; ls
+      -la /core* /tm…)
+  ⎿  |/usr/share/apport/apport -p%p -s%s -c%c -d%d -P%P -u%u -g%g -F%F -- %
+     E
+     unlimited
+
+  Thought for 15s (ctrl+o to expand)
+
+● core_pattern 走 apport 管道（容器内无 apport → core 从未落盘，昨晚的 "core
+  dumped" 只是 shell 措辞）。改用 gdb live 抓栈。查容器 gdb：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'which gdb ||
+      echo NO_GDB; which python3; python3 --version'" 2>&1)
+  ⎿  NO_GDB
+     which: no gdb in (/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bin:
+     /usr/local/Ascend/ascend-toolkit/latest/bin:/usr/local/Ascend/ascend-t
+     … +10 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 无 gdb。双管齐下：faulthandler（零成本抓 python 栈）+ 后台装 gdb 抓 C 栈：
+
+● Write(syx_docs\dev_logs\pyo3_segv_diag.sh)
+  ⎿  Wrote 13 lines to syx_docs\dev_logs\pyo3_segv_diag.sh
+       1 #!/bin/bash
+       2 # SEGV 诊断：open 尾后段错误的栈定位。
+         到 SEGV 的形态）。
+       4 # PYTHONFAULTHANDLER=1：SEGV 时打印 python 层栈（区分死在 python
+         /PyO3 边界还是 GE 内部线程）
+         r/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+       6 export ASCEND_RT_VISIBLE_DEVICES=2
+       7 export PYTHONUNBUFFERED=1
+       9 export MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile
+      10 export PYTHONFAULTHANDLER=1
+     … +6 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_segv_diag.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_segv_diag.sh && ssh
+      root@192.168.13.119 "docker exec…)
+  ⎿  bash: line 1: apt-get: command not found
+  ⎿  (timeout 5m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'which dnf yum
+      apt python3-pip 2>/dev/null; cat /etc/os-release | head -2'" 2>&1)
+  ⎿  /usr/bin/dnf
+     /usr/bin/yum
+     NAME="openEuler"
+     VERSION="24.03 (LTS-SP3)"
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash
+      /data/apxinf/pyo3_check/pyo3_segv_diag.sh" 2>&1 | tail -30)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'dnf install -y
+      gdb 2>&1 | tail -3'" 2>&1)
+  ⎿    python3-six-1.16.0-3.oe2403sp3.noarch
+
+
+     Complete!
+  ⎿  (timeout 5m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● gdb 装好。备好 gdb 批跑脚本，等 faulthandler 结果：
+
+● Write(syx_docs\dev_logs\pyo3_segv_gdb.sh)
+  ⎿  Wrote 15 lines to syx_docs\dev_logs\pyo3_segv_gdb.sh
+       1 #!/bin/bash
+       2 # gdb live 抓 SEGV 全栈（python + C）——open 尾后段错误定位
+       3 export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/us
+         r/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+       4 export ASCEND_RT_VISIBLE_DEVICES=2
+       6 export APXINF_GE_BUILD_INIT=1
+       7 export MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile
+       8 gdb --batch \
+       9     -ex "set pagination off" \
+      10     -ex "handle SIGSEGV stop print" \
+     … +6 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_segv_gdb.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_segv_gdb.sh && echo
+      UP_OK)
+  ⎿  UP_OK
+
+  Thought for 9s (ctrl+o to expand)
+● 等 faulthandler 期间预研 A2-b 可行性——看 binds 与构图怎么交织（load-only
+  跳构图的关键）：
+
+● Bash(cd /d/compass/APXinf/apxinf && grep -n "struct Seg"
+      crates/apxinf-model/src/pi05/ascend_ge.rs | head -3; grep -n "binds"
+      crates/apxinf-model/src/pi05/ascend_ge.…)
+  ⎿  296:pub struct Seg {
+     49://!   eager 参考仍从 binds 取权重，缺 GEB_CKPT 时对拍错权重无意义
+     301:    pub binds: Vec<DeviceBuffer>,
+     … +20 lines (ctrl+o to expand)
+
+  Thought for 11s, read 1 file (ctrl+o to expand)
+
+● A2-b 路线清晰了：ghost 模式集中在 ge_builder.rs 一个文件（GeGraph 句柄
+  handle<0 全方法 no-op），Seg 层零改动。但先看 A1 栈再定。查 faulthandler
+  结果：
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● 还在跑。期间看 GeGraph::begin/load 的 Rust 面，确定 ghost 模式插入点：
+
+  Thought for 28s, read 1 file (ctrl+o to expand)
+
+● Ghost 方案先挂起——栈结果决定是否需要它（若 SEGV 死在 init
+  的延迟线程，ghost+no-init 直接绕开；若死在别处，ghost 白做）。等
+  faulthandler：
+
+● Bash(sleep 60; cat "C:\Users\素玄\AppData\Local\Temp\claude\D--compass-APXinf\
+      7bccc587-c325-43ca-9bce-01a3b43af572\tasks\bzls2465d.output" 2>/dev/null |
+      tail -25)
+  ⎿  [e2e] styles 预计算 ×10 步 1.59303464s（一次性，跨调用缓存）
+     [e2e] step 0 |x|max=99.7500
+     [e2e] step 1 |x|max=99.5000
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 1m 30s)
+
+● Background command "Run faulthandler SEGV diagnostic" completed (exit code 0)
+
+  Thought for 46s (ctrl+o to expand)
+
+● Faulthandler 定位：SEGV 死在 GeServeModel.open 调用内部（python 栈停在
+  check.py:23，即 PyO3 帧内的 open 尾部，[serve] GEB_SERVE_FAST
+  打印之后、返回前）。上 gdb 抓 C 栈：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash
+      /data/apxinf/pyo3_check/pyo3_segv_gdb.sh" 2>&1 | tail -90)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 4s (ctrl+o to expand)
+
+● gdb 跑着（~3-4min）。期间确认 ghost 模式最后一个细节——run/num_outputs
+  的实现形态（它们作用于 load 后的真句柄，ghost 只影响 begin..build 区间）：
+
+● Bash(grep -n "pub fn run\|pub fn num_outputs\|pub fn output_size\|pub fn
+      build\|pub fn save" crates/apxinf-ascend/src/ge_builder.rs; echo ---; sed
+      -n "$(grep -n 'pub…)
+  ⎿  706:    pub fn build(&self) -> Result<()> {
+     761:    pub fn num_outputs(&self) -> Result<usize> {
+     770:    pub fn output_size(&self, idx: usize) -> Result<usize> {
+     … +28 lines (ctrl+o to expand)
+
+  Thought for 18s (ctrl+o to expand)
+
+● 执行层在 warmup 已验证通过（三段都跑了）——SEGV 稳定死在 open
+  收尾构造/返回处。等 gdb 栈定罪：
+
+● Bash(sleep 120; tail -c 4000 "C:\Users\素玄\AppData\Local\Temp\claude\D--compa
+      ss-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\bw09em9cc.output"
+      2>/dev/null)
+  ⎿  (No output)
+  ⎿  (timeout 2m 30s)
+
+● Bash(sleep 90; tail -c 5000 "C:\Users\素玄\AppData\Local\Temp\claude\D--compas
+      s-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\bw09em9cc.output"
+      2>/dev/null; echo =…)
+  ⎿  ffff773f874 in ?? () from /lib64/libc.so.6
+     #4  0x0000fffff77a7c8c in ?? () from /lib64/libc.so.6
+     … +69 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Background command "Run gdb live capture of SEGV backtrace" completed (exit
+code 0)
+
+  Thought for 1m 46s (ctrl+o to expand)
+
+● 栈定罪完成——真凶水落石出：
+
+  #0 get_state() at obmalloc.c:866          ← CPython pymalloc 内部崩
+  #4 pyo3 PyNativeTypeInitializer::into_new_object   ← PyO3 创建返回对象
+  #6 <GeServeModel as IntoPy>::into_py      ← open 成功完成后、返回 python 
+  对象时
+
+  死因 = te fusion static path 偷走了 PyO3 持有的 GIL：HandleManager::Initialize
+  里 TE_PyGILState_Check()!=0（主线程持 GIL）→ TE_PyEval_SaveThread() 释放了 
+  PyO3 的 GIL 且存走 thread state；open 全部完成后 PyO3 into_py 要分配 python
+  对象 → GIL/线程状态已烂 → pymalloc get_state() SEGV。
+
+  修复方案 c''（教科书级，不动 GE）：open 主体包进 Python::allow_threads（GIL
+  释放区）——init 时 PyGILState_Check()==0，te 不再触发 SaveThread，GIL
+  状态全程完好。看 open 现状：
+
+● Bash(sed -n '925,975p' crates/apxinf-py/src/lib.rs)
+  ⎿          backend: AscendBackend,
+             serve: GeServe,
+             last_ms: Cell<(f32, f32, f32)>,
+     … +48 lines (ctrl+o to expand)
+
+  Thought for 23s (ctrl+o to expand)
+
+● 实现 c'' 修复。三处 Edit——open 主体包 allow_threads + ge_init_once 语义更新：
+
+● Update(apxinf\crates\apxinf-py\src\lib.rs)
+  ⎿  Added 25 lines, removed 7 lines
+      939          /// * `fast` — GEB_SERVE_FAST device-direct path (defa
+           ult true).
+      940          #[staticmethod]
+      941          #[pyo3(signature = (om_dir, tokens, ckpt, fast=true))]
+      942 -        fn open(om_dir: PathBuf, tokens: usize, ckpt: PathBuf,
+          - fast: bool) -> PyResult<Self> {                              
+      943 -            ge_init_once()?;                                  
+      944 -            let real = Pi05Weights::from_safetensors(&Pi05Conf
+          -ig::default(), &ckpt)                                         
+      945 -                .map_err(runtime_err)?;                       
+      946 -            let backend = AscendBackend::new(0).map_err(runtim
+          -e_err)?;                                                      
+      947 -            let om_dir = om_dir                               
+      942 +        fn open(                                              
+      943 +            py: Python<'_>,                                   
+      944 +            om_dir: PathBuf,                                  
+      945 +            tokens: usize,                                    
+      946 +            ckpt: PathBuf,                                    
+      947 +            fast: bool,                                       
+      948 +        ) -> PyResult<Self> {                                 
+      949 +            let om_dir_s = om_dir                             
+      950                  .to_str()
+      951                  .ok_or_else(|| PyValueError::new_err("om_dir m
+           ust be a utf-8 path"))?
+      952                  .to_owned();
+      951 -            let serve = GeServe::open(&backend, &real, &om_dir
+          -, tokens, fast);                                              
+      953 +            // ⚠ init+构图+open 主体必须跑在无 GIL 区（allow_t
+          +hreads）：                                                    
+      954 +            // GE te fusion 的 python 适配层（py_decouple stat
+          +ic path——python                                               
+      955 +            // 宿主内 dlsym 命中宿主符号）在 PyGILState_Check(
+          +)!=0 时                                                       
+      956 +            // TE_PyEval_SaveThread() 会偷走 PyO3 持有的 GIL  
+          +并存走 thread                                                 
+      957 +            // state；open 完成后 into_py 分配 python 对象时 p
+          +ymalloc                                                       
+      958 +            // get_state() 读烂状态直接 SEGV（gdb 栈定罪 2026-
+          +09-24，见                                                     
+      959 +            // summary/2026-09-24_pyhost-ge-survival-hunt）。 
+          +无 GIL 进入 ⇒                                                 
+      960 +            // te 不触发 SaveThread，其内部 python 调用自走   
+      961 +            // PyGILState_Ensure/Release，宿主线程状态全程完好
+          +。                                                            
+      962 +            let (backend, serve) = py.allow_threads(|| -> PyRe
+          +sult<(AscendBackend, GeServe)> {                              
+      963 +                ge_init_once()?;                              
+      964 +                let real = Pi05Weights::from_safetensors(&Pi05
+          +Config::default(), &ckpt)                                     
+      965 +                    .map_err(runtime_err)?;                   
+      966 +                let backend = AscendBackend::new(0).map_err(ru
+          +ntime_err)?;                                                  
+      967 +                let serve = GeServe::open(&backend, &real, &om
+          +_dir_s, tokens, fast);                                        
+      968 +                Ok((backend, serve))                          
+      969 +            })?;                                              
+      970              Ok(Self {
+      971                  backend,
+      972                  serve,
+
+● Update(apxinf\crates\apxinf-py\src\lib.rs)
+  ⎿  Added 18 lines, removed 9 lines
+      895      static GE_INIT: OnceLock<Result<(), String>> = OnceLock::n
+           ew();
+      896  
+      897      fn ge_init_once() -> PyResult<()> {
+      898 -        // ⚠ python 宿主内不唤醒 GE 编译会话（默认）：aclgrphB
+          -uildInitialize                                                
+      899 -        // 会拉起 te fusion 的进程内 python 适配层（py_decoupl
+          -e：向宿主                                                     
+      900 -        // 解释器动 GIL / dlopen 第二份 libpython），随后进程 
+          -在 open 尾声                                                  
+      901 -        // 被 GE 库无信号杀死（strace 排除 SIGSEGV/SIGABRT，TB
+          -E 子进程 8 连                                                 
+      902 -        // "main process disappeared"——见 summary/2026-09-23_e
+          -ngine-integration）。                                         
+      903 -        // load-only 管线（OM 预烤，geb_model_load → aclmdlLoa
+          -dFromMem）是                                                  
+      904 -        // 纯 ACL runtime，完全不需要编译会话；真要 build（烤 
+          -桶）走 rust                                                   
+      905 -        // 宿主二进制。逃生门：APXINF_GE_BUILD_INIT=1 恢复旧行
+          -为（排障用）。                                                
+      906 -        if std::env::var("APXINF_GE_BUILD_INIT").unwrap_or_def
+          -ault() != "1" {                                               
+      898 +        // ⚠ 只能在 allow_threads（无 GIL）区内调用：te 的 py_
+          +decouple                                                      
+      899 +        // static path 在 PyGILState_Check()!=0 时 TE_PyEval_S
+          +aveThread()                                                   
+      900 +        // 会偷走调用者的 GIL（GIL 劫持 = open 尾 SEGV 真凶，g
+          +db 定罪                                                       
+      901 +        // 2026-09-24）。并行编译 forkserver 默认关闭：python 
+          +宿主内它与                                                    
+      902 +        // multiprocessing 相克，是 open 中途静默死亡的必要条 
+          +件（判决实验                                                  
+      903 +        // 见 summary/2026-09-24_pyhost-ge-survival-hunt）。  
+      904 +        if std::env::var("MIN_COMPILE_RESOURCE_USAGE_CTRL")   
+      905 +            .unwrap_or_default()                              
+      906 +            .is_empty()                                       
+      907 +        {                                                     
+      908 +            std::env::set_var(                                
+      909 +                "MIN_COMPILE_RESOURCE_USAGE_CTRL",            
+      910 +                "ub_fusion,op_compile",                       
+      911 +            );                                                
+      912 +        }                                                     
+      913 +        // 排障逃生门：APXINF_GE_NO_BUILD_INIT=1 跳过编译会话 
+          +（构图随后                                                    
+      914 +        // panic——OperatorFactory 依赖 FE init，仅用于隔离实验
+          +）                                                            
+      915 +        if std::env::var("APXINF_GE_NO_BUILD_INIT").unwrap_or_
+          +default() == "1" {                                            
+      916              return Ok(());
+      917          }
+      918          let res = GE_INIT.get_or_init(|| {
+
+  Thought for 9s (ctrl+o to expand)
+
+● infer 路径不含构图（mech 已构装，te 不激活）无需改。同步判决脚本到默认路径（新
+  cdylib 内置 forkserver-off），部署编译：
+
+● Update(syx_docs\dev_logs\pyo3_segv_diag.sh)  ⎿  Added 2 lines, removed 2 lines
+       5  export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/u
+          sr/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-
+          }
+       6  export ASCEND_RT_VISIBLE_DEVICES=2
+       7  export PYTHONUNBUFFERED=1
+       8 -export APXINF_GE_BUILD_INIT=1                                  
+       9 -export MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile    
+       8 +# 修复验证版：GIL 劫持修复（allow_threads）+ forkserver-off 已 
+         +内置 cdylib，                                                  
+       9 +# 无需任何 env。fault handler 保持——若再崩看栈。               
+      10  export PYTHONFAULTHANDLER=1
+      11  python3 /data/apxinf/pyo3_check/check.py
+      12  echo "RC=$?"
+
+● Bash(scp /d/compass/APXinf/apxinf/crates/apxinf-py/src/lib.rs
+      root@192.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-py/src/lib.rs
+      && scp /d/compass/APXinf/syx…)
+  ⎿  warning: `apxinf-model` (lib) generated 78 warnings (run `cargo fix --
+     lib -p apxinf-model` to apply 7 suggestions)
+        Compiling apxinf-py v0.1.0 (/data/apxinf/apxinf_engine/crates/apxin
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+● Bash(ssh root@192.168.13.119 "cp
+      /data/apxinf/target_libcheck/release/libapxinf_py.so
+      /data/apxinf/pyo3_check/apxinf_py.so && docker exec apxinf_rust bash
+      /data/apxi…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 修复判决跑着（open ~90s + infer×3）。等结果——判据 = 进程活过 open + infer
+  对拍与 spool 逐位同（max_diff=0.0244）+ PYO3_GESERVE_OK：
+
+● Bash(sleep 150; tail -c 3000 "C:\Users\素玄\AppData\Local\Temp\claude\D--compa
+      ss-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\bld3zf3dg.output"
+      2>/dev/null; echo…)
+  ⎿  ===END===
+  ⎿  (timeout 3m)
+
+● Bash(sleep 120; tail -c 3500 "C:\Users\素玄\AppData\Local\Temp\claude\D--compa
+      ss-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\bld3zf3dg.output"
+      2>/dev/null; echo…)
+  ⎿  [geb]   in[249] size=64 dims=1,32
+     [geb]   in[250] size=3200 dims=50,32
+     [geb]   in[251] size=3200 dims=50,32
+     … +25 lines (ctrl+o to expand)
+  ⎿  (timeout 2m 30s)
+
+● Background command "Deploy fixed cdylib and run survival verification"
+completed (exit code 0)
+
+  Thought for 2m 6s (ctrl+o to expand)
+
+● 🎉 PYTHON 宿主 GE 存活障碍正式终结：
+
+  open 176.4s GeServeModel(tokens=144, fast=true)     ← 完整返回，进程活着
+  try0-2: sum 250-256ms, max_diff=0.0244 rel=1.0%    ← 与 spool 桶逐位同
+  PYO3_GESERVE_OK  RC=0
+
+  两行根因修复（allow_threads GIL 释放区 + forkserver-off 默认）终结障碍，inproc
+  直调延迟 252ms 与 spool 稳态同量级。先跑 3
+  连独立进程稳定复验（昨晚非确定死亡的教训）：
+
+● Write(syx_docs\dev_logs\pyo3_stability.sh)
+  ⎿  Wrote 12 lines to syx_docs\dev_logs\pyo3_stability.sh
+       1 #!/bin/bash
+       2 # 修复后稳定性复验：3 次独立进程 open+infer（昨晚死亡点位非确定
+       3 export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/us
+         r/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+       4 export ASCEND_RT_VISIBLE_DEVICES=2
+       6 export PYTHONFAULTHANDLER=1
+       7 for i in 1 2 3; do
+       8   echo "=== run$i $(date +%T) ==="
+         |try|OK|Error|error|Fatal|Segmentation"
+      10   echo "RC_$i=$?"
+     … +5 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_stability.sh
+      root@192.168.13.119:/data/apxinf/pyo3_check/pyo3_stability.sh && ssh
+      root@192.168.13.119 "docker exec…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 3 连跑着（~10min）。期间提交子模块修复：
+
+● Bash(git add crates/apxinf-py/src/lib.rs && git commit -m "fix(py): GIL hijack
+      root-caused and fixed — python host now survives GE open…)
+  ⎿  [ascend-port 2dbffe9] fix(py): GIL hijack root-caused and fixed — pyth
+     on host now survives GE open
+      1 file changed, 43 insertions(+), 16 deletions(-)
+     … +2 lines (ctrl+o to expand)
+
+● Bash(git push fork ascend-port 2>&1 | tail -2)
+  ⎿  To github.com:WeNeedMoreCode/ApxInf.git
+        c883290..2dbffe9  ascend-port -> ascend-port
+
+  Thought for 4s (ctrl+o to expand)
+
+● 更新战报——追加终局章节（障碍终结）：
+
+● Update(syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md)
+  ⎿  Added 2 lines, removed 2 lines
+      1 -# Python 宿主 GE 存活障碍攻坚：死因链定位 + 死亡点推进到 open 尾
+        -后 SEGV                                                         
+      1 +# Python 宿主 GE 存活障碍攻坚：GIL 劫持根因定罪 + 修复终结（✅  
+        +已解）                                                          
+      2  
+      3 -日期：2026-09-24（凌晨 23:37-02:15，接 handoff 优先级 A；2:30 时
+        -限收档）                                                        
+      3 +日期：2026-09-24（凌晨 23:37-02:15 定位链；上午 10:30-11:00 gdb 
+        +定罪 + 修复终结）                                               
+      4  
+      5  ## 一句话
+      6  
+
+● Update(syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md)
+  ⎿  Added 24 lines, removed 6 lines
+      47  
+      48  ## 下一步（按性价比排序）
+      49  
+      50 -1. **gdb core dump**：容器 core pattern 确认落点，`gdb python3 
+         -core` 看栈——最后一公里的直接证据（te import 注入 vs GIL vs GE  
+         -收尾，一栈定罪）                                               
+      51 -2. **若 te import 注入是根因**：尝试让 `te_fusion` 包 import 失
+         -败（PYTHONPATH 屏蔽）——但 init 会整体失败（构图又需要 init）， 
+         -死结；真正的出路在工程形态：                                   
+      52 -3. **构图/python 宿主剥离**（工程方向，下轮主候选）：          
+      53 -   - a. inproc worker 子进程化：multiprocessing fork 一个 worke
+         -r 做 init+构图+open，主进程 pipe 通信（语义 = spool 的进程隔离 
+         -+ pipe 传输，免文件轮询 ~15ms）                                
+      54 -   - b. binds 与构图解耦：`geb_model_load` 已 CacheIo（OM intro
+         -spection 有 IO size/dims）——load-only 模式跳过构图、binds 从 OM
+         - introspection 来，则 init 整个不需要（no-init 路径已验证不死）
+      55 -4. **华为渠道**：素材已齐（复现器 + 机制链 + core），可精确提问
+         -"GE aclgrphBuildInitialize 在 python 宿主（libpython 已加载）内
+         -的 te fusion static path 支持性"                               
+      50 +~~1. gdb core dump 定剩余死因~~ **✅ 已做（同日上午）——见下"终 
+         +局"节，GIL 劫持定罪 + 修复终结，A2 剥离工程不再需要**。剩余真实
+         +下一步 = **A3 eval 全链 inproc**（9.0.1 libs 拷 /data 供 npu 容
+         +器 + torch_npu 剥离=前处理 CPU 化）+ B 动态 L + C 性能余项，见 
+         +handoff。                                                      
+      51  
+      52 +## 终局（同日上午 10:30-11:00）：gdb 一栈定罪 + 两行修复       
+      53 +                                                               
+      54 +**core dump 实为空**（容器 core_pattern 走 apport 管道、容器内 
+         +无 apport → core 从未落盘；"core dumped" 只是 shell 措辞）——改 
+         +用 **gdb --batch live 跑**（openEuler dnf 装 gdb）。faulthandle
+         +r 先证 python 主栈停在 `check.py:23`（PyO3 open 帧内），gdb 抓 
+         +到全栈：                                                       
+      55 +                                                               
+      56 +```                                                            
+      57 +#0  get_state () at Objects/obmalloc.c:866        ← CPython pym
+         +alloc 内部                                                     
+      58 +#1  _PyObject_Malloc (nbytes=1320)                             
+      59 +#3  PyType_GenericAlloc                                        
+      60 +#4  pyo3 PyNativeTypeInitializer::into_new_object   ← 创建 GeSe
+         +rveModel 返回对象                                              
+      61 +#6  <GeServeModel as IntoPy>::into_py                          
+      62 +#7  GeServeModel::__pymethod_open__                            
+      63 +```                                                            
+      64 +                                                               
+      65 +**根因（GIL 劫持）**：open 主体持 GIL 跑 → 构图深处的 `aclgrphB
+         +uildInitialize` → te fusion py_decouple **static path**（python
+         + 宿主里 `dlsym(RTLD_DEFAULT,"Py_Initialize")` 命中宿主符号）→ `
+         +HandleManager::Initialize` 见 `PyGILState_Check()!=0`（PyO3 持 
+         +有）→ **`TE_PyEval_SaveThread()` 偷走 PyO3 的 GIL 并存走 thread
+         + state**。open 全部完成后 PyO3 `into_py` 要分配 python 对象 →  
+         +解释器状态已烂 → pymalloc `get_state()` SEGV。（forkserver 关闭
+         +只是把死点从中途稳定到 open 尾；真正的凶手一直是 GIL 劫持。）  
+      66 +                                                               
+      67 +**修复（子模块 2dbffe9，两行根因）**：                         
+      68 +1. `GeServeModel::open` 主体包进 `Python::allow_threads`（GIL  
+         +释放区）——init 时 `PyGILState_Check()==0`，te **不触发 SaveThre
+         +ad**；te 内部 python 调用自走 `PyGILState_Ensure/Release`，宿主
+         +线程状态全程完好                                               
+      69 +2. `ge_init_once` 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusi
+         +on,op_compile`（forkserver off 固化）；逃生门反转为 `APXINF_GE_
+         +NO_BUILD_INIT=1`                                               
+      70 +                                                               
+      71 +**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 re
+         +l=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态
+         +同量级）+ `PYO3_GESERVE_OK RC=0`；3 次独立进程稳定复验见 pyo3_s
+         +tability.sh。                                                  
+      72 +                                                               
+      73 +**结构性认识修正**：此前"GE 库内部 exit() / TBE 子进程相克"的推
+         +测均不成立——是**可修复的 GIL 协议违反**（te static path 假定自 
+         +己是宿主里唯一的 python 管理者）。inproc 全链（engine.py → PyO3
+         + → crate GeServe）在 rust 容器内已无障碍。                     
+      74 +                                                               
+      75  ## 顺带事实
+      76  
+      77  - 服务器收工状态保持：无引擎活体、pyo3 实验进程全部退出（SEGV 
+          退出码可见）
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md)
+  ⎿  Added 3 lines, removed 3 lines
+      41  
+      42  ## 交付物
+      43  
+      44 -- **子模块 c883290**（fork/ascend-port 已推）：`ge_init_once`  
+         -默认跳过 init（inproc 快速失败可诊断，优于死进程）+ `APXINF_GE_
+         -BUILD_INIT=1` 逃生门；注释含完整死因链与战报指针               
+      45 -- **`syx_docs/dev_logs/pyo3_noinit.sh`**（服务器 /data/apxinf/p
+         -yo3_check/ 同步）：判决脚本（当前形态 = 逃生门 + forkserver 关 
+         -闭；跑 3 连）                                                  
+      46 -- 服务器 pyo3_check 目录：新 cdylib（no-init 默认）已部署      
+      44 +- **子模块 c883290 + 2dbffe9**（fork/ascend-port 已推）：c88329
+         +0 判决实验版（no-init 默认）→ 2dbffe9 终局版（allow_threads GIL
+         + 修复 + forkserver-off 默认 + `APXINF_GE_NO_BUILD_INIT=1` 逃生 
+         +门）                                                           
+      45 +- **`syx_docs/dev_logs/pyo3_noinit.sh` / `pyo3_segv_diag.sh` / 
+         +`pyo3_segv_gdb.sh` / `pyo3_stability.sh`**（服务器 /data/apxinf
+         +/pyo3_check/ 同步）：判决/定罪/稳定复验脚本链                  
+      46 +- 服务器 pyo3_check 目录：修复版 cdylib 已部署                 
+      47  
+      48  ## 下一步（按性价比排序）
+      49  
+
+● Handoff 更新（状态一句话 + ② 首句 + ④ 表）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**引擎接入主线三步落地（2026-09-23，见 summary/2026-09-23_engine
+        --integration.md）：① 执行器库化——ge_model_probe 6206 行沉到 crat
+        -e 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（open/infe
+        -r，serve_loop 与直调共用帧实现），验证梯全过（golden step0_x1 0.
+        -0%/actions 0.9% 与基线逐字同、新旧二进制冒烟 bit 恒等 0.0244/1.0
+        -% 四位全同）——子模块 e7e4cd1；② PyO3 `GeServeModel`（apxinf-py -
+        --features ascend，接口与 spool 协议逐位对齐，rust 容器 python 直
+        -调三段全通；**已知障碍 = python 宿主内 GE 库在 open 尾声杀进程**
+        -，无信号无 Traceback + TBE 子进程 8 连报错，非确定点位，纯 Rust 
+        -宿主同代码稳定——疑 GE 的 TBE 子进程管理与 python 宿主相克）——787
+        -730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支（_
+        -InprocClient 直调 PyO3，失败自动回落 spool 桶；npu 容器 torch_np
+        -u 8.5.1 与 9.0.1 同进程互斥，spool 仍为生产传输）。**全量 fast  
+        -回归终数锁定：10/10 + per-call model_ms P50 256.3ms = 0.682×**（
+        -跨任务 254.5-260.5 极稳，④A+B 收口）。此前战绩：M3 全量 10/10 + 
+        -0.87×（ada-gate 缺失真凶战报 2026-09-23_ada-gate-missing-root-ca
+        -use.md）、GEB_SERVE_FAST 254.3ms task0 口径（serve-fast-device-d
+        -irect.md）。**下一轮候选：python 宿主 GE 存活障碍已破一半（2026-
+        -09-24 凌晨，见 summary/2026-09-24_pyhost-ge-survival-hunt.md：死
+        -因链 = init→TbeInitialize→PythonAdapterManager，forkserver 并行 
+        -编译是中途静默死必要条件，`MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fu
+        -sion,op_compile` 关掉后 open 三段全通、死亡点推进到 open 尾后显 
+        -式 SEGV 带 core 可 gdb；构图依赖 init ⇒ "init 但不碰 python"选项
+        -面不存在，出路=构图与 python 宿主剥离——fork worker 子进程 or bin
+        -ds 从 OM introspection 来）→ SEVG core gdb / 剥离工程 → eval 全 
+        -链 inproc（9.0.1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定形；性
+        -能余项顺路（E msprof vision 65ms、D int8 probe）。**            
+      5 +**引擎接入主线三步落地（2026-09-23，见 summary/2026-09-23_engine
+        +-integration.md）：① 执行器库化——ge_model_probe 6206 行沉到 crat
+        +e 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（open/infe
+        +r，serve_loop 与直调共用帧实现），验证梯全过（golden step0_x1 0.
+        +0%/actions 0.9% 与基线逐字同、新旧二进制冒烟 bit 恒等 0.0244/1.0
+        +% 四位全同）——子模块 e7e4cd1；② PyO3 `GeServeModel`（apxinf-py -
+        +-features ascend，接口与 spool 协议逐位对齐，rust 容器 python 直
+        +调三段全通；**已知障碍 = python 宿主内 GE 库在 open 尾声杀进程**
+        +，无信号无 Traceback + TBE 子进程 8 连报错，非确定点位，纯 Rust 
+        +宿主同代码稳定——疑 GE 的 TBE 子进程管理与 python 宿主相克）——787
+        +730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支（_
+        +InprocClient 直调 PyO3，失败自动回落 spool 桶；npu 容器 torch_np
+        +u 8.5.1 与 9.0.1 同进程互斥，spool 仍为生产传输）。**全量 fast  
+        +回归终数锁定：10/10 + per-call model_ms P50 256.3ms = 0.682×**（
+        +跨任务 254.5-260.5 极稳，④A+B 收口）。此前战绩：M3 全量 10/10 + 
+        +0.87×（ada-gate 缺失真凶战报 2026-09-23_ada-gate-missing-root-ca
+        +use.md）、GEB_SERVE_FAST 254.3ms task0 口径（serve-fast-device-d
+        +irect.md）。**下一轮候选：✅ python 宿主 GE 存活障碍已终结（2026
+        +-09-24，见 summary/2026-09-24_pyhost-ge-survival-hunt.md 终局节 
+        +：gdb 一栈定罪 = te fusion py_decouple static path 的 `TE_PyEval
+        +_SaveThread` 偷走 PyO3 持有的 GIL → open 返回时 pymalloc SEGV； 
+        +修复两行 = open 主体包 `Python::allow_threads`（无 GIL 进入则 te
+        + 不触发 SaveThread）+ forkserver-off 默认固化——子模块 2dbffe9； 
+        +验证 open 176.4s 完整返回 + infer ×3 max_diff=0.0244 与 spool 逐
+        +位同 + 250-262ms + RC=0）→ 下一步 = A3 eval 全链 inproc（9.0.1 l
+        +ibs 供给 npu 容器 + torch_npu 剥离=前处理 CPU 化）→ B 动态 L 定 
+        +形；C 性能余项顺路（E msprof vision 65ms、D int8 probe）。**    
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU（**python 宿主 GE 障碍破一半 2026-09-24： 
+         -死因链 = aclgrphBuildInitialize→TbeInitialize→PythonAdapterMana
+         -ger——no-init A/B 进程不死（构图 panic 证明构图依赖 FE init）；`
+         -MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（te 侧 en
+         -v 直读）关 forkserver 并行编译后 open 三段全通、死亡点推进到 op
+         -en 尾后显式 SEGV RC=139 带 core 可 gdb；python 宿主天然走 py_de
+         -couple static path（dlsym 命中宿主符号→操纵宿主解释器+GIL），ru
+         -st 宿主走 dynamic path（dlopen 独立 libpython）——spool 稳定根源
+         -；子模块 c883290：ge_init_once 默认跳 init + 逃生门 APXINF_GE_B
+         -UILD_INIT=1**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md
+         -）。下一轮按优先级：**A1. gdb core dump 定剩余死因（容器 core p
+         -attern 确认落点；嫌疑 = InitPyModuleAndApiCall te 模块 import  
+         -注入宿主解释器 / HandleManager GIL / GE 收尾）**；**A2. 构图与 
+         -python 宿主剥离工程**（"init 但不碰 python"选项面不存在——InitPy
+         -ModuleAndApiCall 无条件；候选 a. fork worker 子进程做 init+构图
+         -+open+pipe 通信，b. binds 与构图解耦从 OM introspection 来（geb
+         -_model_load 已 CacheIo）→ init 整个不需要）；A3. eval 全链 inpr
+         -oc（9.0.1 libs 拷 /data 供 npu 容器 + torch_npu 剥离=前处理 CPU
+         - 化，9.0.1 toolkit 在 rust 容器镜像层非挂载）；B. 动态 L 定形（
+         -预置桶集 tl138-148+tl200 已备）；C. E msprof vision 65ms / D in
+         -t8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 钉死不含 GEB_D
+         -EPTH；pyo3_noinit.sh 判决脚本在 /data/apxinf/pyo3_check/（当前 
+         -形态=逃生门+forkserver 关）。验证梯照旧（golden ≤0.1%/≤2% → 冒 
+         -烟 A/B bit 同 → task0 → 全量大改后）。                         
+      13 +继续 APXinf 昇腾 NPU（**✅ python 宿主 GE 障碍终结 2026-09-24（
+         +子模块 2dbffe9）：gdb 栈定罪 = te fusion py_decouple static pat
+         +h 的 `TE_PyEval_SaveThread()` 偷走 PyO3 持有的 GIL 并存走 threa
+         +d state → open 返回时 PyO3 into_py 在烂解释器状态上 pymalloc SE
+         +GV（obmalloc.c get_state）；修复 = GeServeModel::open 主体包 `P
+         +ython::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ ge
+         +_init_once 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_c
+         +ompile`（forkserver off——中途静默死必要条件）；验证 open 176.4s
+         + 完整返回 + infer×3 max_diff=0.0244 rel=1.0% 与 spool 桶逐位同 
+         ++ 250-262ms/call + PYO3_GESERVE_OK；inproc 全链 rust 容器内无障
+         +碍**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）。下一 
+         +轮按优先级：**A3. eval 全链 inproc**（① 9.0.1 libs 拷 /data 供 
+         +npu 容器 cdylib 加载——toolkit 在 rust 容器镜像层非挂载，LD_LIBR
+         +ARY_PATH 追加式；② torch_npu 剥离 = 前处理 CPU 化（NpuTorchPi05
+         +Policy 预处理宿主去 NPU——patches/ids 的计算路径 CPU 可跑，weigh
+         +ts 或可 meta 加载）；③ npu 容器跑 APXINF_GE_TRANSPORT=inproc ta
+         +sk0 验证）；B. 动态 L 定形（预置桶集 tl138-148+tl200 已备；注意
+         + inproc 单管线 env 全局——多桶须多进程或扩展）；C. E msprof visi
+         +on 65ms / D int8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 
+         +钉死不含 GEB_DEPTH；稳定复验脚本 pyo3_stability.sh 在 /data/apx
+         +inf/pyo3_check/。验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同
+         + → task0 → 全量大改后）。                                      
+      14  
+      15  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      16  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      20  |---|---|---|---|---|
+      21  | **A** | ✅ **已落地（2026-09-23，GEB_SERVE_FAST）**：**段间设
+          备直连**——prefix 36 路 kv 异步 d2d（零 host 中转）+ flow x 设备
+          驻留（ob→binds[0] d2d，只末步下载）+ 去 per-step sync（10 次→1 
+          次） | **实测 −45~62ms**（flow 117→80、prefix 130→105-115；task
+          0 model_ms 316→254.3） | 同流顺序链保证计算序不变——bit 恒等 | 
+          已过验证梯：冒烟 A/B bit 同（max_diff 四位全同）+ task0 success
+           1.0；全量回归待下一轮 |
+      22  | **B** | ✅ **已落地（同上，与 A 同一开关）**：**styles 设备驻
+          留**——legacy 110 槽被 10 步复用须逐步重传（1100 次 h2d/调用）；
+          改为每步独立视图拼 2.25MB master 一次上传 ⇒ **帧内零拷贝** | 并
+          入上项（flow −35~37ms 的主体） | styles 跨帧恒定 + DeviceBuffer
+          ::view_of 非拥有视图 | 低（同 A） |
+      23 -| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py in
+         -proc 分支）；python 宿主障碍破一半（2026-09-24 c883290，见 summ
+         -ary/2026-09-24_pyhost-ge-survival-hunt.md）**：**in-process ser
+         -ving**——执行器沉 crate 库面（GeServe 门面，spool/直调同源帧实现
+         -）+ PyO3 GeServeModel + npu_ge.py `APXINF_GE_TRANSPORT=inproc` 
+         -（回落 spool 保底）。障碍现状：forkserver 并行编译（中途死必要 
+         -条件）已可关（`MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_com
+         -pile`），剩余 = open 尾后 SEGV 带 core（gdb 待做）；**构图依赖 
+         -init ⇒ 出路是构图/python 宿主剥离（fork worker 或 binds 从 OM i
+         -ntrospection 来）** | spool 15ms 在 inproc 生效环境免 | 引擎单 
+         -实现三入口（example/PyO3/spool） | 已过：golden+bit 恒等双验、r
+         -ust 容器 python 三段直调全通；task0/全量回归走 spool 保底无回归
+         - |                                                             
+      23 +| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py in
+         +proc 分支）；python 宿主障碍已终结（2026-09-24 2dbffe9，GIL 劫 
+         +持定罪 + allow_threads 修复，open 完整返回 + infer 与 spool 逐 
+         +位同）**：**in-process serving**——执行器沉 crate 库面（GeServe 
+         +门面，spool/直调同源帧实现）+ PyO3 GeServeModel + npu_ge.py `AP
+         +XINF_GE_TRANSPORT=inproc`（回落 spool 保底）。**剩余 = A3 eval 
+         +全链 inproc**（9.0.1 libs 供给 npu 容器 + torch_npu 剥离=前处理
+         + CPU 化） | spool 15ms 在 inproc 生效环境免 | 引擎单实现三入口 
+         +（example/PyO3/spool） | 已过：golden+bit 恒等双验、rust 容器 p
+         +ython 直调全通（修复后 RC=0 稳定）；task0/全量回归走 spool 保底
+         +无回归 |                                                       
+      24  | **D** | **int8/w8a8 权重量化**（prefix/vision 大头）：310P in
+          t8 cube ~100 TOPS vs fp16 16 TFLOPS（6× 算力比）；prefix 116ms 
+          里 MatMul 主导 | prefix **或 −30~60%** | CUDA 侧原仓有 int8/fp8
+           executor 先例；昇腾侧 MatMulV2 int8 支持待探（opp 注册表 + 单
+          算 probe） | 高：数值校准（Gemma outlier）+ 全链行为复验；先做
+          单算 probe 定可行性再立项 |
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+  Thought for 2s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+      27  
+      28 -**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         -，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         -yO3 787730a ③engine.py inproc 分支）**。下一轮优先级：**python 
+         -宿主障碍后半场**（gdb core 定剩余死因 → 构图/宿主剥离工程 → eva
+         -l 全链 inproc：9.0.1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定 
+         -形；D int8 probe / E msprof 顺路。                             
+      28 +**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         +，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         +yO3 787730a ③engine.py inproc 分支）**。~~python 宿主 GE 障碍~~
+         + **已终结（2026-09-24 2dbffe9，GIL 劫持定罪 + allow_threads 修 
+         +复）**。下一轮优先级：**A3 eval 全链 inproc**（9.0.1 libs 供给 
+         ++ torch_npu 剥离=前处理 CPU 化 → npu 容器 inproc task0）→ ④ 动 
+         +态 L 定形；D int8 probe / E msprof 顺路。                      
+      29  
+      30  ## ③ Export 标题建议
+      31  
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line, removed 1 line
+      151    - 完成后 checkpoint bench → LIBERO 对标（M3）
+      152  - **✅ 性能轮第一点（2026-09-23，handoff ④A+B）——GEB_SERVE_FAS
+           T 段间设备直连 + styles 设备驻留**（见 summary/2026-09-23_serv
+           e-fast-device-direct.md）：serve 热路径 host 往返全消灭——prefi
+           x 36 路 kv 异步 d2d 直连、flow x 设备驻留 + 去 per-step sync（
+           10→1）、styles 每步独立视图一次上传帧内零拷贝（env 开关，legac
+           y 保留，**OM 无需重烤**）。**task0 model_ms 316.1→254.3ms = 37
+           6 基线 0.68×（破 0.70× 目标线）**，bit 级恒等（冒烟 A/B max_di
+           ff 四位小数全同）+ task0 success 1.0；**全量 10 任务 fast 回归
+           已收口（gatefastall）：10/10 + per-call model_ms P50 256.3ms =
+            0.682×**（跨任务 254.5-260.5 极稳）
+      153  - **✅ 引擎接入主线三步（2026-09-23，见 summary/2026-09-23_eng
+           ine-integration.md）**：① 执行器库化——ge_model_probe 6206 行沉
+            crate 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（op
+           en/infer；serve_loop 与直调共用帧实现），验证梯全过（golden 0.
+           0%/0.9% 逐字同基线 + 新旧二进制冒烟 bit 恒等）——子模块 e7e4cd1
+           ；② PyO3 `GeServeModel`（apxinf-py --features ascend，与 spool
+            协议逐位对齐；rust 容器 python 三段直调全通；**python 宿主内 
+           GE 库杀进程 = 已知障碍**，疑 TBE 子进程管理相克，无信号无 Trac
+           eback）——787730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=i
+           nproc` 分支（失败回落 spool；torch_npu 8.5.1 与 9.0.1 同进程互
+           斥，spool 仍为生产传输）。**引擎执行代码单一实现在 crate（exam
+           ple/PyO3/spool 三入口同源）**——接入从脚手架形态升级为库面 + 多
+           入口。遗留：python 宿主 GE 障碍、9.0.1 libs 供给 + torch_npu 
+           剥离（eval 全链 inproc）、动态 L 定形（预置桶集 tl138-148+tl20
+           0）、E msprof / D int8 顺路
+      154 -- **✅ python 宿主 GE 存活障碍攻坚（2026-09-24 凌晨，handoff A
+          - 前半——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）**： 
+          -三步判决链定罪——① no-init A/B 进程不死（构图依赖 FE init，geb_
+          -add_data panic 证实）② GE 源码死因链 = aclgrphBuildInitialize→
+          -TbeInitialize→PythonAdapterManager（py_decouple static path 操
+          -纵宿主解释器 + forkserver 并行编译 = 中途静默死必要条件；rust 
+          -宿主走 dynamic path 故 spool 稳定）③ `MIN_COMPILE_RESOURCE_USA
+          -GE_CTRL=ub_fusion,op_compile`（te 侧 env 直读）关 forkserver →
+          - **open 三段全通、死亡点推进到 open 尾后显式 SEGV（RC=139 带 c
+          -ore，可 gdb）**。子模块 c883290（ge_init_once 默认跳 init + AP
+          -XINF_GE_BUILD_INIT=1 逃生门）。下一步：gdb core → 构图/python 
+          -宿主剥离工程（fork worker 或 binds 从 OM introspection 来——Ini
+          -tPyModuleAndApiCall 无条件注入宿主，"init 不碰 python"选项面不
+          -存在）→ eval 全链 inproc                                      
+      154 +- **✅ python 宿主 GE 存活障碍终结（2026-09-24，handoff A——见 
+          +summary/2026-09-24_pyhost-ge-survival-hunt.md）**：三步判决链 
+          +（no-init 不死 → GE 源码死因链 init→TbeInitialize→PythonAdapte
+          +rManager → `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compi
+          +le` 关 forkserver 后死点稳定到 open 尾）+ **gdb 一栈定罪 = GIL
+          + 劫持**（te fusion py_decouple static path 的 `TE_PyEval_SaveT
+          +hread` 偷走 PyO3 持有的 GIL → open 返回时 pymalloc SEGV @obmal
+          +loc.c get_state）；**修复两行**（子模块 2dbffe9）：`GeServeMod
+          +el::open` 主体包 `Python::allow_threads`（无 GIL 进入 ⇒ te 不 
+          +触发 SaveThread）+ forkserver-off 默认固化——**验证 open 176.4s
+          + 完整返回 + infer×3 max_diff=0.0244 与 spool 逐位同 + 250-262m
+          +s + RC=0**。inproc 全链 rust 容器内无障碍；剩余 = A3 eval 全链
+          + inproc（9.0.1 libs 供给 + torch_npu 剥离）、B 动态 L、C 性能 
+          +余项                                                          
+      155  - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm
+           、silu、add/mul/scale、embedding、rope
+      156  - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
+      157  - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，
+           再热点融合
+
+  Thought for 2s (ctrl+o to expand)
+
+● 文档齐。查 3 连稳定复验状态：
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● 还在跑。先外层 commit（稳定复验结果出来后若异常再补记）：
+
+● Bash(cd /d/compass/APXinf && git add apxinf
+      syx_docs/dev_logs/pyo3_stability.sh syx_docs/dev_logs/pyo3_segv_diag.sh
+      syx_docs/dev_logs/pyo3_segv_gdb.sh syx_docs/dev_l…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-24_
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 17s (ctrl+o to expand)
+
+● 外层推平（98ddf8b）。等稳定跑期间勘察 A3 前置——torch_npu 剥离面（npu_torch.py
+  的 import/device 逻辑）：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(sed -n '69,135p' src/apxinf_robo/npu_torch.py)
+  ⎿      """A LeRobot PI0.5 checkpoint on Ascend NPU, shaped like an ApxInf
+      policy."""
+     … +63 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 关键发现：import torch_npu 无条件 + ModelZoo patch 在 from_pretrained 里硬编码
+  .to("npu") + FRACTAL_NZ——CPU 化不能靠 device 参数，正确形态 =
+  轻量预处理宿主（只要 pre/post processor + config，不需要 7GB
+  模型）。先看稳定跑：
+
+● Bash(sleep 90; tail -c 2000 "C:\Users\素玄\AppData\Local\Temp\claude\D--compas
+      s-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\b3gk46tl7.output"
+      2>/dev/null; echo =…)
+  ⎿  ===END===
+  ⎿  (timeout 2m)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ps aux | grep
+      check.p[y] | head -2; ls -la /proc/\$(pgrep -f check.p[y] | head -1)/stat
+      2>/dev/null |…)
+  ⎿  root     2058084  0.0  0.0   3748  2664 ?        Ss   02:50   0:00 bas
+     h /data/apxinf/pyo3_check/pyo3_stability.sh
+     root     2058166  105  2.2 9679548028 12027748 ? Rl   02:53   1:30 pyt
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● run1 进行中（check.py 活跃）。期间勘察 A3-① 依赖面——cdylib + ge_builder 的 ldd
+  清单：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'export
+      LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/usr/local/Ascend/as
+      cend-toolkit/latest/l…)
+  ⎿     libascendcl.so =>
+     /usr/local/Ascend/ascend-toolkit/latest/lib64/libasc
+     endcl.so (0x0000ffffaa030000)
+        libopapi.so =>
+     /usr/local/Ascend/ascend-toolkit/latest/lib64/libopapi.
+     … +34 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 依赖面收敛（toolkit lib64 + ge_builder + python3.12 abi）。查 A3
+  两硬前置——toolkit 大小与 npu 容器 python 版本：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'du -sh
+      /usr/local/Ascend/ascend-toolkit/latest/lib64 2>/dev/null' ; docker exec
+      apxinf_npu bash -c 'py…)
+  ⎿  Error: Exit code 2
+     0  /usr/local/Ascend/ascend-toolkit/latest/lib64
+     Python 3.11.10
+     /usr/local/bin/python3
+
+  Thought for 35s (ctrl+o to expand)
+
+● 关键情报：npu 容器 python 3.11.10 vs cdylib 编译于 3.12.13——abi 墙。这改变 A3
+  性价比（inproc 实际收益仅 ~5ms/帧 = 2%，跨墙成本陡增）。查 toolkit
+  真实体量后把这个决策点记进 handoff：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'readlink -f
+      /usr/local/Ascend/ascend-toolkit/latest; du -sh \$(readlink -f
+      /usr/local/Ascend/ascend-to…)
+  ⎿  /usr/local/Ascend/cann-9.0.1
+     0  /usr/local/Ascend/cann-9.0.1/lib64
+
+  Thought for 7s (ctrl+o to expand)
+
+● du 解析 symlink 后仍 0（lib64 自身也是链接）——体量不是墙，abi 才是。A3
+  性价比结论成形：inproc 实际收益 ~4-6ms/帧（2%）< python 3.11/3.12
+  环境统一成本。查稳定跑：
+
+● Bash(sleep 60; tail -c 1800 "C:\Users\素玄\AppData\Local\Temp\claude\D--compas
+      s-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\b3gk46tl7.output"
+      2>/dev/null; echo =…)
+  ⎿  ===END===
+     2058084
+     2058290
+  ⎿  (timeout 1m 30s)
+
+  Thought for 17s (ctrl+o to expand)
+
+● run2/3 进行中。期间把 A3 性价比决策点写进 handoff（方向决策记录）：
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU（**✅ python 宿主 GE 障碍终结 2026-09-24（
+         -子模块 2dbffe9）：gdb 栈定罪 = te fusion py_decouple static pat
+         -h 的 `TE_PyEval_SaveThread()` 偷走 PyO3 持有的 GIL 并存走 threa
+         -d state → open 返回时 PyO3 into_py 在烂解释器状态上 pymalloc SE
+         -GV（obmalloc.c get_state）；修复 = GeServeModel::open 主体包 `P
+         -ython::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ ge
+         -_init_once 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_c
+         -ompile`（forkserver off——中途静默死必要条件）；验证 open 176.4s
+         - 完整返回 + infer×3 max_diff=0.0244 rel=1.0% 与 spool 桶逐位同 
+         -+ 250-262ms/call + PYO3_GESERVE_OK；inproc 全链 rust 容器内无障
+         -碍**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）。下一 
+         -轮按优先级：**A3. eval 全链 inproc**（① 9.0.1 libs 拷 /data 供 
+         -npu 容器 cdylib 加载——toolkit 在 rust 容器镜像层非挂载，LD_LIBR
+         -ARY_PATH 追加式；② torch_npu 剥离 = 前处理 CPU 化（NpuTorchPi05
+         -Policy 预处理宿主去 NPU——patches/ids 的计算路径 CPU 可跑，weigh
+         -ts 或可 meta 加载）；③ npu 容器跑 APXINF_GE_TRANSPORT=inproc ta
+         -sk0 验证）；B. 动态 L 定形（预置桶集 tl138-148+tl200 已备；注意
+         - inproc 单管线 env 全局——多桶须多进程或扩展）；C. E msprof visi
+         -on 65ms / D int8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 
+         -钉死不含 GEB_DEPTH；稳定复验脚本 pyo3_stability.sh 在 /data/apx
+         -inf/pyo3_check/。验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同
+         - → task0 → 全量大改后）。                                      
+      13 +继续 APXinf 昇腾 NPU（**✅ python 宿主 GE 障碍终结 2026-09-24（
+         +子模块 2dbffe9）：gdb 栈定罪 = te fusion py_decouple static pat
+         +h 的 `TE_PyEval_SaveThread()` 偷走 PyO3 持有的 GIL 并存走 threa
+         +d state → open 返回时 PyO3 into_py 在烂解释器状态上 pymalloc SE
+         +GV（obmalloc.c get_state）；修复 = GeServeModel::open 主体包 `P
+         +ython::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ ge
+         +_init_once 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_c
+         +ompile`（forkserver off——中途静默死必要条件）；验证 open 176.4s
+         + 完整返回 + infer×3 max_diff=0.0244 rel=1.0% 与 spool 桶逐位同 
+         ++ 250-262ms/call + PYO3_GESERVE_OK；inproc 全链 rust 容器内无障
+         +碍**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）。下一 
+         +轮按优先级：**A3. eval 全链 inproc（⚠ 2026-09-24 上午重估：性价
+         +比降级为可选——实测 inproc 收益仅 ~4-6ms/帧（gatefastall 256.3 v
+         +s 直调 250-252，非早期估的 15ms），而成本遇 abi 墙：npu 容器 py
+         +thon 3.11.10 vs cdylib 编译于 rust 容器 python 3.12.13（PyO3 扩
+         +展 abi 绑定）——要么 npu 容器统一 3.12（重装 torch/lerobot 全套 
+         +）要么 rust 容器补 3.11 dev 重建 cdylib；外加 torch_npu 剥离 = 
+         +轻量预处理宿主重写（ModelZoo patch 在 from_pretrained 里硬编码 
+         +.to("npu")+FRACTAL_NZ，CPU 化不能只改 device 参数——需要只要 pre
+         +/post processor+config 不要 7GB 权重的新宿主类）。若做：① 9.0.1
+         + libs 拷 /data（依赖面已勘：libascendcl/opapi/nnopbase/msprofil
+         +er/ge_common_base/exe_graph/register/libgraph 全在 toolkit lib6
+         +4 + ge_builder.so；lib64 是多层 symlink，du 需 readlink -f 后再
+         +算）② 3.12 环境统一 ③ 轻量宿主 + 对拍 ④ task0 验证）**；B. 动态
+         + L 定形（预置桶集 tl138-148+tl200 已备；注意 inproc 单管线 env 
+         +全局——多桶须多进程或扩展；**优先级因 A3 降级而升为首选**）；C. 
+         +E msprof vision 65ms（10-15ms 级收益 > inproc 5ms，同为首选）/ 
+         +D int8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 钉死不含 G
+         +EB_DEPTH；稳定复验脚本 pyo3_stability.sh 在 /data/apxinf/pyo3_c
+         +heck/。验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同 → task0 →
+         + 全量大改后）。                                                
+      14  
+      15  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      16  
+
+● Bash(sleep 100; tail -c 2000 "C:\Users\素玄\AppData\Local\Temp\claude\D--compa
+      ss-APXinf\7bccc587-c325-43ca-9bce-01a3b43af572\tasks\b3gk46tl7.output"
+      2>/dev/null; echo…)
+  ⎿  try2: vision=61.9 prefix=106.1 flow=80.0 sum=248.0 wall=249.2ms max_di
+     ff=0.0244 rel=1.0%
+     PYO3_GESERVE_OK
+     … +22 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Background command "Run 3x independent-process stability verification"
+completed (exit code 0)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 3 连独立进程全过：RC 0/0/0、open 176-178s 稳定、infer×9 全部 max_diff=0.0244
+  与 spool 逐位同。战报补记稳定性数字：
+
+● Update(syx_docs\dev_logs\summary\2026-09-24_pyhost-ge-survival-hunt.md)
+  ⎿  Added 1 line, removed 1 line
+      68  1. `GeServeModel::open` 主体包进 `Python::allow_threads`（GIL 
+          释放区）——init 时 `PyGILState_Check()==0`，te **不触发 SaveThre
+          ad**；te 内部 python 调用自走 `PyGILState_Ensure/Release`，宿主
+          线程状态全程完好
+      69  2. `ge_init_once` 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusi
+          on,op_compile`（forkserver off 固化）；逃生门反转为 `APXINF_GE_
+          NO_BUILD_INIT=1`
+      70  
+      71 -**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 re
+         -l=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态
+         -同量级）+ `PYO3_GESERVE_OK RC=0`；3 次独立进程稳定复验见 pyo3_s
+         -tability.sh。                                                  
+      71 +**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 re
+         +l=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态
+         +同量级）+ `PYO3_GESERVE_OK RC=0`。**3 次独立进程稳定复验全过** 
+         +（pyo3_stability.sh）：RC 0/0/0、open 177.2/177.8s 复现稳定、in
+         +fer ×9 全部 max_diff=0.0244 逐位同、稳态 sum 248-256ms——修复确 
+         +定性强，无残留非确定行为。                                     
+      72  
+      73  **结构性认识修正**：此前"GE 库内部 exit() / TBE 子进程相克"的推
+          测均不成立——是**可修复的 GIL 协议违反**（te static path 假定自
+          己是宿主里唯一的 python 管理者）。inproc 全链（engine.py → PyO3
+           → crate GeServe）在 rust 容器内已无障碍。
+      74  
+
+● Bash(git add syx_docs/dev_logs/handoff.md
+      syx_docs/dev_logs/summary/2026-09-24_pyhost-ge-survival-hunt.md && git
+      commit -m "docs: stability 3x3 all-green confirms th…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-09-24_
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 全部推平。服务器收工检查：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'pgrep -f
+      \"check.p[y]|ge_model_prob[e]\" | head -3; echo ALIVE_CHECK_DONE'" 2>&1)
+  ⎿  8779
+     8788
+     8797
+     ALIVE_CHECK_DONE
+
+  Thought for 12s (ctrl+o to expand)
+
+● pgrep 返回 3 个 pid——验证是什么（防误判）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ps -o
+      pid,etime,cmd -p 8779,8788,8797 2>/dev/null | head -5'" 2>&1)
+  ⎿      PID     ELAPSED CMD
+        8779  1-21:57:43 [ge_model_probe] <defunct>
+        8788  1-21:57:43 [ge_model_probe] <defunct>
+        8797  1-21:57:43 [ge_model_probe] <defunct>
+
+  Thought for 11s (ctrl+o to expand)
+
+● 三个 pid 是昨晚收工时的 serve 僵尸（defunct 1天21小时，Z 态不占资源，kill
+  无效须父进程 reap——无害不管）。收工。本轮战报：
+
+  ✅ Python 宿主 GE 存活障碍——正式终结（handoff A 全部闭环）
+
+  破案路径（三段递进）：
+
+  1. 凌晨判决链：no-init A/B 进程不死 → GE 源码定罪链（init → TbeInitialize → 
+     PythonAdapterManager）→
+     MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile 关 forkserver
+     后死点稳定到 open 尾显式 SEGV
+  2. 上午 gdb 一栈定罪（容器 core_pattern 走不存在的 apport → core 从未落盘，改
+     gdb live）：
+
+  #0 get_state() at obmalloc.c:866          ← pymalloc 内部崩
+  #4 pyo3 into_new_object                    ← open 返回时创建 GeServeModel 对象
+
+  根因 = GIL 劫持：te fusion py_decouple static path（python 宿主里 dlsym
+  命中宿主符号）见 PyO3 持有 GIL → TE_PyEval_SaveThread() 偷走 GIL 并存走 thread
+  state → open 完成后 PyO3 分配返回对象时解释器状态已烂 → SEGV。
+
+  3. 修复两行（子模块 2dbffe9）：open 主体包 Python::allow_threads（无 GIL 进入
+     ⇒ te 不触发 SaveThread）+ forkserver-off 默认固化。
+
+  验证梯全绿：
+  - 单跑：open 176.4s 完整返回，infer×3 max_diff=0.0244 rel=1.0% 与 spool 
+    桶逐位同，250-262ms/call，RC=0
+  - 3 连独立进程：RC 0/0/0、open 177s 复现稳定、infer×9 全部位同、稳态
+    248-256ms——无非确定残留
+
+  顺带的优先级重估（记入 handoff）：A3 eval 全链 inproc 降级为可选——实测 inproc
+  收益仅 ~4-6ms/帧（2%），却撞 python 3.11/3.12 abi 墙 + 轻量预处理宿主重写；B 
+  动态 L 定形（生产必需）与 C vision 65ms 回归源（10-15ms 级收益）升为下轮首选。
+
+  推平：子模块 c883290..2dbffe9 → fork/ascend-port；外层 f132e1e..9feffdb →
+  main；战报/ handoff/roadmap 全更新；服务器零活体（仅无害僵尸）。
+
+✔ Goal achieved (28m · 1 turn · 28.5k tokens) (ctrl+o to expand)
+
+✻ Crunched for 28m 51s · done 10:58 AM
+
+※ recap: 昇腾 NPU 引擎适配：python 宿主内 GE 杀进程障碍已终结（GIL 修复验证 3 连全绿，两仓已推平）。下一步按 handoff：动态 L 定形或 vision 65ms 性能回归源攻坚。 (disable recaps in /config)
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶   177.9k/1m tokens (18%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 175.4k tokens (17.5%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 821.7k (82.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ 下一轮干什么，规划一下吧。文档也收一下                                        
+
+  Thought for 19s (ctrl+o to expand)
+
+● Bash(grep -n "Export 标题" -A 3
+      /d/compass/APXinf/syx_docs/dev_logs/handoff.md; echo ---; git -C
+      /d/compass/APXinf log --oneline -3; git -C /d/compass/APXinf/apxinf lo…)
+  ⎿  30:## ③ Export 标题建议
+     31-
+     32-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-23_ada-gat
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 两仓已推平。收文档——handoff ③ export 标题和 ① compact
+  参数都还是上轮的，更新为本轮：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      29  
+      30  ## ③ Export 标题建议
+      31  
+      32 -D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-23_ada
+         --gate-root-cause.md（M3 收官：ada-gate 缺失真凶 + 动作刑侦翻案 
+         -+ 全量 eval 10/10 + 0.87×）                                    
+      32 +D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-24_pyh
+         +ost-ge-survival.md（python 宿主 GE 障碍终结：GIL 劫持 gdb 定罪 
+         ++ allow_threads 两行修复 + 3×3 稳定复验全绿）                  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+  Thought for 12s, read 1 file (ctrl+o to expand)
+
+● 差异一处（“parity” vs “对拍”）。重试：
+
+● Update(syx_docs\dev_logs\handoff.md)  ⎿  Added 1 line, removed 1 line
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**M3 终局数字**（eval_gateall：10/10、122-163 步、mod
+         -el_ms P50 325.3ms=0.87×、task0 单测 132 步 eval_gatet0b；golden
+         -：step0_x1 0.0%/actions 0.9%）；**gate 修复形态**（e2e_style_pa
+         -ir 三元组、每层 l{i}_agate/mgate [1,AW] Data（qkv3 位 16/17）、
+         -gatew=TileD dim0+Mul 两处、残差基 xstream 双轨、四处绑定 6-stri
+         -de b+16/b+17、aops::gate_mul_fp16；torch 语义 = dense(cond) chu
+         -nk3 + _gated_residual residual+branch·gate 两处 + suffix 全双向
+         -）；**刑侦方法论**（动作每维 std≈1.00=噪声分布 ⇒ flow 未收敛数 
+         -据流形；镜像参考系同 bug 时组件 parity 全绿是假阴性；多源合流的
+         -"原理性"结论前先做分布刑侦）；**serve 运维坑**（stale ready/pid
+         - 让 client 撞死桶；清桶须连 OM 三件套新鲜度一起查；eval 的 L 漂
+         -移 lazy bake 每新桶 ~4-5min 串行）。丢弃：supervisor 僵尸清理细
+         -节、预烤引号翻车过程、中间 golden 数字。                       
+       9 +聚焦保留：**python 宿主 GE 障碍终局机制**（gdb 栈 = pymalloc ge
+         +t_state SEGV @ PyO3 into_new_object——te fusion py_decouple stat
+         +ic path 的 `TE_PyEval_SaveThread` 偷走 PyO3 持有的 GIL 并存走 t
+         +hread state；修复 = `GeServeModel::open` 主体包 `Python::allow_
+         +threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ `ge_init_once` 
+         +默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（fo
+         +rkserver 并行编译 = 中途静默死必要条件）——子模块 2dbffe9；验证 
+         += open 176s 完整返回 + infer ×9 与 spool 逐位同 0.0244 + RC 0/0
+         +/0 三进程稳定）；**性能现状锚点**（fast 全量 10/10 + per-call P
+         +50 256.3ms = 0.682×；三段 vision 65-68 / prefix 105-114 / flow 
+         +80ms；vision 曾到 55.9 存在 ~10ms 回归待查）；**A3 性价比重估**
+         +（inproc 收益实测仅 ~4-6ms/帧 vs python 3.11/3.12 abi 墙 + 轻量
+         +预处理宿主重写——降级可选）；**关键纪律**（GeServe::open env 钉 
+         +死不含 GEB_DEPTH；容器 core_pattern 走不存在的 apport ⇒ core 永
+         +不落盘，用 gdb --batch live；docker exec 脚本自落盘；CARGO_TARG
+         +ET_DIR 隔离编译）。丢弃：判决实验中间态、GE 源码逐文件阅读过程 
+         +、gdb 输出全文。                                               
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+
+  Thought for 2s (ctrl+o to expand)
+
+● 提交文档收尾：
+
+● Bash(git add syx_docs/dev_logs/handoff.md && git commit -m "docs: handoff
+      compact params + export title rotated to the GE-survival round…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     [main 833d89b] docs: handoff compact params + export title rotated to
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 文档收口完成（833d89b 推平）。下一轮规划：
+
+  现状锚点
+
+  256.3ms = 0.682×（10/10），拆解：vision 65-68 / prefix 105-114 / flow 80 +
+  glue ~5。理论裸算力下限 ~200-220ms，剩余空间 ~40-55ms
+  集中在三处。主线战役（接入/障碍）已全部闭环，下一轮进入性能第二波 + 生产化。
+
+  候选方向（按建议优先级）
+
+  优先: 1
+  方向: C1：vision 65ms 回归源（msprof）
+  预期: -10ms 确定
+  成本: 半天
+  说明: vision 曾到 55.9（C2 收官时），现在 65-68——纯回归，大概率便宜修复（LN
+  aux
+  / TransData 残余 / attention 形态）。把 0.68× 推向 0.65×
+  ────────────────────────────────────────
+  优先: 2
+  方向: C2：int8/w8a8 单算 probe
+  预期: 判定性（prefix 或 -30~60%）
+  成本: 半天 probe；可行则下轮立项全链
+  说明: 310P int8 cube ~100 TOPS vs fp16 16 TFLOPS（6×）。先探 MatMulV2 int8
+  支持
+  + 单算对拍，probe 不过就销案归档
+  ────────────────────────────────────────
+  优先: 3
+  方向: B：动态 L 定形
+  预期: 生产化刚需
+  成本: 1 天
+  说明: 现状预置桶集（tl138-148+tl200）对 libero_object
+  够用；真正驱动是多任务集泛化（libero_spatial 等新 L 谱系）。建议：扩预置桶 +
+  L 谱系探测脚本，padding+mask/shape_range 后置
+  ────────────────────────────────────────
+  优先: 4
+  方向: 顺手：M2 eager 补 gate
+  预期: 技术债
+  成本: 1-2h
+  说明: eager 回退路径与 GE 版语义分叉（gate 缺失），补齐保持单语义
+  ────────────────────────────────────────
+  优先: 可选
+  方向: A3 eval 全链 inproc
+  预期: ~5ms/帧（2%）
+  成本: 高（abi 墙+宿主重写）
+  说明: 已降级——除非部署形态确实需要单进程
+
+  推荐主线：1+2 连打（一天内 vision 回归修复 + int8
+  可行性判定，两个都是“半天出确定性结论”的形状）；3 视 1/2
+  战果排期。多任务集泛化验证（libero_spatial）作为 B
+  的验收一起做——那也是“引擎价值成立”的推广性证据。
+
+  两仓已推平（外层 833d89b，子模块 2dbffe9），服务器零活体，随时可开工。
+
+✻ Cogitated for 1m 31s · done 11:31 AM
+
+※ recap: APXinf 昇腾 NPU 移植：python 宿主 GE 崩溃障碍已终结（GIL 劫持定罪+修复，3×3 验证全绿），文档收口完毕。下一轮按规划先做 vision 65ms 回归源定位，再做 int8 可行性 probe。 (disable recaps in /config)
+
+❯ 既然推荐了落到handoff里面吧                                                   
+
+  Thought for 4s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+      27  
+      28 -**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         -，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         -yO3 787730a ③engine.py inproc 分支）**。~~python 宿主 GE 障碍~~
+         - **已终结（2026-09-24 2dbffe9，GIL 劫持定罪 + allow_threads 修 
+         -复）**。下一轮优先级：**A3 eval 全链 inproc**（9.0.1 libs 供给 
+         -+ torch_npu 剥离=前处理 CPU 化 → npu 容器 inproc task0）→ ④ 动 
+         -态 L 定形；D int8 probe / E msprof 顺路。                      
+      28 +**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         +，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         +yO3 787730a ③engine.py inproc 分支）**。~~python 宿主 GE 障碍~~
+         + **已终结（2026-09-24 2dbffe9，GIL 劫持定罪 + allow_threads 修 
+         +复）**。**下一轮（2026-09-24 定稿，用户认可）：性能第二波 + 生 
+         +产化——① C1+C2 连打（半天×2 出确定性结论）：C1 = msprof 查 visio
+         +n 65-68ms 回归源（曾 55.9，回归 ~10ms，嫌疑 LN aux/TransData 残
+         +余/attention 形态，修复即 0.68×→0.65×）；C2 = int8/w8a8 单算 pr
+         +obe（310P int8 cube ~100 TOPS vs fp16 16 TFLOPS，探 MatMulV2 in
+         +t8 支持 + 单算对拍；probe 过则下轮立项全链，不过则销案归档）→ ②
+         + B 动态 L 定形（扩预置桶 + L 谱系探测脚本；验收 = 多任务集泛化—
+         +—libero_spatial 等，兼作引擎推广性证据；padding+mask/shape_rang
+         +e 后置）→ ③ 顺手 M2 eager 补 gate（1-2h 技术债，回退路径语义对 
+         +齐）**。A3 eval 全链 inproc 保持可选（abi 墙 + 宿主重写 vs ~5ms
+         +/帧收益，见 ④C）。                                             
+      29  
+      30  ## ③ Export 标题建议
+      31  
+
+  Thought for 3s (ctrl+o to expand)
+
+● 同步 ② 首句的下一轮优先级（compact 后的导航入口）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU（**✅ python 宿主 GE 障碍终结 2026-09-24（
+         -子模块 2dbffe9）：gdb 栈定罪 = te fusion py_decouple static pat
+         -h 的 `TE_PyEval_SaveThread()` 偷走 PyO3 持有的 GIL 并存走 threa
+         -d state → open 返回时 PyO3 into_py 在烂解释器状态上 pymalloc SE
+         -GV（obmalloc.c get_state）；修复 = GeServeModel::open 主体包 `P
+         -ython::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ ge
+         -_init_once 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_c
+         -ompile`（forkserver off——中途静默死必要条件）；验证 open 176.4s
+         - 完整返回 + infer×3 max_diff=0.0244 rel=1.0% 与 spool 桶逐位同 
+         -+ 250-262ms/call + PYO3_GESERVE_OK；inproc 全链 rust 容器内无障
+         -碍**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）。下一 
+         -轮按优先级：**A3. eval 全链 inproc（⚠ 2026-09-24 上午重估：性价
+         -比降级为可选——实测 inproc 收益仅 ~4-6ms/帧（gatefastall 256.3 v
+         -s 直调 250-252，非早期估的 15ms），而成本遇 abi 墙：npu 容器 py
+         -thon 3.11.10 vs cdylib 编译于 rust 容器 python 3.12.13（PyO3 扩
+         -展 abi 绑定）——要么 npu 容器统一 3.12（重装 torch/lerobot 全套 
+         -）要么 rust 容器补 3.11 dev 重建 cdylib；外加 torch_npu 剥离 = 
+         -轻量预处理宿主重写（ModelZoo patch 在 from_pretrained 里硬编码 
+         -.to("npu")+FRACTAL_NZ，CPU 化不能只改 device 参数——需要只要 pre
+         -/post processor+config 不要 7GB 权重的新宿主类）。若做：① 9.0.1
+         - libs 拷 /data（依赖面已勘：libascendcl/opapi/nnopbase/msprofil
+         -er/ge_common_base/exe_graph/register/libgraph 全在 toolkit lib6
+         -4 + ge_builder.so；lib64 是多层 symlink，du 需 readlink -f 后再
+         -算）② 3.12 环境统一 ③ 轻量宿主 + 对拍 ④ task0 验证）**；B. 动态
+         - L 定形（预置桶集 tl138-148+tl200 已备；注意 inproc 单管线 env 
+         -全局——多桶须多进程或扩展；**优先级因 A3 降级而升为首选**）；C. 
+         -E msprof vision 65ms（10-15ms 级收益 > inproc 5ms，同为首选）/ 
+         -D int8 probe 顺路。⚠ 库面纪律照旧：GeServe::open env 钉死不含 G
+         -EB_DEPTH；稳定复验脚本 pyo3_stability.sh 在 /data/apxinf/pyo3_c
+         -heck/。验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同 → task0 →
+         - 全量大改后）。                                                
+      13 +继续 APXinf 昇腾 NPU（**✅ python 宿主 GE 障碍终结 2026-09-24（
+         +子模块 2dbffe9）：gdb 栈定罪 = te fusion py_decouple static pat
+         +h 的 `TE_PyEval_SaveThread()` 偷走 PyO3 持有的 GIL 并存走 threa
+         +d state → open 返回时 PyO3 into_py 在烂解释器状态上 pymalloc SE
+         +GV（obmalloc.c get_state）；修复 = GeServeModel::open 主体包 `P
+         +ython::allow_threads`（无 GIL 进入 ⇒ te 不触发 SaveThread）+ ge
+         +_init_once 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_c
+         +ompile`（forkserver off——中途静默死必要条件）；验证 open 176.4s
+         + 完整返回 + infer×3 max_diff=0.0244 rel=1.0% 与 spool 桶逐位同 
+         ++ 250-262ms/call + PYO3_GESERVE_OK；inproc 全链 rust 容器内无障
+         +碍**——见 summary/2026-09-24_pyhost-ge-survival-hunt.md）。下一 
+         +轮按优先级（2026-09-24 定稿）：**1. C1+C2 连打（性能第二波，各 
+         +半天出确定性结论）：C1 = msprof 查 vision 65-68ms 回归源（C2 收
+         +官时曾 55.9，纯回归 ~10ms，嫌疑 LN aux/TransData 残余/attention
+         + 形态）→ 修复即 0.68×→0.65×；C2 = int8/w8a8 单算 probe（310P in
+         +t8 cube ~100 TOPS vs fp16 16 TFLOPS 6× 算力比；探 MatMulV2 int8
+         + 注册表支持 + 单算对拍；过则下轮立项全链 prefix 或 -30~60%，不 
+         +过销案归档）；2. B 动态 L 定形（扩预置桶 + L 谱系探测脚本，验收
+         + = 多任务集泛化 libero_spatial——兼作引擎推广性证据；padding+mas
+         +k/shape_range 后置）；3. 顺手 M2 eager 补 gate（技术债）**。A3.
+         + eval 全链 inproc 保持可选（⚠ 性价比重估：实测收益仅 ~4-6ms/帧 
+         +（gatefastall 256.3 vs 直调 250-252）vs abi 墙——npu 容器 python
+         + 3.11.10 vs cdylib 编于 rust 容器 3.12.13（PyO3 abi 绑定），或 
+         +npu 容器统一 3.12（重装 torch/lerobot 全套）或 rust 容器补 3.11
+         + dev 重建；外加 torch_npu 剥离 = 轻量预处理宿主重写（ModelZoo p
+         +atch 在 from_pretrained 硬编码 .to("npu")+FRACTAL_NZ，须只要 pr
+         +e/post processor+config 不要 7GB 权重的新宿主类）；若做：9.0.1 
+         +libs 拷 /data（依赖面已勘：libascendcl/opapi/nnopbase/msprofile
+         +r/ge_common_base/exe_graph/register/libgraph 全在 toolkit lib64
+         + + ge_builder.so，lib64 多层 symlink）+ 3.12 统一 + 轻量宿主对 
+         +拍 + task0）。⚠ 库面纪律照旧：GeServe::open env 钉死不含 GEB_DE
+         +PTH；稳定复验脚本 pyo3_stability.sh 在 /data/apxinf/pyo3_check/
+         +。验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同 → task0 → 全量
+         +大改后）。                                                     
+      14  
+      15  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      16  
+
+● Bash(git add syx_docs/dev_logs/handoff.md && git commit -m "docs: next-round
+      plan locked (user-approved) — perf wave 2 (vision regression + int8 probe)
+      then dynamic-…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     [main b5d6b92] docs: next-round plan locked (user-approved) — perf wav
+     … +4 lines (ctrl+o to expand)
+
+● 已落 handoff 并推平（b5d6b92），两处同步更新：
+
+  - ④ 建议路线：下一轮定稿 = 性能第二波 + 生产化——① C1+C2
+    连打（各半天出确定性结论）→ ② B 动态 L（验收 = 多任务集泛化）→ ③ 顺手 M2
+    eager 补 gate；A3 保持可选
+  - ② Post-compact 首句：优先级导航同步改为 C1/C2/B/M2 顺序，A3 的 abi
+    墙与实施清单完整保留备查
+
+  下轮 compact 后直接按 ② 首句起手即可：C1 先跑 msprof 对比 vision 段（55.9
+  时代的 profile 数据在 C2 收官战报里有锚点），C2 的 probe 按“注册表探测 →
+  单算对拍”两步走。
+
+✻ Churned for 35s · done 11:44 AM

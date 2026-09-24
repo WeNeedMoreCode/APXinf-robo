@@ -1,0 +1,3955 @@
+ ▐▛███▛█   Claude Code v2.1.280
+▝▜██████▀  glm-5.3 · API Usage Billing
+  ▝▝ ▝▝    D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+● handoff 主线已改并推平（6450068）。总结一下调整后的结论：
+
+  - 现状：引擎本体（行为 10/10、延迟 0.68×）已达标，但一直活在探针 +
+    文件轮询的脚手架里——你点破的没错，这不叫接入；
+  - 下一轮主线 = 接入，四步：执行器库化 → PyO3 最小接口 → engine.py 路由 npu-ge
+    → 动态 L 预置桶集。前三步做完 spool 就没了（顺手吃掉性能清单里 C 方向那
+    15ms），最后全量 10/10 回归收口；
+  - 接入施工前先跑一次全量回归（fast 版）把 0.68×
+    的全量口径终数锁定，之后所有接入改动都对着这个基线验证；
+  - 性能余项（vision 65ms、int8 probe）降为顺路，不再挡主线。
+
+✻ Worked for 1m 15s · done 9:41 AM
+
+※ recap: APXinf 昇腾 NPU 项目：M3 收官 10/10，性能优化 254ms = 0.68× 已落地；下一轮主线改为引擎正式接入 apxinf-robo 主路径（执行器库化 → PyO3 → engine.py 路由）。下一步：全量回归锁终数后开工接入。
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   166.5k/1m tokens (17%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 163.6k tokens (16.4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 833.5k (83.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~150 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export                                                                       
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-23_ada-gate-root-cause 
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-23_ada-gate-root-cause.txt
+
+❯ /compact 聚焦保留：**M3 终局数字**（eval_gateall：10/10、122-163 步、model_ms 
+P50 325.3ms=0.87×、task0 单测 132 步 eval_gatet0b；golden：step0_x1             
+0.0%/actions 0.9%）；**gate 修复形态**（e2e_style_pair 三元组、每层             
+l{i}_agate/mgate [1,AW] Data（qkv3 位 16/17）、gatew=TileD dim0+Mul             
+两处、残差基 xstream 双轨、四处绑定 6-stride                                    
+b+16/b+17、aops::gate_mul_fp16；torch 语义 = dense(cond) chunk3 +               
+_gated_residual residual+branch·gate 两处 + suffix                              
+全双向）；**刑侦方法论**（动作每维 std≈1.00=噪声分布 ⇒ flow                     
+未收敛数据流形；镜像参考系同 bug 时组件 parity                                  
+全绿是假阴性；多源合流的"原理性"结论前先做分布刑侦）；**serve 运维坑**（stale   
+ready/pid 让 client 撞死桶；清桶须连 OM 三件套新鲜度一起查；eval 的 L 漂移 lazy 
+bake 每新桶 ~4-5min 串行）。丢弃：supervisor                                    
+僵尸清理细节、预烤引号翻车过程、中间 golden 数字。                              
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\dev_logs\handoff.md (33 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (177 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-09-23_serve-fast-device-direct.md (61 
+     lines)
+  ⎿  Read syx_docs\dev_logs\start_supervisor_fast.sh (13 lines)
+  ⎿  Read C:\Users\素玄\AppData\Local\Temp\claude\D--compass-APXinf\2a40e485-56e
+     8-461c-879c-a1fd53a1d9fe\tasks\bwxsggn7w.output (9 lines)
+  ⎿  Skills restored (syx_skills, AscendC-ops-dev, verify_method)
+
+❯ /goal 引擎正式接入 apxinf-robo 主路径                                         
+  ⎿  Goal set: 引擎正式接入 apxinf-robo 主路径
+
+  Thought for 21s (ctrl+o to expand)
+
+● 收到，goal = 引擎正式接入 apxinf-robo 主路径。按 handoff 施工序：先起 fast
+  supervisor 跑全量回归锁 0.68× 终数（后台
+  ~40min），回归期间同步开工第①步执行器库化。先记时间锚点 + 查服务器现场。
+
+● Bash(date '+%F %T')
+  ⎿  2026-09-23 11:04:07
+
+● Bash(ssh root@192.168.13.119 "ls /data/apxinf/serve/ 2>/dev/null; echo ---; ls
+      /tmp/*.sh 2>/dev/null; echo ---; docker exec apxinf_rust bash -c 'pgrep
+      -f \"superviso…)
+  ⎿  ab_serve_fast.sh
+     ctrl
+     eval_full1.jsonl
+     … +344 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 现场：serve 目录齐整、start_supervisor_fast.sh 已在服务器；有两个 supervisor
+  pid（109/42254，须判僵尸）+ 芯片 0 有别人占用（10.9GB，非我们的芯
+  4-7）。查我们四芯基线 + 判活：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'for p in 109
+      42254; do echo pid=\$p state=\$(awk \"{print \\\$3}\" /proc/\$p/stat
+      2>/dev/null); done;…)
+  ⎿  pid=109 state=
+     pid=42254 state=
+     ---
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 嵌套引号又翻车了（state 读空）。按纪律拆开简单命令：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust pgrep -fa supervisor.s;
+      echo ===; docker exec apxinf_rust npu-smi info" 2>&1 | head -30)
+  ⎿  109 [supervisor.sh] <defunct>
+     42254 [supervisor.sh] <defunct>
+     ===
+     … +40 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 僵尸 supervisor（defunct，无害）；芯 4-6 基线（1.3-1.6GB），芯 5 有 Alarm
+  标记（0 负载，先记着）。看芯 7 + 引擎二进制新鲜度 + eval 脚本用法：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust npu-smi info" 2>&1 |
+      tail -6; ssh root@192.168.13.119 "docker exec apxinf_rust ls -la
+      /data/apxinf/apxinf_engin…)
+  ⎿  | No running processes found in NPU 32
+                                        |
+     +===============================+=================+===================
+     … +53 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 现场全净（芯上零进程）、OM 三件套齐（gate 版 9/21-22，fast 免烤）、eval
+  脚本就位。查引擎二进制新鲜度，然后清 stale 文件 + 起 fast supervisor：
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust ls -la
+      /data/apxinf/apxinf_engine/target/release/examples/ge_model_probe; grep -n
+      'ge_model_probe' /data/apxinf…)
+  ⎿  -rwxr-xr-x 2 root root 1944728 Sep 23 00:44 /data/apxinf/apxinf_engine
+     /target/release/examples/ge_model_probe
+     16:BIN=/data/apxinf/apxinf_engine/target/release/examples/ge_model_pro
+     be
+
+  Thought for 5s (ctrl+o to expand)
+
+● 二进制 9/23 00:44 = fast 版（29795b3 当晚构建）。清 stale 桶文件 → 起 fast
+  supervisor：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'rm -f
+      /data/apxinf/serve/tl*/ready /data/apxinf/serve/tl*/pid
+      /data/apxinf/serve/tl*/shutdown; ls /dat…)
+  ⎿  CLEANED
+     Wed Sep 23 03:08:44 UTC 2026
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash
+      /data/apxinf/serve/start_supervisor_fast.sh" 2>&1 | tail -8)
+  ⎿  SUPERVISOR_PID=1421671
+     alive pid=109 fast=0
+     alive pid=42254 fast=0
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 22s (ctrl+o to expand)
+
+● Fast supervisor 起来了（pid 1421671
+  fast=1）。起全量回归（后台，~40min），stdout 落盘：
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_npu bash
+      /data/apxinf/serve/run_ge_eval.sh all gatefastall >>
+      /data/apxinf/serve/eval_gatefastall_stdout.log 2>&1…)
+  ⎿  1155374 python3 -m apxinf_robo.cli eval-libero --backend in-process --
+     engine npu-ge --precision fp16 --suite libero_object --tasks all --tri
+     als-per-task 1 --seed 7 --replan-steps 5 --model-dir /data/apxinf/weig
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● Eval 已起（1155374）。~40min 回归窗口正好开工第①步执行器库化。先摸清
+  ge_model_probe.rs 现状（规模 + serve 主循环结构）：
+
+  Thought for 3s, listed 2 directories (ctrl+o to expand)
+
+● 6206 行。库化目标目录 = apxinf-model/src/pi05/（M2 eager 的 ascend_vla.rs
+  也在那）。先看探针的结构骨架：
+
+  Thought for 19s, searched for 1 pattern (ctrl+o to expand)
+
+● 探针 = 库面候选（Seg 建图 + E2eStage + 三 Mech +
+  serve_loop）。细读库化核心段——E2eStage/Mechs 定义与 serve_loop：
+
+  Thought for 3s, read 1 file (ctrl+o to expand)
+
+● 三 Mech 清楚了。再看 serve_loop（1894-2034）——帧管线与桶初始化：
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 帧管线清楚了。看初始化路径 seg_e2e（1729-1894），Mech
+  怎么构装、依赖哪些全局量：
+
+  Thought for 34s, read 1 file (ctrl+o to expand)
+
+● 初始化路径清楚了：Mech 构装藏在 seg_vision/prefix/flow 的 e2e 分支里。看三个
+  Mech 的构装现场 + Seg 容器定义：
+
+  Thought for 6s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 prefix/flow 的 Mech 构装细节（2910、3639 附近）：
+
+  Thought for 11s, read 1 file (ctrl+o to expand)
+
+● 看 GEB_LOAD 路径怎么进 Seg（load 是否跳过建图）+ Seg 容器与常量定义：
+
+  Thought for 9s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 finish/GEB_LOAD 路径（1090-1180）——缓存加载时 binds 怎么重建：
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 看 e2e_run（1676-1728）——e2e 模式下 OM 从目录加载的机制：
+
+  Thought for 50s, read 1 file (ctrl+o to expand)
+
+● 结构摸清了。库化切割策略定型：整体下沉（Seg + 三 Mech + 三段建图 + e2e/serve
+  全部沉到 src/pi05/ 模块，example 只留 main/optest
+  薄驱动）——单一实现零重复，PyO3 层直接骑在库面上。查 apxinf-model 的 feature
+  接线与 pi05/mod.rs：
+
+  Thought for 43s, listed 1 directory (ctrl+o to expand)
+
+● 库化落点 = src/pi05/ascend_ge.rs（与 ascend_executor 系并列，cfg
+  ascend）。施工方式：git mv 探针进库（字节不动，git 识别 rename，后续改动全走
+  Edit），example 重写为薄驱动（新建文件，Write 允许）。先查 apxinf-ascend
+  本地可 check 性（ge_builder 是否 build.rs 编 C++）：
+
+  Thought for 9s, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● build.rs 只发链接指令（rlib 不链接），ge_builder 走 dlopen——本地 cargo check 
+  应该可行。先验一把基线（不改代码）：
+
+● Bash(cd /d/compass/APXinf/apxinf && cargo check -p apxinf-model --features
+      ascend --example ge_model_probe 2>&1 | tail -5)
+  ⎿  /usr/bin/bash: line 1: cargo: command not found
+● Bash(ls ~/.cargo/bin/ 2>/dev/null; where cargo 2>/dev/null; ls
+      /c/Users/素玄/.cargo/bin 2>/dev/null | head)
+  ⎿  (No output)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 本地无 cargo——编译验证全走服务器容器（老路径）。开始施工。先看 main() 分发与
+  optest 边界，确定切割线：
+
+  Thought for 1m 4s, read 1 file (ctrl+o to expand)
+
+● 切割线定了（lib = 51-3658 行全量下沉 + GeServe 门面；example = optest +
+  main）。查 optest 对底层 API 的依赖面（决定 pub 范围）：
+
+● Bash(sed -n '3662,6176p'
+      /d/compass/APXinf/apxinf/crates/apxinf-model/examples/ge_model_probe.rs |
+      grep -oE "s\.[a-z_]+\(|\b(envi|upload|download_f16|rand_f16|norm_f…)
+  ⎿      130 s.data(
+          61 rand_f16(
+          58 s.reg_out(
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 51s (ctrl+o to expand)
+
+● 开工。库面 pub 化有捷径：顶层 item 全在列 0，replace_all "\nfn "
+  类替换不会误伤 impl 内缩进方法。先 git mv（字节不动、git 识别 rename）：
+
+● Bash(git mv crates/apxinf-model/examples/ge_model_probe.rs
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git status --short | head -5)
+  ⎿  R  crates/apxinf-model/examples/ge_model_probe.rs -> crates/apxinf-mod
+     el/src/pi05/ascend_ge.rs
+
+  Read 1 file (ctrl+o to expand)
+
+❯ 继续                                                                          
+
+  Thought for 36s (ctrl+o to expand)
+
+● 继续库化施工。先查搬过去的文件里所有 apxinf_model:: 自引用（决定 use
+  路径改动面）：
+
+  Thought for 11s, searched for 1 pattern (ctrl+o to expand)
+
+● 两处：55 行 use（改）+ 6188（在 main 里，随 main 删除）。执行编辑批：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      52  
+      53  use apxinf_ascend::ge_builder::{self, Dtype, GeGraph};
+      54  use apxinf_ascend::{ops as aops, AscendBackend, AscendContext, 
+          AscendStream, DeviceBuffer};
+      55 -use apxinf_model::pi05::{sinusoidal_time_embedding, LinearWeigh
+         -ts, Pi05Config, Pi05Weights};                                  
+      55 +use crate::pi05::{sinusoidal_time_embedding, LinearWeights, Pi0
+         +5Config, Pi05Weights};                                         
+      56  
+      57  // π0.5 3 视图档维度（Pi05Config::default）
+      58  const VT: i64 = 768; // vision tokens = 3 views × 256 patches
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 33 lines, removed 33 lines
+      79  const RMS_EPS: f64 = 1e-6;
+      80  const LN_EPS: f64 = 1e-6;
+      81  
+      82 -fn envi(k: &str, d: i64) -> i64 {                              
+      82 +pub fnenvi(k: &str, d: i64) -> i64 {                           
+      83      std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_o
+          r(d)
+      84  }
+      85  
+      86  /// erf 近似（Abramowitz-Stegun 7.1.26，|ε|<1.5e-7——exact gelu 
+          对照够用）
+      87 -fn erf(x: f32) -> f32 {                                        
+      87 +pub fnerf(x: f32) -> f32 {                                     
+      88      let s = x.signum();
+      89      let x = x.abs();
+      90      let t = 1.0 / (1.0 + 0.327_591_1 * x);
+     ...
+       99  
+      100  /// splitmix64 单步（LCG 高 16 位 mod 200 有短周期结构——vision
+            探针
+      101  /// LayerNorm 行方差塌缩 → rstd 放大 385× 的教训，2026-09-19）
+      102 -fn mix64(z: &mut u64) -> u64 {                                
+      102 +pub fnmix64(z: &mut u64) -> u64 {                             
+      103      *z = z.wrapping_add(0x9E37_79B9_7F4A_7C15);
+      104      let mut x = *z;
+      105      x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+     ...
+      107      x ^ (x >> 31)
+      108  }
+      109  
+      110 -fn rand_f16(n: usize, seed: &mut u32, div: f32) -> Vec<f16> { 
+      110 +pub fnrand_f16(n: usize, seed: &mut u32, div: f32) -> Vec<f16>
+          + {                                                            
+      111      let mut z: u64 = (*seed as u64).wrapping_mul(0x9E37_79B9_7
+           F4A_7C15) | 1;
+      112      let mut v = Vec::with_capacity(n);
+      113      for _ in 0..n {
+     ...
+      119  }
+      120  
+      121  /// norm gamma/beta：center ± 0.05（贴近真实量级，避免幅度塌缩
+           ）
+      122 -fn norm_f16(n: usize, seed: &mut u32, center: f32) -> Vec<f16>
+          - {                                                            
+      122 +pub fnnorm_f16(n: usize, seed: &mut u32, center: f32) -> Vec<f
+          +16> {                                                         
+      123      let mut z: u64 = (*seed as u64).wrapping_mul(0x9E37_79B9_7
+           F4A_7C15) | 1;
+      124      let mut v = Vec::with_capacity(n);
+      125      for _ in 0..n {
+     ...
+      132  }
+      133  
+      134  /// 真 checkpoint Tensor（bf16/f32）→ host f16（310P 无 bf16，
+           精度策略 fp16）
+      135 -fn t_f16(t: &apxinf_core::Tensor) -> Vec<f16> {               
+      135 +pub fnt_f16(t: &apxinf_core::Tensor) -> Vec<f16> {            
+      136      t.to_f32_vec().unwrap().into_iter().map(f16::from_f32).col
+           lect()
+      137  }
+      138  
+      139  /// LinearWeights.weight [in,out] → host f16（wt()/wbuf_t 的 h
+           ost 布局同构）
+      140 -fn lw_f16(l: &LinearWeights) -> Vec<f16> {                    
+      140 +pub fnlw_f16(l: &LinearWeights) -> Vec<f16> {                 
+      141      t_f16(&l.weight)
+      142  }
+      143  
+      144  /// LinearWeights.bias → f16；None（Gemma 投影无 bias）→ zeros
+      145 -fn lb_f16(l: &LinearWeights, n: usize) -> Vec<f16> {          
+      145 +pub fnlb_f16(l: &LinearWeights, n: usize) -> Vec<f16> {       
+      146      match &l.bias {
+      147          Some(b) => t_f16(b),
+      148          None => vec![f16::from_f32(0.0); n],
+      149      }
+      150  }
+      151  
+      152 -fn upload(ctx: &AscendContext, vals: &[f16]) -> DeviceBuffer {
+      152 +pub fnupload(ctx: &AscendContext, vals: &[f16]) -> DeviceBuffe
+          +r {                                                           
+      153      let bytes =
+      154          unsafe { std::slice::from_raw_parts(vals.as_ptr() as *
+           const u8, vals.len() * 2) };
+      155      let buf = ctx.malloc(bytes.len()).expect("malloc");
+     ...
+      157      buf
+      158  }
+      159  
+      160 -fn upload_bytes(ctx: &AscendContext, bytes: &[u8]) -> DeviceBu
+          -ffer {                                                        
+      160 +pub fnupload_bytes(ctx: &AscendContext, bytes: &[u8]) -> Devic
+          +eBuffer {                                                     
+      161      let buf = ctx.malloc(bytes.len()).expect("malloc");
+      162      ctx.copy_h2d(&buf, bytes).expect("h2d");
+      163      buf
+      164  }
+      165  
+      166 -fn upload_i32(ctx: &AscendContext, vals: &[i32]) -> DeviceBuff
+          -er {                                                          
+      166 +pub fnupload_i32(ctx: &AscendContext, vals: &[i32]) -> DeviceB
+          +uffer {                                                       
+      167      let bytes =
+      168          unsafe { std::slice::from_raw_parts(vals.as_ptr() as *
+           const u8, vals.len() * 4) };
+      169      let buf = ctx.malloc(bytes.len()).expect("malloc");
+     ...
+      172  }
+      173  
+      174  /// fp16 device buffer -> host Vec<f16>（d2h 字节流按 LE u16 
+           重组）
+      175 -fn download_f16(ctx: &AscendContext, buf: &DeviceBuffer, n: us
+          -ize) -> Vec<f16> {                                            
+      175 +pub fndownload_f16(ctx: &AscendContext, buf: &DeviceBuffer, n:
+          + usize) -> Vec<f16> {                                         
+      176      let mut back = vec![0u8; n * 2];
+      177      ctx.copy_d2h(buf, &mut back).expect("d2h");
+      178      back.chunks_exact(2)
+     ...
+      182  
+      183  /// host [rows, cols] f16 权重 → 转置 upload 为 [cols, rows] 
+           物理
+      184  /// （MatMulV2 transpose_x2=true 与 eager matmul_b_t 共用布局
+           ）
+      185 -fn wbuf_t(ctx: &AscendContext, host: &[f16], rows: i64, cols: 
+          -i64) -> DeviceBuffer {                                        
+      185 +pub fnwbuf_t(ctx: &AscendContext, host: &[f16], rows: i64, col
+          +s: i64) -> DeviceBuffer {                                     
+      186      let bytes = unsafe { std::slice::from_raw_parts(host.as_pt
+           r() as *const u8, host.len() * 2) };
+      187      let t = aops::host_transpose(bytes, rows, cols);
+      188      upload_bytes(ctx, &t)
+     ...
+      193  /// ⚠ 入参 stream 先同步——同步 d2h（aclrtMemcpy）不等待 comput
+           e 流上的
+      194  /// 生产 kernel，不同步则读到跑赢/滞后的数据（eager 全 device 
+           kernel 时
+      195  /// 确定性错排 98.2% 取证；PFA 模式被 host 回调串行化掩盖）。
+      196 -fn host_ln(                                                   
+      196 +pub fnhost_ln(                                                
+      197      ctx: &AscendContext, stream: &AscendStream, x: &DeviceBuff
+           er, g: &[f16], b: &[f16], rows: i64, cols: i64,
+      198  ) -> DeviceBuffer {
+      199      drop(stream.synchronize());
+     ...
+      226  /// x [t, heads*d] → flat [t*heads*2, d/2]（偶行 = 前半通道）
+           ，位置 =
+      227  /// pos_offset + t。cosF 半维重复自然成；sinF 折叠 rotate-half
+            符号
+      228  /// （half_flag=0 取 -s、1 取 +s）。swap = 相邻行交换索引 r^1
+           。
+      229 -fn rope_flat_const(tokens: i64, heads: i64, pos_offset: i64) -
+          -> (Vec<f16>, Vec<f16>, Vec<i32>) {                            
+      229 +pub fnrope_flat_const(tokens: i64, heads: i64, pos_offset: i64
+          +) -> (Vec<f16>, Vec<f16>, Vec<i32>) {                         
+      230      let half = (HD / 2) as usize;
+      231      let rows = (tokens * heads * 2) as usize;
+      232      let mut cos = vec![f16::from_f32(0.0); rows * half];
+     ...
+      252  /// 模型 .to(f16) 连 rotary inv_freq buffer 一起转，HF rotary 
+           用 f16 频率回
+      253  /// f32 算角。全精度频率在高位置（~968）处与 golden 相位差 O(0
+           .1 rad)——
+      254  /// prefix kv l0 即偏 12.6%、逐层放大至 l17 85%（f16-inv 复刻
+           实测 0.08%）
+      255 -fn rope_angle(pos: i64, i: usize) -> f64 {                    
+      255 +pub fnrope_angle(pos: i64, i: usize) -> f64 {                 
+      256      let inv = f16::from_f32((ROPE_THETA as f32).powf(-(2.0 * i
+            as f32) / HD as f32));
+      257      pos as f64 * inv.to_f32() as f64
+      258  }
+     ...
+      260  /// cos/sin rank-2 表 [t*heads, HD]（eager build_rope_tables 
+           同款：cos 半维
+      261  /// 重复、sin 符号折叠），配合通道半互换 swap（SliceD×2+Concat
+           D）的
+      262  /// rank-2 rope 组合。
+      263 -fn rope_rank2_const(tokens: i64, heads: i64, pos_offset: i64) 
+          --> (Vec<f16>, Vec<f16>) {                                     
+      263 +pub fnrope_rank2_const(tokens: i64, heads: i64, pos_offset: i6
+          +4) -> (Vec<f16>, Vec<f16>) {                                  
+      264      let d = HD as usize;
+      265      let half = d / 2;
+      266      let rows = (tokens * heads) as usize;
+     ...
+      1146  // ----------------------------------------------------------
+            -----------------
+      1147  
+      1148  /// 对拍 + bench 通用尾段。outs_elem：每个图输出的元素数。
+      1149 -fn parity_and_bench(                                         
+      1149 +pub fnparity_and_bench(                                      
+      1150      ctx: &AscendContext,
+      1151      stream: &AscendStream,
+      1152      seg: &mut Seg,
+     ...
+      1451  
+      1452  /// styles 设备驻留构装：10 步 × (6*depth+2) 段拼一块 master
+            （一次 h2d），
+      1453  /// 每步每段一个 view；style_map 与 legacy h2d 循环同一 bind 
+            映射
+      1454 -fn style_residency(                                          
+      1454 +pub fnstyle_residency(                                       
+      1455      ctx: &AscendContext,
+      1456      style_cache: &[Vec<Vec<f16>>],
+      1457      layer_bases: &[usize],
+     ...
+      1609      }
+      1610  }
+      1611  
+      1612 -fn silu_f32(x: f32) -> f32 {                                 
+      1612 +pub fnsilu_f32(x: f32) -> f32 {                              
+      1613      x / (1.0 + (-x).exp())
+      1614  }
+      1615  
+     ...
+      1617  /// norm16 对照定罪 fp32 上浮 = 行为开关（2026-09-22）；AddRm
+            sNorm 的
+      1618  /// fp32 desc 是假支持（GE 自动 Cast 归一回 f16 kernel，arm32
+             单算
+      1619  /// f32/f16 输出逐位同）——只能组合手搓。
+      1620 -fn norm32_enabled() -> bool {                                
+      1620 +pub fnnorm32_enabled() -> bool {                             
+      1621      std::env::var("GEB_NORM32").is_ok()
+      1622  }
+      1623  
+     ...
+      1627  /// 驻留（每步独立视图一次上传）。数值 bit 级恒等：同一字节流
+             + 同流
+      1628  /// 顺序执行，sync 增删不改计算序。空串不算开（supervisor env
+             透传
+      1629  /// 里未设时不误触）
+      1630 -fn serve_fast() -> bool {                                    
+      1630 +pub fnserve_fast() -> bool {                                 
+      1631      std::env::var("GEB_SERVE_FAST").map(|v| !v.is_empty()).un
+            wrap_or(false)
+      1632  }
+      1633  
+     ...
+      1635  /// （one/eps/w2048/w1024）随 ReduceSumD 假 f32 定罪一并淘汰
+      1636  
+      1637  /// host 线性层（f32 全精度；维度 1×32×3072 量级，开销可忽略
+            ）
+      1638 -fn host_lin_f32(w: &LinearWeights, x: &[f32], in_d: usize) ->
+           - Vec<f32> {                                                  
+      1638 +pub fnhost_lin_f32(w: &LinearWeights, x: &[f32], in_d: usize)
+           + -> Vec<f32> {                                               
+      1639      let wt = w.weight.to_f32_vec().unwrap();
+      1640      let out_d = wt.len() / in_d;
+      1641      assert_eq!(x.len(), in_d);
+     ...
+      1652  }
+      1653  
+      1654  /// te [AW] → conditioning [ADIM]（time_mlp 两层，每层 matmul
+            →bias→silu）
+      1655 -fn e2e_conditioning(real: &Pi05Weights, te: &[f32]) -> Vec<f3
+           -2> {                                                         
+      1655 +pub fne2e_conditioning(real: &Pi05Weights, te: &[f32]) -> Vec
+           +<f32> {                                                      
+      1656      let h = host_lin_f32(&real.time_mlp_in, te, te.len());
+      1657      let h: Vec<f32> = h.iter().map(|&v| silu_f32(v)).collect(
+            );
+      1658      let c = host_lin_f32(&real.time_mlp_out, &h, h.len());
+     ...
+      1663  /// openpi `_gated_residual` 的分支门控（residual + branch·ga
+            te，无激活直出
+      1664  /// f16 cast）——2026-09-23 定罪：引擎此前整体未消费该段，flow
+             输出 v 近随
+      1665  /// 机、闭环 0/10 的主因
+      1666 -fn e2e_style_pair(w: &LinearWeights, cond: &[f32], width: usi
+           -ze) -> (Vec<f16>, Vec<f16>, Vec<f16>) {                      
+      1666 +pub fne2e_style_pair(w: &LinearWeights, cond: &[f32], width: 
+           +usize) -> (Vec<f16>, Vec<f16>, Vec<f16>) {                   
+      1667      let raw = host_lin_f32(w, cond, cond.len());
+      1668      let scl = raw[..width].iter().map(|&v| f16::from_f32(1.0 
+            + v)).collect();
+      1669      let sh = raw[width..2 * width].iter().map(|&v| f16::from_
+            f32(v)).collect();
+     ...
+      1673  
+      1674  /// e2e 收尾共通：GEB_OM_DIR（默认 /data/apxinf/om_cache）加
+            载 {seg}_real.om
+      1675  /// 跑一次，全部图输出下载回 host。Seg 构造须与 OM 构建同 env
+            （四件套）
+      1676 -fn e2e_run(ctx: &AscendContext, stream: &AscendStream, s: &mu
+           -t Seg, seg: &str) -> Vec<Vec<f16>> {                         
+      1676 +pub fne2e_run(ctx: &AscendContext, stream: &AscendStream, s: 
+           +&mut Seg, seg: &str) -> Vec<Vec<f16>> {                      
+      1677      let dir = std::env::var("GEB_OM_DIR").unwrap_or_else(|_| 
+            "/data/apxinf/om_cache".into());
+      1678      let path = format!("{dir}/{seg}_real.om");
+      1679      println!("[e2e] loading {path}");
+     ...
+      1726      dl
+      1727  }
+      1728  
+      1729 -fn seg_e2e(be: &AscendBackend, bench: bool, real: Option<&Pi0
+           -5Weights>) {                                                 
+      1729 +pub fnseg_e2e(be: &AscendBackend, bench: bool, real: Option<&
+           +Pi05Weights>) {                                              
+      1730      let _ = bench;
+      1731      // e2e 读 *_real.om（四件套构建），Seg 重建必须同配置（输
+            入序一致）
+      1732      let need = |k: &str| std::env::var(k).is_ok();
+     ...
+      1891  ///                          f32 vision_ms/prefix_ms/flow_ms 
+            /
+      1892  ///                          actions f32 ×HOR*7（x_t 终态前 7
+             列）
+      1893  ///   shutdown           —— 退出信号
+      1894 -fn serve_loop(be: &AscendBackend, st: &mut E2eStage, dir: &st
+           -r, tokens: usize) {                                          
+      1894 +pub fnserve_loop(be: &AscendBackend, st: &mut E2eStage, dir: 
+           +&str, tokens: usize) {                                       
+      1895      let ctx = be.ctx();
+      1896      let stream = be.stream();
+      1897      let mut vm = st.vmech.take().expect("serve 需要 vision 机
+            械");
+     ...
+      2031  // eager = ascend_executor::vision_layer_ascend 序列镜像
+      2032  // ----------------------------------------------------------
+            -----------------
+      2033  
+      2034 -fn seg_vision(be: &AscendBackend, bench: bool, real: Option<&
+           -Pi05Weights>, e2e: Option<&mut E2eStage>) {                  
+      2034 +pub fnseg_vision(be: &AscendBackend, bench: bool, real: Optio
+           +n<&Pi05Weights>, e2e: Option<&mut E2eStage>) {               
+      2035      let ctx = be.ctx();
+      2036      let stream = be.stream();
+      2037      let depth = envi("GEB_DEPTH_VISION", envi("GEB_DEPTH", 27
+            )) as usize;
+     ...
+      2450  // compute_tail=false 语义）
+      2451  // ----------------------------------------------------------
+            -----------------
+      2452  
+      2453 -fn seg_prefix(be: &AscendBackend, bench: bool, real: Option<&
+           -Pi05Weights>, e2e: Option<&mut E2eStage>) {                  
+      2453 +pub fnseg_prefix(be: &AscendBackend, bench: bool, real: Optio
+           +n<&Pi05Weights>, e2e: Option<&mut E2eStage>) {               
+      2454      let ctx = be.ctx();
+      2455      let stream = be.stream();
+      2456      let depth = envi("GEB_DEPTH_PREFIX", envi("GEB_DEPTH", 18
+            )) as usize;
+     ...
+      2931  // geglu) → action_out → euler）。styles/prefix-kv/euler 常数
+            全为外部输入。
+      2932  // ----------------------------------------------------------
+            -----------------
+      2933  
+      2934 -fn seg_flow(be: &AscendBackend, bench: bool, real: Option<&Pi
+           -05Weights>, e2e: Option<&mut E2eStage>) {                    
+      2934 +pub fnseg_flow(be: &AscendBackend, bench: bool, real: Option<
+           +&Pi05Weights>, e2e: Option<&mut E2eStage>) {                 
+      2935      let ctx = be.ctx();
+      2936      let stream = be.stream();
+      2937      let depth = envi("GEB_DEPTH", 18) as usize;
+     ...
+      3659  
+      3660  /// 单算子最小图编译冒烟（GEB_OPTEST=btd|rsh|sld|gat|cat|aln|
+            gln|asc）——
+      3661  /// 新算子逐个定罪用（三段图共享的新算子集）
+      3662 -fn optest(be: &AscendBackend, which: &str, real: Option<&Pi05
+           -Weights>) {                                                  
+      3662 +pub fnoptest(be: &AscendBackend, which: &str, real: Option<&P
+           +i05Weights>) {                                               
+      3663      let ctx = be.ctx();
+      3664      let mut s = Seg::new(&format!("op_{which}"));
+      3665      let zeros_host = vec![f16::from_f32(0.0); 768 * 1152];
+     ...
+      6174      ge_builder::fini().expect("fini");
+      6175  }
+      6176  
+      6177 -fn main() {                                                  
+      6177 +pub fnmain() {                                               
+      6178      let seg = std::env::var("GEB_SEG").unwrap_or_else(|_| "pr
+            efix".into());
+      6179      let bench = std::env::var("GEB_BENCH").is_ok();
+      6180      ge_builder::init("Ascend310P3").expect("geb init (before 
+            acl runtime)");
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 6 lines, removed 6 lines
+      287  // wire() 区分 Data（link 默认）与算子（link_out 显式端口，陷
+           阱 #8）
+      288  // -----------------------------------------------------------
+           ----------------
+      289  
+      290 -struct Seg {                                                  
+      290 +pub structSeg {                                               
+      291      g: GeGraph,
+      292      idx: i64,
+      293      names: Vec<String>,
+     ...
+      1310  /// 链逐帧产物（vision_out/kv/actions）随回放填充。actions 前
+             gd 列与
+      1311  /// nact（= torch normalized_actions，x_t 终态切片，同 noise
+            ）对拍 = 离线
+      1312  /// 行为裁判（闭环 env 前的中间验收）
+      1313 -struct ReplayFrame {                                         
+      1313 +pub structReplayFrame {                                      
+      1314      patches: Vec<f16>,     // [VT, V_PATCH_W]（含 empty 视图 
+            -1 pad 行）
+      1315      token_ids: Vec<u32>,   // PaliGemma tokenizer + state 离
+            散化（真 prompt）
+      1316      noise: Vec<f16>,       // [HOR, ADIM] 录制时注入
+     ...
+      1320      actions: Vec<f16>,     // 本帧 flow 终态 [HOR, ADIM]
+      1321  }
+      1322  
+      1323 -struct E2eStage {                                            
+      1323 +pub structE2eStage {                                         
+      1324      /// 输入（golden 或合成 bring-up）
+      1325      patches: Vec<f16>,          // [VT, V_PATCH_W]
+      1326      token_ids: Vec<u32>,        // lang tokens（真 tokenizer 
+            随 golden 落地）
+     ...
+      1352  // （OM + binds）/输出 buffer/嵌入表/styles 缓存。
+      1353  // ----------------------------------------------------------
+            -----------------
+      1354  
+      1355 -struct VisionMech {                                          
+      1355 +pub structVisionMech {                                       
+      1356      s: Seg,
+      1357      routs: Vec<DeviceBuffer>, // 108 路 LN aux 槽一次分配复用
+            （只下载主输出）
+      1358  }
+     ...
+      1372      }
+      1373  }
+      1374  
+      1375 -struct PrefixMech {                                          
+      1375 +pub structPrefixMech {                                       
+      1376      s: Seg,
+      1377      routs: Vec<DeviceBuffer>,
+      1378      emb: Vec<f32>,     // [vocab, PW] host 查表（~2.1GB 常驻
+            复用）
+     ...
+      1431      }
+      1432  }
+      1433  
+      1434 -struct FlowMech {                                            
+      1434 +pub structFlowMech {                                         
+      1435      s: Seg,
+      1436      ob: DeviceBuffer,
+      1437      style_cache: Vec<Vec<Vec<f16>>>, // 10 步 × (6*depth+2) 
+            段（含 gate；跨请求不变）
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 23 lines, removed 23 lines
+      55  use crate::pi05::{sinusoidal_time_embedding, LinearWeights, Pi0
+          5Config, Pi05Weights};
+      56  
+      57  // π0.5 3 视图档维度（Pi05Config::default）
+      58 -const VT: i64 = 768; // vision tokens = 3 views × 256 patches  
+      59 -const VPV: i64 = 256;                                          
+      60 -const VIEWS: i64 = 3;                                          
+      61 -const VW: i64 = 1152; // vision width                          
+      62 -const V_INTER: i64 = 4304;                                     
+      63 -const V_HEADS: i64 = 16;                                       
+      64 -const V_HD: i64 = 72;                                          
+      65 -const V_PATCH_W: i64 = 588; // 3*14*14                         
+      66 -const PW: i64 = 2048; // language width                        
+      67 -const INTER: i64 = 16384;                                      
+      68 -const HEADS: i64 = 8;                                          
+      69 -const KV_HEADS: i64 = 1;                                       
+      70 -const HD: i64 = 256;                                           
+      71 -const QD: i64 = HEADS * HD; // 2048                            
+      72 -const KVD: i64 = KV_HEADS * HD; // 256                         
+      73 -const QKVW: i64 = QD + 2 * KVD; // 2560                        
+      74 -const AW: i64 = 1024; // action expert width                   
+      75 -const AINTER: i64 = 4096;                                      
+      76 -const ADIM: i64 = 32;                                          
+      77 -const HOR: i64 = 50;                                           
+      78 -const ROPE_THETA: f64 = 10000.0;                               
+      79 -const RMS_EPS: f64 = 1e-6;                                     
+      80 -const LN_EPS: f64 = 1e-6;                                      
+      58 +pub constVT: i64 = 768; // vision tokens = 3 views × 256 patche
+         +s                                                              
+      59 +pub constVPV: i64 = 256;                                       
+      60 +pub constVIEWS: i64 = 3;                                       
+      61 +pub constVW: i64 = 1152; // vision width                       
+      62 +pub constV_INTER: i64 = 4304;                                  
+      63 +pub constV_HEADS: i64 = 16;                                    
+      64 +pub constV_HD: i64 = 72;                                       
+      65 +pub constV_PATCH_W: i64 = 588; // 3*14*14                      
+      66 +pub constPW: i64 = 2048; // language width                     
+      67 +pub constINTER: i64 = 16384;                                   
+      68 +pub constHEADS: i64 = 8;                                       
+      69 +pub constKV_HEADS: i64 = 1;                                    
+      70 +pub constHD: i64 = 256;                                        
+      71 +pub constQD: i64 = HEADS * HD; // 2048                         
+      72 +pub constKVD: i64 = KV_HEADS * HD; // 256                      
+      73 +pub constQKVW: i64 = QD + 2 * KVD; // 2560                     
+      74 +pub constAW: i64 = 1024; // action expert width                
+      75 +pub constAINTER: i64 = 4096;                                   
+      76 +pub constADIM: i64 = 32;                                       
+      77 +pub constHOR: i64 = 50;                                        
+      78 +pub constROPE_THETA: f64 = 10000.0;                            
+      79 +pub constRMS_EPS: f64 = 1e-6;                                  
+      80 +pub constLN_EPS: f64 = 1e-6;                                   
+      81  
+      82  pub fnenvi(k: &str, d: i64) -> i64 {
+      83      std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_o
+          r(d)
+
+  Thought for 36s (ctrl+o to expand)
+
+● 上一个替换漏了尾随空格（\npub fn 后没空格），三连修复：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Error editing file
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Error editing file
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Error editing file
+
+  Thought for 4s (ctrl+o to expand)
+
+● Edit 工具把尾随空格剥掉了，两轮可能恰好抵消。直接验证文件实际状态：
+
+  Thought for 27s, searched for 1 pattern (ctrl+o to expand)
+
+● 编辑器剥尾随空格导致 pub fnenvi 粘连。列出全部粘连 token
+  清单，逐个带内部空格修复：
+  Thought for 19s, searched for 1 pattern (ctrl+o to expand)
+
+● 用首字母前缀合并修复（27 个编辑搞定 61 处）——批 1（fn 全家 + struct）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 5 lines, removed 5 lines
+      79  pub constRMS_EPS: f64 = 1e-6;
+      80  pub constLN_EPS: f64 = 1e-6;
+      81  
+      82 -pub fnenvi(k: &str, d: i64) -> i64 {                           
+      82 +pub fn envi(k: &str, d: i64) -> i64 {                          
+      83      std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_o
+          r(d)
+      84  }
+      85  
+      86  /// erf 近似（Abramowitz-Stegun 7.1.26，|ε|<1.5e-7——exact gelu 
+          对照够用）
+      87 -pub fnerf(x: f32) -> f32 {                                     
+      87 +pub fn erf(x: f32) -> f32 {                                    
+      88      let s = x.signum();
+      89      let x = x.abs();
+      90      let t = 1.0 / (1.0 + 0.327_591_1 * x);
+     ...
+      1652  }
+      1653  
+      1654  /// te [AW] → conditioning [ADIM]（time_mlp 两层，每层 matmul
+            →bias→silu）
+      1655 -pub fne2e_conditioning(real: &Pi05Weights, te: &[f32]) -> Vec
+           -<f32> {                                                      
+      1655 +pub fn e2e_conditioning(real: &Pi05Weights, te: &[f32]) -> Ve
+           +c<f32> {                                                     
+      1656      let h = host_lin_f32(&real.time_mlp_in, te, te.len());
+      1657      let h: Vec<f32> = h.iter().map(|&v| silu_f32(v)).collect(
+            );
+      1658      let c = host_lin_f32(&real.time_mlp_out, &h, h.len());
+     ...
+      1663  /// openpi `_gated_residual` 的分支门控（residual + branch·ga
+            te，无激活直出
+      1664  /// f16 cast）——2026-09-23 定罪：引擎此前整体未消费该段，flow
+             输出 v 近随
+      1665  /// 机、闭环 0/10 的主因
+      1666 -pub fne2e_style_pair(w: &LinearWeights, cond: &[f32], width: 
+           -usize) -> (Vec<f16>, Vec<f16>, Vec<f16>) {                   
+      1666 +pub fn e2e_style_pair(w: &LinearWeights, cond: &[f32], width:
+           + usize) -> (Vec<f16>, Vec<f16>, Vec<f16>) {                  
+      1667      let raw = host_lin_f32(w, cond, cond.len());
+      1668      let scl = raw[..width].iter().map(|&v| f16::from_f32(1.0 
+            + v)).collect();
+      1669      let sh = raw[width..2 * width].iter().map(|&v| f16::from_
+            f32(v)).collect();
+     ...
+      1673  
+      1674  /// e2e 收尾共通：GEB_OM_DIR（默认 /data/apxinf/om_cache）加
+            载 {seg}_real.om
+      1675  /// 跑一次，全部图输出下载回 host。Seg 构造须与 OM 构建同 env
+            （四件套）
+      1676 -pub fne2e_run(ctx: &AscendContext, stream: &AscendStream, s: 
+           -&mut Seg, seg: &str) -> Vec<Vec<f16>> {                      
+      1676 +pub fn e2e_run(ctx: &AscendContext, stream: &AscendStream, s:
+           + &mut Seg, seg: &str) -> Vec<Vec<f16>> {                     
+      1677      let dir = std::env::var("GEB_OM_DIR").unwrap_or_else(|_| 
+            "/data/apxinf/om_cache".into());
+      1678      let path = format!("{dir}/{seg}_real.om");
+      1679      println!("[e2e] loading {path}");
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      172  }
+      173  
+      174  /// fp16 device buffer -> host Vec<f16>（d2h 字节流按 LE u16 
+           重组）
+      175 -pub fndownload_f16(ctx: &AscendContext, buf: &DeviceBuffer, n:
+          - usize) -> Vec<f16> {                                         
+      175 +pub fn download_f16(ctx: &AscendContext, buf: &DeviceBuffer, n
+          +: usize) -> Vec<f16> {                                        
+      176      let mut back = vec![0u8; n * 2];
+      177      ctx.copy_d2h(buf, &mut back).expect("d2h");
+      178      back.chunks_exact(2)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      193  /// ⚠ 入参 stream 先同步——同步 d2h（aclrtMemcpy）不等待 comput
+           e 流上的
+      194  /// 生产 kernel，不同步则读到跑赢/滞后的数据（eager 全 device 
+           kernel 时
+      195  /// 确定性错排 98.2% 取证；PFA 模式被 host 回调串行化掩盖）。
+      196 -pub fnhost_ln(                                                
+      196 +pub fn host_ln(                                               
+      197      ctx: &AscendContext, stream: &AscendStream, x: &DeviceBuff
+           er, g: &[f16], b: &[f16], rows: i64, cols: i64,
+      198  ) -> DeviceBuffer {
+      199      drop(stream.synchronize());
+     ...
+      1635  /// （one/eps/w2048/w1024）随 ReduceSumD 假 f32 定罪一并淘汰
+      1636  
+      1637  /// host 线性层（f32 全精度；维度 1×32×3072 量级，开销可忽略
+            ）
+      1638 -pub fnhost_lin_f32(w: &LinearWeights, x: &[f32], in_d: usize)
+           - -> Vec<f32> {                                               
+      1638 +pub fn host_lin_f32(w: &LinearWeights, x: &[f32], in_d: usize
+           +) -> Vec<f32> {                                              
+      1639      let wt = w.weight.to_f32_vec().unwrap();
+      1640      let out_d = wt.len() / in_d;
+      1641      assert_eq!(x.len(), in_d);
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      137  }
+      138  
+      139  /// LinearWeights.weight [in,out] → host f16（wt()/wbuf_t 的 h
+           ost 布局同构）
+      140 -pub fnlw_f16(l: &LinearWeights) -> Vec<f16> {                 
+      140 +pub fn lw_f16(l: &LinearWeights) -> Vec<f16> {                
+      141      t_f16(&l.weight)
+      142  }
+      143  
+      144  /// LinearWeights.bias → f16；None（Gemma 投影无 bias）→ zeros
+      145 -pub fnlb_f16(l: &LinearWeights, n: usize) -> Vec<f16> {       
+      145 +pub fn lb_f16(l: &LinearWeights, n: usize) -> Vec<f16> {      
+      146      match &l.bias {
+      147          Some(b) => t_f16(b),
+      148          None => vec![f16::from_f32(0.0); n],
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+       99  
+      100  /// splitmix64 单步（LCG 高 16 位 mod 200 有短周期结构——vision
+            探针
+      101  /// LayerNorm 行方差塌缩 → rstd 放大 385× 的教训，2026-09-19）
+      102 -pub fnmix64(z: &mut u64) -> u64 {                             
+      102 +pub fn mix64(z: &mut u64) -> u64 {                            
+      103      *z = z.wrapping_add(0x9E37_79B9_7F4A_7C15);
+      104      let mut x = *z;
+      105      x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+     ...
+      6174      ge_builder::fini().expect("fini");
+      6175  }
+      6176  
+      6177 -pub fnmain() {                                               
+      6177 +pub fn main() {                                              
+      6178      let seg = std::env::var("GEB_SEG").unwrap_or_else(|_| "pr
+            efix".into());
+      6179      let bench = std::env::var("GEB_BENCH").is_ok();
+      6180      ge_builder::init("Ascend310P3").expect("geb init (before 
+            acl runtime)");
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      119  }
+      120  
+      121  /// norm gamma/beta：center ± 0.05（贴近真实量级，避免幅度塌缩
+           ）
+      122 -pub fnnorm_f16(n: usize, seed: &mut u32, center: f32) -> Vec<f
+          -16> {                                                         
+      122 +pub fn norm_f16(n: usize, seed: &mut u32, center: f32) -> Vec<
+          +f16> {                                                        
+      123      let mut z: u64 = (*seed as u64).wrapping_mul(0x9E37_79B9_7
+           F4A_7C15) | 1;
+      124      let mut v = Vec::with_capacity(n);
+      125      for _ in 0..n {
+     ...
+      1617  /// norm16 对照定罪 fp32 上浮 = 行为开关（2026-09-22）；AddRm
+            sNorm 的
+      1618  /// fp32 desc 是假支持（GE 自动 Cast 归一回 f16 kernel，arm32
+             单算
+      1619  /// f32/f16 输出逐位同）——只能组合手搓。
+      1620 -pub fnnorm32_enabled() -> bool {                             
+      1620 +pub fn norm32_enabled() -> bool {                            
+      1621      std::env::var("GEB_NORM32").is_ok()
+      1622  }
+      1623  
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1146  // ----------------------------------------------------------
+            -----------------
+      1147  
+      1148  /// 对拍 + bench 通用尾段。outs_elem：每个图输出的元素数。
+      1149 -pub fnparity_and_bench(                                      
+      1149 +pub fn parity_and_bench(                                     
+      1150      ctx: &AscendContext,
+      1151      stream: &AscendStream,
+      1152      seg: &mut Seg,
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 4 lines, removed 4 lines
+      107      x ^ (x >> 31)
+      108  }
+      109  
+      110 -pub fnrand_f16(n: usize, seed: &mut u32, div: f32) -> Vec<f16>
+          - {                                                            
+      110 +pub fn rand_f16(n: usize, seed: &mut u32, div: f32) -> Vec<f16
+          +> {                                                           
+      111      let mut z: u64 = (*seed as u64).wrapping_mul(0x9E37_79B9_7
+           F4A_7C15) | 1;
+      112      let mut v = Vec::with_capacity(n);
+      113      for _ in 0..n {
+     ...
+      226  /// x [t, heads*d] → flat [t*heads*2, d/2]（偶行 = 前半通道）
+           ，位置 =
+      227  /// pos_offset + t。cosF 半维重复自然成；sinF 折叠 rotate-half
+            符号
+      228  /// （half_flag=0 取 -s、1 取 +s）。swap = 相邻行交换索引 r^1
+           。
+      229 -pub fnrope_flat_const(tokens: i64, heads: i64, pos_offset: i64
+          -) -> (Vec<f16>, Vec<f16>, Vec<i32>) {                         
+      229 +pub fn rope_flat_const(tokens: i64, heads: i64, pos_offset: i6
+          +4) -> (Vec<f16>, Vec<f16>, Vec<i32>) {                        
+      230      let half = (HD / 2) as usize;
+      231      let rows = (tokens * heads * 2) as usize;
+      232      let mut cos = vec![f16::from_f32(0.0); rows * half];
+     ...
+      252  /// 模型 .to(f16) 连 rotary inv_freq buffer 一起转，HF rotary 
+           用 f16 频率回
+      253  /// f32 算角。全精度频率在高位置（~968）处与 golden 相位差 O(0
+           .1 rad)——
+      254  /// prefix kv l0 即偏 12.6%、逐层放大至 l17 85%（f16-inv 复刻
+           实测 0.08%）
+      255 -pub fnrope_angle(pos: i64, i: usize) -> f64 {                 
+      255 +pub fn rope_angle(pos: i64, i: usize) -> f64 {                
+      256      let inv = f16::from_f32((ROPE_THETA as f32).powf(-(2.0 * i
+            as f32) / HD as f32));
+      257      pos as f64 * inv.to_f32() as f64
+      258  }
+     ...
+      260  /// cos/sin rank-2 表 [t*heads, HD]（eager build_rope_tables 
+           同款：cos 半维
+      261  /// 重复、sin 符号折叠），配合通道半互换 swap（SliceD×2+Concat
+           D）的
+      262  /// rank-2 rope 组合。
+      263 -pub fnrope_rank2_const(tokens: i64, heads: i64, pos_offset: i6
+          -4) -> (Vec<f16>, Vec<f16>) {                                  
+      263 +pub fn rope_rank2_const(tokens: i64, heads: i64, pos_offset: i
+          +64) -> (Vec<f16>, Vec<f16>) {                                 
+      264      let d = HD as usize;
+      265      let half = d / 2;
+      266      let rows = (tokens * heads) as usize;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines, removed 8 lines
+      1451  
+      1452  /// styles 设备驻留构装：10 步 × (6*depth+2) 段拼一块 master
+            （一次 h2d），
+      1453  /// 每步每段一个 view；style_map 与 legacy h2d 循环同一 bind 
+            映射
+      1454 -pub fnstyle_residency(                                       
+      1454 +pub fn style_residency(                                      
+      1455      ctx: &AscendContext,
+      1456      style_cache: &[Vec<Vec<f16>>],
+      1457      layer_bases: &[usize],
+     ...
+      1609      }
+      1610  }
+      1611  
+      1612 -pub fnsilu_f32(x: f32) -> f32 {                              
+      1612 +pub fn silu_f32(x: f32) -> f32 {                             
+      1613      x / (1.0 + (-x).exp())
+      1614  }
+      1615  
+     ...
+      1627  /// 驻留（每步独立视图一次上传）。数值 bit 级恒等：同一字节流
+             + 同流
+      1628  /// 顺序执行，sync 增删不改计算序。空串不算开（supervisor env
+             透传
+      1629  /// 里未设时不误触）
+      1630 -pub fnserve_fast() -> bool {                                 
+      1630 +pub fn serve_fast() -> bool {                                
+      1631      std::env::var("GEB_SERVE_FAST").map(|v| !v.is_empty()).un
+            wrap_or(false)
+      1632  }
+      1633  
+     ...
+      1726      dl
+      1727  }
+      1728  
+      1729 -pub fnseg_e2e(be: &AscendBackend, bench: bool, real: Option<&
+           -Pi05Weights>) {                                              
+      1729 +pub fn seg_e2e(be: &AscendBackend, bench: bool, real: Option<
+           +&Pi05Weights>) {                                             
+      1730      let _ = bench;
+      1731      // e2e 读 *_real.om（四件套构建），Seg 重建必须同配置（输
+            入序一致）
+      1732      let need = |k: &str| std::env::var(k).is_ok();
+     ...
+      1891  ///                          f32 vision_ms/prefix_ms/flow_ms 
+            /
+      1892  ///                          actions f32 ×HOR*7（x_t 终态前 7
+             列）
+      1893  ///   shutdown           —— 退出信号
+      1894 -pub fnserve_loop(be: &AscendBackend, st: &mut E2eStage, dir: 
+           -&str, tokens: usize) {                                       
+      1894 +pub fn serve_loop(be: &AscendBackend, st: &mut E2eStage, dir:
+           + &str, tokens: usize) {                                      
+      1895      let ctx = be.ctx();
+      1896      let stream = be.stream();
+      1897      let mut vm = st.vmech.take().expect("serve 需要 vision 机
+            械");
+     ...
+      2031  // eager = ascend_executor::vision_layer_ascend 序列镜像
+      2032  // ----------------------------------------------------------
+            -----------------
+      2033  
+      2034 -pub fnseg_vision(be: &AscendBackend, bench: bool, real: Optio
+           -n<&Pi05Weights>, e2e: Option<&mut E2eStage>) {               
+      2034 +pub fn seg_vision(be: &AscendBackend, bench: bool, real: Opti
+           +on<&Pi05Weights>, e2e: Option<&mut E2eStage>) {              
+      2035      let ctx = be.ctx();
+      2036      let stream = be.stream();
+      2037      let depth = envi("GEB_DEPTH_VISION", envi("GEB_DEPTH", 27
+            )) as usize;
+     ...
+      2450  // compute_tail=false 语义）
+      2451  // ----------------------------------------------------------
+            -----------------
+      2452  
+      2453 -pub fnseg_prefix(be: &AscendBackend, bench: bool, real: Optio
+           -n<&Pi05Weights>, e2e: Option<&mut E2eStage>) {               
+      2453 +pub fn seg_prefix(be: &AscendBackend, bench: bool, real: Opti
+           +on<&Pi05Weights>, e2e: Option<&mut E2eStage>) {              
+      2454      let ctx = be.ctx();
+      2455      let stream = be.stream();
+      2456      let depth = envi("GEB_DEPTH_PREFIX", envi("GEB_DEPTH", 18
+            )) as usize;
+     ...
+      2931  // geglu) → action_out → euler）。styles/prefix-kv/euler 常数
+            全为外部输入。
+      2932  // ----------------------------------------------------------
+            -----------------
+      2933  
+      2934 -pub fnseg_flow(be: &AscendBackend, bench: bool, real: Option<
+           -&Pi05Weights>, e2e: Option<&mut E2eStage>) {                 
+      2934 +pub fn seg_flow(be: &AscendBackend, bench: bool, real: Option
+           +<&Pi05Weights>, e2e: Option<&mut E2eStage>) {                
+      2935      let ctx = be.ctx();
+      2936      let stream = be.stream();
+      2937      let depth = envi("GEB_DEPTH", 18) as usize;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      132  }
+      133  
+      134  /// 真 checkpoint Tensor（bf16/f32）→ host f16（310P 无 bf16，
+           精度策略 fp16）
+      135 -pub fnt_f16(t: &apxinf_core::Tensor) -> Vec<f16> {            
+      135 +pub fn t_f16(t: &apxinf_core::Tensor) -> Vec<f16> {           
+      136      t.to_f32_vec().unwrap().into_iter().map(f16::from_f32).col
+           lect()
+      137  }
+      138  
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines, removed 3 lines
+      149      }
+      150  }
+      151  
+      152 -pub fnupload(ctx: &AscendContext, vals: &[f16]) -> DeviceBuffe
+          -r {                                                           
+      152 +pub fn upload(ctx: &AscendContext, vals: &[f16]) -> DeviceBuff
+          +er {                                                          
+      153      let bytes =
+      154          unsafe { std::slice::from_raw_parts(vals.as_ptr() as *
+           const u8, vals.len() * 2) };
+      155      let buf = ctx.malloc(bytes.len()).expect("malloc");
+     ...
+      157      buf
+      158  }
+      159  
+      160 -pub fnupload_bytes(ctx: &AscendContext, bytes: &[u8]) -> Devic
+          -eBuffer {                                                     
+      160 +pub fn upload_bytes(ctx: &AscendContext, bytes: &[u8]) -> Devi
+          +ceBuffer {                                                    
+      161      let buf = ctx.malloc(bytes.len()).expect("malloc");
+      162      ctx.copy_h2d(&buf, bytes).expect("h2d");
+      163      buf
+      164  }
+      165  
+      166 -pub fnupload_i32(ctx: &AscendContext, vals: &[i32]) -> DeviceB
+          -uffer {                                                       
+      166 +pub fn upload_i32(ctx: &AscendContext, vals: &[i32]) -> Device
+          +Buffer {                                                      
+      167      let bytes =
+      168          unsafe { std::slice::from_raw_parts(vals.as_ptr() as *
+           const u8, vals.len() * 4) };
+      169      let buf = ctx.malloc(bytes.len()).expect("malloc");
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      182  
+      183  /// host [rows, cols] f16 权重 → 转置 upload 为 [cols, rows] 
+           物理
+      184  /// （MatMulV2 transpose_x2=true 与 eager matmul_b_t 共用布局
+           ）
+      185 -pub fnwbuf_t(ctx: &AscendContext, host: &[f16], rows: i64, col
+          -s: i64) -> DeviceBuffer {                                     
+      185 +pub fn wbuf_t(ctx: &AscendContext, host: &[f16], rows: i64, co
+          +ls: i64) -> DeviceBuffer {                                    
+      186      let bytes = unsafe { std::slice::from_raw_parts(host.as_pt
+           r() as *const u8, host.len() * 2) };
+      187      let t = aops::host_transpose(bytes, rows, cols);
+      188      upload_bytes(ctx, &t)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1320      actions: Vec<f16>,     // 本帧 flow 终态 [HOR, ADIM]
+      1321  }
+      1322  
+      1323 -pub structE2eStage {                                         
+      1323 +pub struct E2eStage {                                        
+      1324      /// 输入（golden 或合成 bring-up）
+      1325      patches: Vec<f16>,          // [VT, V_PATCH_W]
+      1326      token_ids: Vec<u32>,        // lang tokens（真 tokenizer 
+            随 golden 落地）
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1431      }
+      1432  }
+      1433  
+      1434 -pub structFlowMech {                                         
+      1434 +pub struct FlowMech {                                        
+      1435      s: Seg,
+      1436      ob: DeviceBuffer,
+      1437      style_cache: Vec<Vec<Vec<f16>>>, // 10 步 × (6*depth+2) 
+            段（含 gate；跨请求不变）
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1372      }
+      1373  }
+      1374  
+      1375 -pub structPrefixMech {                                       
+      1375 +pub struct PrefixMech {                                      
+      1376      s: Seg,
+      1377      routs: Vec<DeviceBuffer>,
+      1378      emb: Vec<f32>,     // [vocab, PW] host 查表（~2.1GB 常驻
+            复用）
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1310  /// 链逐帧产物（vision_out/kv/actions）随回放填充。actions 前
+             gd 列与
+      1311  /// nact（= torch normalized_actions，x_t 终态切片，同 noise
+            ）对拍 = 离线
+      1312  /// 行为裁判（闭环 env 前的中间验收）
+      1313 -pub structReplayFrame {                                      
+      1313 +pub struct ReplayFrame {                                     
+      1314      patches: Vec<f16>,     // [VT, V_PATCH_W]（含 empty 视图 
+            -1 pad 行）
+      1315      token_ids: Vec<u32>,   // PaliGemma tokenizer + state 离
+            散化（真 prompt）
+      1316      noise: Vec<f16>,       // [HOR, ADIM] 录制时注入
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      287  // wire() 区分 Data（link 默认）与算子（link_out 显式端口，陷
+           阱 #8）
+      288  // -----------------------------------------------------------
+           ----------------
+      289  
+      290 -pub structSeg {                                               
+      290 +pub struct Seg {                                              
+      291      g: GeGraph,
+      292      idx: i64,
+      293      names: Vec<String>,
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      1352  // （OM + binds）/输出 buffer/嵌入表/styles 缓存。
+      1353  // ----------------------------------------------------------
+            -----------------
+      1354  
+      1355 -pub structVisionMech {                                       
+      1355 +pub struct VisionMech {                                      
+      1356      s: Seg,
+      1357      routs: Vec<DeviceBuffer>, // 108 路 LN aux 槽一次分配复用
+            （只下载主输出）
+      1358  }
+
+  Thought for 4s (ctrl+o to expand)
+
+● 批 2（const 按首字母 9 连）：
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines, removed 3 lines
+      71  pub constQD: i64 = HEADS * HD; // 2048
+      72  pub constKVD: i64 = KV_HEADS * HD; // 256
+      73  pub constQKVW: i64 = QD + 2 * KVD; // 2560
+      74 -pub constAW: i64 = 1024; // action expert width                
+      75 -pub constAINTER: i64 = 4096;                                   
+      76 -pub constADIM: i64 = 32;                                       
+      74 +pub const AW: i64 = 1024; // action expert width               
+      75 +pub const AINTER: i64 = 4096;                                  
+      76 +pub const ADIM: i64 = 32;                                      
+      77  pub constHOR: i64 = 50;
+      78  pub constROPE_THETA: f64 = 10000.0;
+      79  pub constRMS_EPS: f64 = 1e-6;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines, removed 3 lines
+      65  pub constV_PATCH_W: i64 = 588; // 3*14*14
+      66  pub constPW: i64 = 2048; // language width
+      67  pub constINTER: i64 = 16384;
+      68 -pub constHEADS: i64 = 8;                                       
+      68 +pub const HEADS: i64 = 8;                                      
+      69  pub constKV_HEADS: i64 = 1;
+      70 -pub constHD: i64 = 256;                                        
+      70 +pub const HD: i64 = 256;                                       
+      71  pub constQD: i64 = HEADS * HD; // 2048
+      72  pub constKVD: i64 = KV_HEADS * HD; // 256
+      73  pub constQKVW: i64 = QD + 2 * KVD; // 2560
+      74  pub const AW: i64 = 1024; // action expert width
+      75  pub const AINTER: i64 = 4096;
+      76  pub const ADIM: i64 = 32;
+      77 -pub constHOR: i64 = 50;                                        
+      77 +pub const HOR: i64 = 50;                                       
+      78  pub constROPE_THETA: f64 = 10000.0;
+      79  pub constRMS_EPS: f64 = 1e-6;
+      80  pub constLN_EPS: f64 = 1e-6;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      64  pub constV_HD: i64 = 72;
+      65  pub constV_PATCH_W: i64 = 588; // 3*14*14
+      66  pub constPW: i64 = 2048; // language width
+      67 -pub constINTER: i64 = 16384;                                   
+      67 +pub const INTER: i64 = 16384;                                  
+      68  pub const HEADS: i64 = 8;
+      69  pub constKV_HEADS: i64 = 1;
+      70  pub const HD: i64 = 256;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      66  pub constPW: i64 = 2048; // language width
+      67  pub const INTER: i64 = 16384;
+      68  pub const HEADS: i64 = 8;
+      69 -pub constKV_HEADS: i64 = 1;                                    
+      69 +pub const KV_HEADS: i64 = 1;                                   
+      70  pub const HD: i64 = 256;
+      71  pub constQD: i64 = HEADS * HD; // 2048
+      72 -pub constKVD: i64 = KV_HEADS * HD; // 256                      
+      72 +pub const KVD: i64 = KV_HEADS * HD; // 256                     
+      73  pub constQKVW: i64 = QD + 2 * KVD; // 2560
+      74  pub const AW: i64 = 1024; // action expert width
+      75  pub const AINTER: i64 = 4096;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      77  pub const HOR: i64 = 50;
+      78  pub constROPE_THETA: f64 = 10000.0;
+      79  pub constRMS_EPS: f64 = 1e-6;
+      80 -pub constLN_EPS: f64 = 1e-6;                                   
+      80 +pub const LN_EPS: f64 = 1e-6;                                  
+      81  
+      82  pub fn envi(k: &str, d: i64) -> i64 {
+      83      std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_o
+          r(d)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      63  pub constV_HEADS: i64 = 16;
+      64  pub constV_HD: i64 = 72;
+      65  pub constV_PATCH_W: i64 = 588; // 3*14*14
+      66 -pub constPW: i64 = 2048; // language width                     
+      66 +pub const PW: i64 = 2048; // language width                    
+      67  pub const INTER: i64 = 16384;
+      68  pub const HEADS: i64 = 8;
+      69  pub const KV_HEADS: i64 = 1;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      68  pub const HEADS: i64 = 8;
+      69  pub const KV_HEADS: i64 = 1;
+      70  pub const HD: i64 = 256;
+      71 -pub constQD: i64 = HEADS * HD; // 2048                         
+      71 +pub const QD: i64 = HEADS * HD; // 2048                        
+      72  pub const KVD: i64 = KV_HEADS * HD; // 256
+      73 -pub constQKVW: i64 = QD + 2 * KVD; // 2560                     
+      73 +pub const QKVW: i64 = QD + 2 * KVD; // 2560                    
+      74  pub const AW: i64 = 1024; // action expert width
+      75  pub const AINTER: i64 = 4096;
+      76  pub const ADIM: i64 = 32;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      75  pub const AINTER: i64 = 4096;
+      76  pub const ADIM: i64 = 32;
+      77  pub const HOR: i64 = 50;
+      78 -pub constROPE_THETA: f64 = 10000.0;                            
+      79 -pub constRMS_EPS: f64 = 1e-6;                                  
+      78 +pub const ROPE_THETA: f64 = 10000.0;                           
+      79 +pub const RMS_EPS: f64 = 1e-6;                                 
+      80  pub const LN_EPS: f64 = 1e-6;
+      81  
+      82  pub fn envi(k: &str, d: i64) -> i64 {
+
+● Update(apxinf\crends\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  File not found
+
+  Thought for 9s (ctrl+o to expand)
+
+● 最后一个路径打错（crends），补上 + 全面验证：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines, removed 8 lines
+      55  use crate::pi05::{sinusoidal_time_embedding, LinearWeights, Pi0
+          5Config, Pi05Weights};
+      56  
+      57  // π0.5 3 视图档维度（Pi05Config::default）
+      58 -pub constVT: i64 = 768; // vision tokens = 3 views × 256 patche
+         -s                                                              
+      59 -pub constVPV: i64 = 256;                                       
+      60 -pub constVIEWS: i64 = 3;                                       
+      61 -pub constVW: i64 = 1152; // vision width                       
+      62 -pub constV_INTER: i64 = 4304;                                  
+      63 -pub constV_HEADS: i64 = 16;                                    
+      64 -pub constV_HD: i64 = 72;                                       
+      65 -pub constV_PATCH_W: i64 = 588; // 3*14*14                      
+      58 +pub const VT: i64 = 768; // vision tokens = 3 views × 256 patch
+         +es                                                             
+      59 +pub const VPV: i64 = 256;                                      
+      60 +pub const VIEWS: i64 = 3;                                      
+      61 +pub const VW: i64 = 1152; // vision width                      
+      62 +pub const V_INTER: i64 = 4304;                                 
+      63 +pub const V_HEADS: i64 = 16;                                   
+      64 +pub const V_HD: i64 = 72;                                      
+      65 +pub const V_PATCH_W: i64 = 588; // 3*14*14                     
+      66  pub const PW: i64 = 2048; // language width
+      67  pub const INTER: i64 = 16384;
+      68  pub const HEADS: i64 = 8;
+
+  Thought for 3s, searched for 1 pattern (ctrl+o to expand)
+
+● 剩一个 pub fnoptest（漏了 fno 前缀）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      3659  
+      3660  /// 单算子最小图编译冒烟（GEB_OPTEST=btd|rsh|sld|gat|cat|aln|
+            gln|asc）——
+      3661  /// 新算子逐个定罪用（三段图共享的新算子集）
+      3662 -pub fnoptest(be: &AscendBackend, which: &str, real: Option<&P
+           -i05Weights>) {                                               
+      3662 +pub fn optest(be: &AscendBackend, which: &str, real: Option<&
+           +Pi05Weights>) {                                              
+      3663      let ctx = be.ctx();
+      3664      let mut s = Seg::new(&format!("op_{which}"));
+      3665      let zeros_host = vec![f16::from_f32(0.0); 768 * 1152];
+
+  Thought for 15s (ctrl+o to expand)
+
+● pub 化完成。现在 pub Seg 字段（optest 直接摸 s.g 等）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      288  // -----------------------------------------------------------
+           ----------------
+      289  
+      290  pub struct Seg {
+      291 -    g: GeGraph,                                               
+      291 +    pub g: GeGraph,                                           
+      292      idx: i64,
+      293      names: Vec<String>,
+      294      shapes: Vec<Vec<i64>>,
+      295 -    binds: Vec<DeviceBuffer>,                                 
+      295 +    pub binds: Vec<DeviceBuffer>,                             
+      296      /// 图输入在 binds 里的下标（GEB_WCONST 时权重是 Const 不
+           占图输入，
+      297      /// binds 仍全量持上传副本供 eager/层基址——索引两模式恒同
+           ）
+      298      data_inputs: Vec<usize>,
+
+  Thought for 54s (ctrl+o to expand)
+
+● 现在三连大编辑：① main() 整段替换为 GeServe 门面（lib 不能有
+  main，门面正是要加的）② serve_loop 帧体改调门面（单一帧实现）③
+  头部文档补库面说明：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 132 lines, removed 27 lines
+      6174      ge_builder::fini().expect("fini");
+      6175  }
+      6176  
+      6177 -pub fn main() {                                              
+      6178 -    let seg = std::env::var("GEB_SEG").unwrap_or_else(|_| "pr
+           -efix".into());                                               
+      6179 -    let bench = std::env::var("GEB_BENCH").is_ok();          
+      6180 -    ge_builder::init("Ascend310P3").expect("geb init (before 
+           -acl runtime)");                                              
+      6181 -    let be = AscendBackend::new(0).expect("be");             
+      6182 -    // GEB_CKPT：真 checkpoint（LeRobot safetensors 目录/单文
+           -件）。host 解析                                              
+      6183 -    // 管线含 LeRobot 前缀归一、[in,out] 物理转置、Gemma 1+w 
+           -scale 折叠                                                   
+      6184 -    // （g1/g2 变 ones，折叠进 q/k/v/gate/up——probe 图直接消 
+           -费该约定）                                                   
+      6185 -    let real = std::env::var("GEB_CKPT").ok().map(|path| {   
+      6177 +// ----------------------------------------------------------
+           +-----------------                                            
+      6178 +// GeServe 门面（④C in-process 直调面）：三段 OM per-frame 推
+           +理。                                                         
+      6179 +// spool serve_loop 与 PyO3（apxinf-py --features ascend）共 
+           +用同一帧实现。                                               
+      6180 +// 驱动入口（env 分发 / GEB_CKPT 加载）见 examples/ge_model_p
+           +robe.rs。                                                    
+      6181 +// ----------------------------------------------------------
+           +-----------------                                            
+      6182 +                                                             
+      6183 +/// 一帧推理结果：actions [HOR, ADIM] flow 终态 + 段计时（ms 
+           +）+                                                          
+      6184 +/// vision_out [VT, PW]（对拍/调试用，生产可忽略）           
+      6185 +pub struct GeServeOut {                                      
+      6186 +    pub actions: Vec<f16>,                                   
+      6187 +    pub vision_out: Vec<f16>,                                
+      6188 +    pub vision_ms: f32,                                      
+      6189 +    pub prefix_ms: f32,                                      
+      6190 +    pub flow_ms: f32,                                        
+      6191 +}                                                            
+      6192 +                                                             
+      6193 +/// 进程内三段管线（= serve 桶的机械组）。open 走与探针 bring
+           +-up 完全                                                     
+      6194 +/// 相同的构装路径（含首帧 warmup 与 styles 预计算）；infer  
+           +与 serve_loop                                                
+      6195 +/// 逐帧同源。                                               
+      6196 +pub struct GeServe {                                         
+      6197 +    vm: VisionMech,                                          
+      6198 +    pm: PrefixMech,                                          
+      6199 +    fm: FlowMech,                                            
+      6200 +    pub tokens: usize,                                       
+      6201 +    pub fast: bool,                                          
+      6202 +}                                                            
+      6203 +                                                             
+      6204 +impl GeServe {                                               
+      6205 +    /// 从预置桶目录开一条管线。前置：ge_builder::init + Asce
+           +ndBackend::new                                               
+      6206 +    /// 已由调用方完成（GE 全局初始化须先于 acl runtime）；re
+           +al = 真权重                                                  
+      6207 +    /// （token 嵌入/styles 条件 host 消费面）。             
+      6208 +    /// env 契约：om_dir 内 {vision,prefix,flow}_real.om 须与
+           +四件套                                                       
+      6209 +    /// （GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONS
+           +T=1）同配置                                                  
+      6210 +    /// 构建；本函数自行补设缺省 env（GEB_SEG=e2e / GEB_TOKEN
+           +S /                                                          
+      6211 +    /// GEB_OM_DIR / GEB_E2E_SERVE——后者是三段机械下沉的既定 
+           +闸门），                                                     
+      6212 +    /// GEB_NORM32 桶拓扑不同不支持。                        
+      6213 +    /// ⚠ 进程级单管线：配置走进程全局 env，多桶（多 L）须多 
+           +进程或先扩展                                                 
+      6214 +    pub fn open(                                             
+      6215 +        be: &AscendBackend,                                  
+      6216 +        real: &Pi05Weights,                                  
+      6217 +        om_dir: &str,                                        
+      6218 +        tokens: usize,                                       
+      6219 +        fast: bool,                                          
+      6220 +    ) -> GeServe {                                           
+      6221 +        assert!(!norm32_enabled(), "GeServe 不支持 GEB_NORM32
+           + 桶（拓扑不同）");                                           
+      6222 +        for (k, v) in [                                      
+      6223 +            ("GEB_SEG", "e2e"),                              
+      6224 +            ("GEB_ATTN", "manual"),                          
+      6225 +            ("GEB_QKV3", "1"),                               
+      6226 +            ("GEB_ROPEFLAT", "1"),                           
+      6227 +            ("GEB_WCONST", "1"),                             
+      6228 +        ] {                                                  
+      6229 +            if std::env::var(k).unwrap_or_default().is_empty(
+           +) {                                                          
+      6230 +                std::env::set_var(k, v);                     
+      6231 +            }                                                
+      6232 +        }                                                    
+      6233 +        if std::env::var("GEB_E2E_SERVE").is_err() {         
+      6234 +            std::env::set_var("GEB_E2E_SERVE", "__inproc__");
+      6235 +        }                                                    
+      6236 +        std::env::set_var("GEB_TOKENS", tokens.to_string()); 
+      6237 +        std::env::set_var("GEB_OM_DIR", om_dir);             
+      6238 +        if fast {                                            
+      6239 +            std::env::set_var("GEB_SERVE_FAST", "1");        
+      6240 +        }                                                    
+      6241 +        // 合成 bring-up 输入（首帧 warmup 消费；真实帧走 inf
+           +er）                                                         
+      6242 +        let mut seed = 0xE2E2u32;                            
+      6243 +        let mut st = E2eStage {                              
+      6244 +            patches: rand_f16((VT * V_PATCH_W) as usize, &mut
+           + seed, 300.0),                                               
+      6245 +            token_ids: (0..tokens).map(|i| 1000 + i as u32 * 
+           +7).collect(),                                                
+      6246 +            noise: rand_f16((HOR * ADIM) as usize, &mut seed,
+           + 1.0),                                                       
+      6247 +            golden_actions: None,                            
+      6248 +            golden_mid: Vec::new(),                          
+      6249 +            vision_out: Vec::new(),                          
+      6250 +            kv: Vec::new(),                                  
+      6251 +            actions: Vec::new(),                             
+      6252 +            replay: Vec::new(),                              
+      6253 +            vmech: None,                                     
+      6254 +            pmech: None,                                     
+      6255 +            fmech: None,                                     
+      6256 +        };                                                   
+      6257 +        seg_vision(be, false, Some(real), Some(&mut st));    
+      6258 +        seg_prefix(be, false, Some(real), Some(&mut st));    
+      6259 +        seg_flow(be, false, Some(real), Some(&mut st));      
+      6260 +        let fast = serve_fast();                             
+      6261 +        GeServe {                                            
+      6262 +            vm: st.vmech.take().expect("GeServe vision 机械缺
+           +失"),                                                        
+      6263 +            pm: st.pmech.take().expect("GeServe prefix 机械缺
+           +失"),                                                        
+      6264 +            fm: st.fmech.take().expect("GeServe flow 机械缺失
+           +"),                                                          
+      6265 +            tokens,                                          
+      6266 +            fast,                                            
+      6267 +        }                                                    
+      6268 +    }                                                        
+      6269 +                                                             
+      6270 +    /// 一帧推理：patches [VT*V_PATCH_W] / token_ids [tokens]
+           + / noise                                                     
+      6271 +    /// [HOR*ADIM] → actions [HOR, ADIM]（normalized_actions 
+           +，denorm 在                                                  
+      6272 +    /// torch 后处理）                                       
+      6273 +    pub fn infer(                                            
+      6274 +        &mut self,                                           
+      6275 +        be: &AscendBackend,                                  
+      6276 +        patches: &[f16],                                     
+      6277 +        token_ids: &[u32],                                   
+      6278 +        noise: &[f16],                                       
+      6279 +    ) -> GeServeOut {                                        
+      6280 +        let ctx = be.ctx();                                  
+      6281 +        let stream = be.stream();                            
+      6282          let t0 = std::time::Instant::now();
+      6187 -        let w = Pi05Weights::from_safetensors(               
+      6188 -            &apxinf_model::Pi05Config::default(),            
+      6189 -            std::path::Path::new(&path),                     
+      6190 -        )                                                    
+      6191 -        .expect("GEB_CKPT load");                            
+      6192 -        println!("GEB_CKPT: {path} loaded in {:?}", t0.elapse
+           -d());                                                        
+      6193 -        w                                                    
+      6194 -    });                                                      
+      6195 -    if let Ok(t) = std::env::var("GEB_OPTEST") {             
+      6196 -        optest(&be, &t, real.as_ref());                      
+      6197 -        return;                                              
+      6283 +        let vision_out = self.vm.one_frame(ctx, stream, patch
+           +es);                                                         
+      6284 +        let vision_ms = t0.elapsed().as_secs_f64() * 1e3;    
+      6285 +        let (actions, prefix_ms, flow_ms) = if self.fast {   
+      6286 +            // GEB_SERVE_FAST：kv 设备直连 + styles 驻留 + x 
+           +驻留（tp 仍含                                                
+      6287 +            // prefix run 的 sync 等待——段计时与 legacy 可比 
+           +）                                                           
+      6288 +            let t1 = std::time::Instant::now();              
+      6289 +            self.pm.one_frame_dev(ctx, stream, &vision_out, t
+           +oken_ids);                                                   
+      6290 +            let prefix_ms = t1.elapsed().as_secs_f64() * 1e3;
+      6291 +            let kvrefs: Vec<&DeviceBuffer> = self.pm.routs[..
+           +self.pm.nkv].iter().collect();                               
+      6292 +            let t2 = std::time::Instant::now();              
+      6293 +            let actions = self.fm.one_frame_fast(ctx, stream,
+           + &kvrefs, noise);                                            
+      6294 +            (actions, prefix_ms, t2.elapsed().as_secs_f64() *
+           + 1e3)                                                        
+      6295 +        } else {                                             
+      6296 +            let t1 = std::time::Instant::now();              
+      6297 +            let kv = self.pm.one_frame(ctx, stream, &vision_o
+           +ut, token_ids);                                              
+      6298 +            let prefix_ms = t1.elapsed().as_secs_f64() * 1e3;
+      6299 +            let t2 = std::time::Instant::now();              
+      6300 +            let actions = self.fm.one_frame(ctx, stream, &kv,
+           + noise);                                                     
+      6301 +            (actions, prefix_ms, t2.elapsed().as_secs_f64() *
+           + 1e3)                                                        
+      6302 +        };                                                   
+      6303 +        GeServeOut {                                         
+      6304 +            actions,                                         
+      6305 +            vision_out,                                      
+      6306 +            vision_ms: vision_ms as f32,                     
+      6307 +            prefix_ms: prefix_ms as f32,                     
+      6308 +            flow_ms: flow_ms as f32,                         
+      6309 +        }                                                    
+      6310      }
+      6199 -    match seg.as_str() {                                     
+      6200 -        "vision" => seg_vision(&be, bench, real.as_ref(), Non
+           -e),                                                          
+      6201 -        "prefix" => seg_prefix(&be, bench, real.as_ref(), Non
+           -e),                                                          
+      6202 -        "flow" => seg_flow(&be, bench, real.as_ref(), None), 
+      6203 -        "e2e" => seg_e2e(&be, bench, real.as_ref()),         
+      6204 -        other => panic!("GEB_SEG: vision|prefix|flow|e2e, got
+           - {other}"),                                                  
+      6205 -    }                                                        
+      6311  }
+
+● 现在 serve_loop 重构（mech take → GeServe 构造，帧体 → pipe.infer）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines, removed 5 lines
+      1892  ///                          actions f32 ×HOR*7（x_t 终态前 7
+             列）
+      1893  ///   shutdown           —— 退出信号
+      1894  pub fn serve_loop(be: &AscendBackend, st: &mut E2eStage, dir:
+             &str, tokens: usize) {
+      1895 -    let ctx = be.ctx();                                      
+      1896 -    let stream = be.stream();                                
+      1897 -    let mut vm = st.vmech.take().expect("serve 需要 vision 机
+           -械");                                                        
+      1898 -    let mut pm = st.pmech.take().expect("serve 需要 prefix 机
+           -械");                                                        
+      1899 -    let mut fm = st.fmech.take().expect("serve 需要 flow 机械
+           -");                                                          
+      1895 +    // 帧实现与进程内直调（GeServe::infer）同源——spool 只是 I
+           +O 壳                                                         
+      1896 +    let mut pipe = GeServe {                                 
+      1897 +        vm: st.vmech.take().expect("serve 需要 vision 机械"),
+      1898 +        pm: st.pmech.take().expect("serve 需要 prefix 机械"),
+      1899 +        fm: st.fmech.take().expect("serve 需要 flow 机械"),  
+      1900 +        tokens,                                              
+      1901 +        fast: serve_fast(),                                  
+      1902 +    };                                                       
+      1903      std::fs::create_dir_all(dir).expect("serve spool create")
+            ;
+      1904      // 清残留（上次运行的 req/resp/ready 会混淆 seq 与就绪判
+            定）。
+      1905      // ⚠ 只删协议文件：pid 是 supervisor 的活体判定依据、stdo
+            ut.log 是
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 5 lines, removed 24 lines
+      1975              .chunks_exact(4)
+      1976              .map(|c| f16::from_f32(f32s(c)))
+      1977              .collect();
+      1978 -        let t0 = std::time::Instant::now();                  
+      1979 -        let vision_out = vm.one_frame(ctx, stream, &patches);
+      1980 -        let tv = t0.elapsed().as_secs_f64() * 1e3;           
+      1981 -        let actions;                                         
+      1982 -        let tp;                                              
+      1983 -        let tf;                                              
+      1984 -        if serve_fast() {                                    
+      1985 -            // GEB_SERVE_FAST：kv 设备直连 + styles 驻留 + x 
+           -驻留（tp 仍含                                                
+      1986 -            // prefix run 的 sync 等待——段计时与 legacy 可比 
+           -）                                                           
+      1987 -            let t1 = std::time::Instant::now();              
+      1988 -            pm.one_frame_dev(ctx, stream, &vision_out, &ids);
+      1989 -            tp = t1.elapsed().as_secs_f64() * 1e3;           
+      1990 -            let kvrefs: Vec<&DeviceBuffer> = pm.routs[..pm.nk
+           -v].iter().collect();                                         
+      1991 -            let t2 = std::time::Instant::now();              
+      1992 -            actions = fm.one_frame_fast(ctx, stream, &kvrefs,
+           - &noise);                                                    
+      1993 -            tf = t2.elapsed().as_secs_f64() * 1e3;           
+      1994 -        } else {                                             
+      1995 -            let t1 = std::time::Instant::now();              
+      1996 -            let kv = pm.one_frame(ctx, stream, &vision_out, &
+           -ids);                                                        
+      1997 -            tp = t1.elapsed().as_secs_f64() * 1e3;           
+      1998 -            let t2 = std::time::Instant::now();              
+      1999 -            actions = fm.one_frame(ctx, stream, &kv, &noise);
+      2000 -            tf = t2.elapsed().as_secs_f64() * 1e3;           
+      2001 -        }                                                    
+      1978 +        let out = pipe.infer(be, &patches, &ids, &noise);    
+      1979 +        let tv = out.vision_ms as f64;                       
+      1980 +        let tp = out.prefix_ms as f64;                       
+      1981 +        let tf = out.flow_ms as f64;                         
+      1982 +        let actions = out.actions;                           
+      1983          // actions [HOR, ADIM] → 前 7 列（LIBERO deployable 
+            维；
+      1984          // normalized_actions = x_t 终态切片，denorm 在 torch
+             postprocess）
+      1985          let gd = 7usize;
+
+  Thought for 4s (ctrl+o to expand)
+● 头部文档补库面定位：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 6 lines
+      1 +//! GE 三段 OM（vision/prefix/flow）执行器——**crate 库面**（原 g
+        +e_model_probe                                                   
+      2 +//! 探针于 2026-09-23 下沉）：三段建图/对拍/bench、E2eStage、三 
+        +段 per-frame                                                    
+      3 +//! 机械（VisionMech/PrefixMech/FlowMech，含 GEB_SERVE_FAST 设备
+        +直连）、                                                        
+      4 +//! spool serve_loop、**GeServe 进程内直调门面**（④C；PyO3/serve
+        + 同源帧实现）。                                                 
+      5 +//! 探针驱动（env 分发/GEB_CKPT 加载）在 examples/ge_model_probe
+        +.rs。                                                           
+      6 +//!                                                             
+      7  //! C2 三段 OM 全量探针：vision / prefix / flow 三段各自声明为 G
+         E 静态
+      8  //! OM（ge_builder FFI），与 eager aclnn 组合同输入同序列对拍 + 
+         bench。
+      9  //! flow 段是单步 OM（10 步 flow 由调用方执行 10 次换绑定）。
+
+  Thought for 6s (ctrl+o to expand)
+
+● pi05/mod.rs 接线（先读现状）：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\mod.rs)
+  ⎿  Added 2 lines
+       8  #[cfg(feature = "ascend")]
+       9  mod ascend_executor;
+      10  #[cfg(feature = "ascend")]
+      11 +mod ascend_ge;                                                 
+      12 +#[cfg(feature = "ascend")]                                     
+      13  mod ascend_runtime;
+      14  #[cfg(feature = "ascend")]
+      15  mod ascend_vla;
+
+● Update(apxinf\crates\apxinf-model\src\pi05\mod.rs)
+  ⎿  Added 4 lines
+      60      AscendCaches, AscendRopeCache,
+      61  };
+      62  #[cfg(feature = "ascend")]
+      63 +pub use ascend_ge::{                                           
+      64 +    seg_e2e, seg_flow, seg_prefix, seg_vision, serve_loop, GeSe
+         +rve, GeServeOut,                                               
+      65 +};                                                             
+      66 +#[cfg(feature = "ascend")]                                     
+      67  pub use ascend_runtime::{AscendPrefixKvCache, Pi05AscendRuntime
+          };
+      68  #[cfg(feature = "ascend")]
+      69  pub use ascend_vla::Pi05AscendVlaRuntime;
+
+  Thought for 16s (ctrl+o to expand)
+
+● 写新薄 example（新建文件）+ Cargo.toml 注册 + mod.rs 导出 optest：
+
+● Write(apxinf\crates\apxinf-model\examples\ge_model_probe.rs)
+  ⎿  Wrote 41 lines to
+     apxinf\crates\apxinf-model\examples\ge_model_probe.rs
+      1 //! GE 三段 OM 探针驱动（薄壳）：env 分发 + GEB_CKPT 加载 + ge_bu
+      2 //! 初始化序。全部实现已下沉 apxinf-model/src/pi05/ascend_ge.rs（
+        crate 库面；
+        集与协议
+      4 //! 见 ascend_ge.rs 头部注释。
+      6 //! 运行（rust 容器，先 source /data/apxinf/rust_env.sh）：
+      7 //!   GEB_SEG=vision GEB_DEPTH=2 cargo run --example ge_model_pro
+      8 //!   GEB_SEG=e2e GEB_E2E_SERVE=<spool 目录> GEB_TOKENS=144 GEB_C
+        KPT=<ckpt>
+        isor.sh 代劳）
+     … +45 lines (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\mod.rs)
+  ⎿  Added 1 line, removed 1 line
+      61  };
+      62  #[cfg(feature = "ascend")]
+      63  pub use ascend_ge::{
+      64 -    seg_e2e, seg_flow, seg_prefix, seg_vision, serve_loop, GeSe
+         -rve, GeServeOut,                                               
+      64 +    optest, seg_e2e, seg_flow, seg_prefix, seg_vision, serve_lo
+         +op, GeServe, GeServeOut,                                       
+      65  };
+      66  #[cfg(feature = "ascend")]
+      67  pub use ascend_runtime::{AscendPrefixKvCache, Pi05AscendRuntime
+          };
+
+  Thought for 5s (ctrl+o to expand)
+
+● Cargo.toml 注册 example：
+
+● Update(apxinf\crates\apxinf-model\Cargo.toml)
+  ⎿  Added 4 lines
+      39  [[example]]
+      40  name = "vision_check"
+      41  required-features = ["cuda"]
+      42 +                                                               
+      43 +[[example]]                                                    
+      44 +name = "ge_model_probe"                                        
+      45 +required-features = ["ascend"]                                 
+
+  Thought for 26s (ctrl+o to expand)
+
+● 本地改动齐了。自查遗漏：段构造里还有哪些 env 影响拓扑一致性（open 必须钉死）：
+
+  Thought for 28s, searched for 1 pattern (ctrl+o to expand)
+
+● 补钉拓扑一致性 env（DEPTH/PREFIX_DROP_EMPTY/LAYER_OFFSET——python
+  进程环境不受控，须与 OM 全深一致）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 5 lines
+      6215              ("GEB_QKV3", "1"),
+      6216              ("GEB_ROPEFLAT", "1"),
+      6217              ("GEB_WCONST", "1"),
+      6218 +            // 拓扑一致性（Seg 构造读，须与 OM 全深构建同值；
+           +进程内场景                                                   
+      6219 +            // env 不受控，一律钉死）                        
+      6220 +            ("GEB_DEPTH", "18"),                             
+      6221 +            ("GEB_PREFIX_DROP_EMPTY", "256"),                
+      6222 +            ("GEB_LAYER_OFFSET", "0"),                       
+      6223          ] {
+      6224              if std::env::var(k).unwrap_or_default().is_empty(
+            ) {
+      6225                  std::env::set_var(k, v);
+
+  Thought for 7s (ctrl+o to expand)
+
+● 推服务器编译。先本地子模块 commit：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git branch
+      --show-current && git log --oneline -2)
+  ⎿   M crates/apxinf-model/Cargo.toml
+     RM crates/apxinf-model/examples/ge_model_probe.rs -> crates/apxinf-mod
+     el/src/pi05/ascend_ge.rs
+     … +7 lines (ctrl+o to expand)
+
+● Bash(git add crates/apxinf-model/Cargo.toml
+      crates/apxinf-model/src/pi05/ascend_ge.rs
+      crates/apxinf-model/src/pi05/mod.rs
+      crates/apxinf-model/examples/ge_model_probe…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'crates/apxinf-model/examples/ge_model
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 推送 fork + 查服务器仓库同步状态：
+
+● Bash(git push fork ascend-port 2>&1 | tail -3)
+  ⎿  To github.com:WeNeedMoreCode/ApxInf.git
+        29795b3..e7e4cd1  ascend-port -> ascend-port
+
+● Bash(ssh root@192.168.13.119 "cd /data/apxinf/apxinf_engine && git remote -v |
+      head -2 && git status --short | head -5 && git log --oneline -1")
+  ⎿  Error: Exit code 128
+     fatal: not a git repository (or any parent up to mount point /)
+     Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+     fatal: not a git repository (or any parent up to mount point /)
+     Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+     fatal: not a git repository (or any parent up to mount point /)
+     Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+
+  Thought for 16s (ctrl+o to expand)
+
+● 推平（29795b3..e7e4cd1）。服务器引擎目录非 git 仓——按 scp 同步四个文件。⚠ eval
+  正在跑：新桶 lazy bake 会直接用 target 里的二进制，所以编译必须走独立 target 
+  目录（不碰生产二进制）。先看 eval 进度：
+● Bash(date '+%F %T'; ssh root@192.168.13.119 "docker exec apxinf_npu bash -c
+      'cat /data/apxinf/serve/eval_gatefastall_summary.json 2>/dev/null | head
+      -20; pgrep -c -f…)
+  ⎿  2026-09-23 17:59:24
+     {
+       "completed_runs": 10,
+     … +20 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Eval 已完成 10/10。拿终数（success + model_ms 全量口径）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      import json…)
+  ⎿  success: 10 / 10
+     {}
+     ===
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      import json…)
+  ⎿  Error: Exit code 1
+     n = 0
+     Traceback (most recent call last):
+       File "<string>", line 7, in <module>
+     IndexError: list index out of range
+
+  Thought for 7s (ctrl+o to expand)
+
+● jsonl 字段名不同，看实际结构：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu head -c 600
+      /data/apxinf/serve/eval_gatefastall.jsonl; echo; wc -l
+      /data/apxinf/serve/eval_gatefastall.jsonl")
+  ⎿  {"action_steps": 165, "attempt": 1, "elapsed_seconds": 923.64314456004
+     65, "first_action_abs_checksum": 95.8049087524414, "first_warm_noise_a
+     bs_checksum": null, "image_input": "openpi_uint8_hwc", "inference_seco
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 字段是秒制。列全字段找 per-call 指标：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      import json, statistics…)
+  ⎿  ['action_steps', 'attempt', 'elapsed_seconds', 'first_action_abs_check
+     sum', 'first_warm_noise_abs_checksum', 'image_input', 'inference_secon
+     ds', 'model_seconds', 'precision', 'preprocess_seconds', 'prompt', 're
+     … +3 lines (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      import json, statistics…)
+  ⎿  (0, True, 165, 34, 260.5)
+     (1, True, 128, 27, 256.5)
+     (2, True, 119, 25, 256.3)
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 全量回归终数锁定：success 10/10 + model_ms P50 256.3ms = 0.682×（与 task0 单测
+  254.3 一致，跨任务 254.5-260.5 极稳）——0.68× 全量口径坐实，④A+B 收口。
+
+  现在同步库化改动到服务器编译验证（独立 target 目录，不碰生产二进制）：
+
+● Bash(cd /d/compass/APXinf/apxinf/crates/apxinf-model && scp Cargo.toml root@19
+      2.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-model/Cargo.toml &&
+      scp src/pi05/…)
+  ⎿  SCP_OK
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'source
+      /data/apxinf/rust_env.sh && cd /data/apxinf/apxinf_engine &&
+      CARGO_TARGET_DIR=/data/apxinf/targ…)
+  ⎿       |                  |
+          |                  argument has type `std::result::Result<(), Acl
+     Error>`
+     … +24 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 11s (ctrl+o to expand)
+
+● check 一次过（21s，零 error，78 个 warning 全是既有风格）。继续 release
+  构建（独立 target）+ 看 A/B 冒烟脚本：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'source
+      /data/apxinf/rust_env.sh && cd /data/apxinf/apxinf_engine &&
+      CARGO_TARGET_DIR=/data/apxinf/targ…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 17s, read 1 file (ctrl+o to expand)
+
+● 构建后台跑着。准备验证梯：先 golden 对拍（全链数值裁判）再 serve 冒烟。查
+  golden 文件与 smoke 客户端：
+
+● Bash(ssh root@192.168.13.119 "ls /data/apxinf/golden*
+      /data/apxinf/serve/golden* 2>/dev/null | head; find /data/apxinf -maxdepth
+      2 -name '*frame0*' -o -maxdepth 2 -n…)
+  ⎿  /data/apxinf/golden_gen.py
+     /data/apxinf/golden_gen_v3.py
+     … +40 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Golden 齐全（frame0_v3/v3b）。查构建进度：
+
+● Bash(sleep 60; cat "C:\Users\素玄\AppData\Local\Temp\claude\D--compass-APXinf\
+      7bccc587-c325-43ca-9bce-01a3b43af572\tasks\blxtix2lf.output" 2>/dev/null |
+      tail -5)
+  ⎿  warning: `apxinf-model` (lib) generated 78 warnings (run `cargo fix --
+     lib -p apxinf-model` to apply 7 suggestions)
+         Finished `release` profile [optimized] target(s) in 41.20s
+     … +3 lines (ctrl+o to expand)
+
+● Background command "Release build in isolated target dir" completed (exit code
+0)
+
+  Thought for 1m 1s (ctrl+o to expand)
+
+● Release 构建完成（41s）。验证梯第 1 档：新二进制 golden 对拍（tl144 +
+  frame0_v3b，验证搬移零行为变化）。先查空芯，再按三步纪律传脚本：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust npu-smi info | grep -A1
+      '310P3' | grep -E '^\| [0-9]' | awk '{print \$2, \$9}' | head -8; docker
+      exec apxinf_ru…)  ⎿  0 10976
+     0 44278
+     0 10966
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Supervisor 桶活在 6/4/7/5，golden 用芯 3。写脚本 → scp → 跑：
+
+● Write(syx_docs\dev_logs\golden_newbin.sh)
+  ⎿  Wrote 19 lines to syx_docs\dev_logs\golden_newbin.sh
+       1 #!/bin/bash
+       2 # 库化后新二进制 golden 对拍（验证梯第 1 档：搬移零行为变化）。
+       3 # 用法：golden_newbin.sh <chip>；期望与旧二进制同数字：
+         gate 版基线）
+       5 set -u
+       6 CHIP=${1:?chip}
+       7 BIN=/data/apxinf/target_libcheck/release/examples/ge_model_probe
+       9 env ASCEND_RT_VISIBLE_DEVICES=$CHIP \
+      10   LD_LIBRARY_PATH="/data/apxinf/ascendc/ge_builder/build:/usr/lo
+         cal/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}" \
+     … +12 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/golden_newbin.sh
+      root@192.168.13.119:/tmp/golden_newbin.sh && ssh root@192.168.13.119
+      "docker cp /tmp/golden_newbin.sh a…)
+  ⎿  [e2e] golden: /data/apxinf/golden/frame0_v3b.safetensors
+     thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:17
+     59:13:
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 21s (ctrl+o to expand)
+
+● Panic 在 1759（golden 加载块）。看该行内容 + panic 详情：
+
+● Bash(sed -n '1755,1763p'
+      /d/compass/APXinf/apxinf/crates/apxinf-model/src/pi05/ascend_ge.rs; ssh
+      root@192.168.13.119 "docker exec apxinf_rust bash /tmp/g.sh 3" 2>&1…)
+  ⎿                  t.get(k).unwrap_or_else(|| panic!("golden 缺键 {k}")).
+     to_f32_vec().unwrap()
+                 };
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 查 golden v3b 实际 token 数：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      from safetensors.numpy import load_file…)
+  ⎿  frame0_v3b {'actions': (50, 7), 'cond_s0': (1024,), 'cond_s1': (1024,)
+     , 'cond_s2': (1024,), 'cond_s3': (1024,), 'cond_s4': (1024,)} nkeys 63
+     frame0_v3 {'actions': (50, 7), 'h1': (968, 2048), 'h1_vis': (712, 2048
+     … +5 lines (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      from safetensors.numpy import load_file…)
+  ⎿  token_ids (200,)
+     v3 token_ids (200,)
+
+  Thought for 6s (ctrl+o to expand)
+
+● golden 是 L=200（pad 后）——历史对拍用 tl200 桶。查 tl200 OM 后修脚本：
+
+● Bash(ssh root@192.168.13.119 "ls /data/apxinf/om_cache/ | head -30; ls -la
+      /data/apxinf/om_cache/tl200/ 2>/dev/null")
+  ⎿  d2
+     d2off
+     d2pfa
+     … +33 lines (ctrl+o to expand)
+
+  Thought for 22s (ctrl+o to expand)
+
+● tl200 OM 是 pre-gate 陈旧版（9/22 02:09 < gate 重烤
+  17:02）——须重烤。看烤桶脚本，同时先跑 serve 冒烟 A/B（tl144 OM 新鲜，验证
+  serve 面 + GeServe 重构）：
+
+● Bash(ssh root@192.168.13.119 "cat /tmp/prebake_gate.sh 2>/dev/null | head
+      -40")
+  ⎿  #!/bin/bash
+     # gate 版 flow 并行预烤（eval 桶准备）：删过期 flow → 9 个 L × chips 4
+     /6/7
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 21s (ctrl+o to expand)
+
+● Gate 修复只重烤了 flow OM（vision/prefix 不受影响）——tl200 只补烤 flow
+  即可。写两个脚本：tl200 flow 重烤（新二进制，顺验建图面）+ 新二进制冒烟：
+
+● Write(syx_docs\dev_logs\bake_tl200_newbin.sh)
+  ⎿  Wrote 22 lines to syx_docs\dev_logs\bake_tl200_newbin.sh
+       1 #!/bin/bash
+       2 # tl200 flow_real.om gate 版重烤（golden v3b 是 L=200；旧 tl200 
+       3 # pre-gate 陈旧版）。用库化后新二进制——顺带验证搬移后建图面。
+       4 set -u
+       5 CHIP=${1:?chip}
+       7 source /data/apxinf/rust_env.sh
+       8 export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/us
+         r/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+      10 export GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 GE
+         B_PREFIX_DROP_EMPTY=256
+     … +16 lines (ctrl+o to expand)
+
+● Write(syx_docs\dev_logs\ab_serve_newbin.sh)
+  ⎿  Wrote 35 lines to syx_docs\dev_logs\ab_serve_newbin.sh
+       1 #!/bin/bash
+       2 # 新二进制（库化后）serve 桶直起：BIN = target_libcheck。用法：
+       3 #   ab_serve_newbin.sh <legacy|fast> <chip>
+       4 # 与 ab_serve_fast.sh（旧二进制）对照——同 OM 同帧，输出须 bit 级
+         一致。
+       6 MODE=${1:?legacy|fast}
+       7 CHIP=${2:?chip}
+       8 ROOT=/data/apxinf/serve
+       9 SPOOL=$ROOT/tl144
+      10 OM=/data/apxinf/om_cache
+     … +32 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/bake_tl200_newbin.sh
+      /d/compass/APXinf/syx_docs/dev_logs/ab_serve_newbin.sh
+      root@192.168.13.119:/tmp/ && ssh root@192.16…)
+  ⎿  COPIED
+
+  Thought for 9s (ctrl+o to expand)
+
+● 执行序列：tl200 烤桶后台起（chip 3）→ 停 supervisor+桶（释放芯，防 spool
+  冲突）：
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_rust bash /tmp/b.sh 3;
+      sleep 2; docker exec apxinf_rust bash -c 'kill 1421671 2>/dev/null; for p
+      in \$(pgrep -f \…)
+  ⎿  132
+     SUP_STOPPED
+     Wed Sep 23 10:12:29 AM UTC 2026
+
+  Thought for 3s (ctrl+o to expand)
+
+● 132 个匹配多为僵尸。辨真活体（非 Z）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'for p in
+      \$(pgrep -f \"ge_model_prob[e]\"); do st=\$(cut -d\" \" -f3 /proc/\$p/stat
+      2>/dev/null); [ \"…)  ⎿  SCAN_DONE
+
+  Thought for 6s (ctrl+o to expand)
+
+● 无活体——烤桶可能秒挂。查日志：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'tail -15
+      /tmp/bake_tl200_newbin.log 2>/dev/null; echo ===; pgrep -fa \"b.sh\" |
+      head -3; echo ===; ls…)
+  ⎿  ===
+     1103879 [bash] <defunct>
+     1150968 [bash] <defunct>
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 空日志 = 脚本在 source 阶段就死（set -u 撞 rust_env.sh
+  未定义变量）。修脚本（去 set -u）重传，改 nohup 落盘跑：
+
+● Update(syx_docs\dev_logs\bake_tl200_newbin.sh)
+  ⎿  Added 1 line, removed 1 line
+      1  #!/bin/bash
+      2  # tl200 flow_real.om gate 版重烤（golden v3b 是 L=200；旧 tl200 
+         flow 是
+      3  # pre-gate 陈旧版）。用库化后新二进制——顺带验证搬移后建图面。
+      4 -set -u                                                          
+      4 +# ⚠ 无 set -u：rust_env.sh 引用未定义变量会炸（bake 首跑教训）  
+      5  CHIP=${1:?chip}
+      6  BIN=/data/apxinf/target_libcheck/release/examples/ge_model_probe
+      7  source /data/apxinf/rust_env.sh
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/bake_tl200_newbin.sh
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/bake_tl200_newbin.sh apxinf_ru…)
+  ⎿  ===
+     /tmp/b.sh: line 14: export: `GEB_INIT_OPT_ge.fusionSwitchFile=/data/ap
+     xinf/fusion_off_inplace.json': not a valid identifier
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● export 不吃带点变量名（ab 脚本用的是 env 前缀）。而且旧脚本没死还在跑（无
+  fusion_off 烤图会产出污染 OM）——先杀再修：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'kill 2020814
+      2020820 2>/dev/null; pkill -f \"ge_model_probe.*GEB_SEG\" 2>/dev/null; for
+      p in \$(pgrep…)
+  ⎿  Error: Exit code 143
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'for p in
+      \$(pgrep -f \"ge_model_prob[e]\"); do st=\$(cut -d\" \" -f3 /proc/\$p/stat
+      2>/dev/null); [ \"…)
+  ⎿  still_alive 2020821
+     KILL_PASSED
+     -rw-r--r-- 1 root root 627678595 Sep 22 02:09 /data/apxinf/om_cache/tl
+     200/flow_real.om
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'kill -9 2020821
+      2>/dev/null; sleep 1; pgrep -f \"ge_model_prob[e]\" | while read p; do
+      st=\$(cut -d\"…)
+  ⎿  CLEAN
+     1103879
+     1150968
+
+  Thought for 11s (ctrl+o to expand)
+
+● 修脚本（带点 env 走 env 前缀；烤图不需要 rust_env，去掉 source）：
+
+● Update(syx_docs\dev_logs\bake_tl200_newbin.sh)
+  ⎿  Added 2 lines, removed 3 lines
+       4  # ⚠ 无 set -u：rust_env.sh 引用未定义变量会炸（bake 首跑教训）
+       5  CHIP=${1:?chip}
+       6  BIN=/data/apxinf/target_libcheck/release/examples/ge_model_prob
+          e
+       7 -source /data/apxinf/rust_env.sh                                
+       7  export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/u
+          sr/local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-
+          }
+       8  export GEB_CKPT=/data/apxinf/weights/pi05_libero_finetuned
+       9  export GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 G
+          EB_PREFIX_DROP_EMPTY=256
+      10  export GEB_SEG=flow
+      11  export GEB_TOKENS=200
+      12  export GEB_SAVE=/data/apxinf/om_cache/tl200/flow_real.om
+      14 -export GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off
+         -_inplace.json                                                  
+      13  export ASCEND_RT_VISIBLE_DEVICES=$CHIP
+      14  cd /data/apxinf/apxinf_engine || exit 1
+      17 -"$BIN" > /tmp/bake_tl200_newbin.log 2>&1                       
+      15 +env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_i
+         +nplace.json" \                                                 
+      16 +  "$BIN" > /tmp/bake_tl200_newbin.log 2>&1                     
+      17  RC=$?
+      18  ls -la /data/apxinf/om_cache/tl200/flow_real.om
+      19  echo "BAKE_TL200_RC=$RC"
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/bake_tl200_newbin.sh
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/bake_tl200_newbin.sh apxinf_ru…)
+  ⎿  [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+     ===
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 烤桶在跑（fusionSwitchFile 生效）。并行推进冒烟 A/B——先起旧二进制 fast
+  基线桶（chip 2）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash
+      /data/apxinf/serve/ab_serve_fast.sh fast 2; sleep 100; docker exec
+      apxinf_rust bash -c 'ls /data/apxinf/se…)
+  ⎿  Error: Exit code 2
+     -rw-r--r-- 1 root root 833926285 Sep 21 16:14 
+     /data/apxinf/om_cache/tl144/vision_real.om
+     -rw-r--r-- 1 root root 3757717755 Sep 21 16:17 
+     /data/apxinf/om_cache/tl144/prefix_real.om
+     -rw-r--r-- 1 root root 628099658 Sep 22 17:02 
+     /data/apxinf/om_cache/tl144/flow_real.om
+     AB_SERVE_SPAWNED mode=fast chip=2 pid=2022191
+     Wed Sep 23 10:15:19 UTC 2026
+
+  Thought for 5s (ctrl+o to expand)
+
+● 桶起了（三件套新鲜度打印 + pid 2022191），ready 还没出（起桶 ~3min）。等 ready
+  再 touch + 打冒烟：
+
+● Bash(sleep 120; ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ls
+      /data/apxinf/serve/tl144/ready 2>/dev/null && touch
+      /data/apxinf/serve/tl144/ready; tail…)
+  ⎿  /data/apxinf/serve/tl144/ready
+     [e2e] actions head=[14.3671875, -61.4375, -6.5976563, 14.0625, -44.406
+     25, 19.625, 65.6875, 89.8125]
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu bash -c
+      'PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf python3
+      /data/apxinf/serve/smoke.py 0';…)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  (timeout 5m)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Smoke 卡住转后台。查中间输出 + 桶日志：
+
+● Bash(cat "C:\Users\素玄\AppData\Local\Temp\claude\D--compass-APXinf\7bccc587-c
+      325-43ca-9bce-01a3b43af572\tasks\bcp4lr2q5.output" 2>/dev/null; ssh
+      root@192.168.13.119 "…)
+  ⎿  [smoke] t0 frame0: L=144 patches(768, 588) noise(50, 32) nact|max|=2.5
+     55
+     [e2e] 无 golden actions——只验有限性（golden 对拍/LIBERO 归下一步）
+     … +8 lines (ctrl+o to expand)
+  Thought for 11s (ctrl+o to expand)
+
+● 客户端活着但桶没收到请求。看 spool 目录现场：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust ls -la
+      /data/apxinf/serve/tl144/ | grep -v '^total'; echo ===; docker exec
+      apxinf_npu cat /proc/1162335/wchan 2…)
+  ⎿  drwxr-xr-x  2 root root  4096 Sep 23 10:18 .
+     drwxr-xr-x 16 root root  4096 Sep 23 03:46 ..
+     -rw-r--r--  1 root root     8 Sep 23 10:15 pid
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 客户端在 sleep 等。直接看 _BucketClient 的就绪判定源码：
+
+● Bash(ssh root@192.168.13.119 "grep -n 'class _BucketClient' -A 40
+      /data/apxinf/engine_py/apxinf/robo_src/apxinf_robo/npu_ge.py 2>/dev/null
+      || find /data/apxinf/engin…)
+  ⎿  /data/apxinf/robo_src/apxinf_robo/npu_ge.py
+
+● Bash(ssh root@192.168.13.119 "grep -n 'class _BucketClient' -A 45
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py")
+  ⎿  54:class _BucketClient:
+     55-    """One token-length bucket: request/response against its serve
+     process.
+     … +43 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 明白了：_ensure_ready 两轮各自取新 mark，touch(10:19) 早于第二轮 mark → mtime
+  恒小于 mark−1 判 stale。现在再 touch 一次即放行：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust touch
+      /data/apxinf/serve/tl144/ready && sleep 8 && docker exec apxinf_rust tail
+      -2 /data/apxinf/serve/tl144/std…)
+  ⎿  [serve] #2: vision=64.7 prefix=106.3 flow=80.6 total=258.4ms |x|max=2.
+     555
+     [serve] #3: vision=65.2 prefix=106.2 flow=80.5 total=258.6ms |x|max=2.
+     555
+
+● Background command "Smoke test old binary fast bucket" completed (exit code 0)
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● 旧二进制基线锁定：258ms / max_diff=0.0244 /
+  rel=1.0%（与历史一致）。换新二进制桶：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'touch
+      /data/apxinf/serve/tl144/shutdown; sleep 2; p=\$(cat
+      /data/apxinf/serve/tl144/pid); kill \$p 2>/…)
+  ⎿  OLD_BUCKET_DOWN
+     AB_NEWBIN_SPAWNED mode=fast chip=2 pid=2026646
+     Wed Sep 23 10:26:29 UTC 2026
+  ⎿  (timeout 1m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 新桶起装中。查 tl200 烤桶进度：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'tail -4
+      /tmp/bake_tl200_newbin.log; ls -la
+      /data/apxinf/om_cache/tl200/flow_real.om'")
+  ⎿  parity[flow out0] max_diff=0.00098 (ref |max|=1.062, rel=0.1%)
+     flow_PARITY_OK n_in=252 worst=0.00098 rel=0.1%
+     OM saved: /data/apxinf/om_cache/tl200/flow_real.om
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● tl200 gate 版烤成（新二进制烤——顺验建图+eager parity 面 0.1% ✓）。改 golden
+  脚本指 tl200，chip 3 跑（后台），同时等新桶：
+
+● Update(syx_docs\dev_logs\golden_newbin.sh)
+  ⎿  Added 1 line, removed 1 line
+      10    LD_LIBRARY_PATH="/data/apxinf/ascendc/ge_builder/build:/usr/l
+          ocal/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}" \
+      11    GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inpl
+          ace.json \
+      12    GEB_SEG=e2e GEB_CKPT=/data/apxinf/weights/pi05_libero_finetun
+          ed \
+      13 -  GEB_TOKENS=144 GEB_OM_DIR=/data/apxinf/om_cache/tl144 \      
+      13 +  GEB_TOKENS=200 GEB_OM_DIR=/data/apxinf/om_cache/tl200 \      
+      14    GEB_E2E_GOLDEN=/data/apxinf/golden/frame0_v3b.safetensors \
+      15    GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
+      16    GEB_PREFIX_DROP_EMPTY=256 \
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/golden_newbin.sh
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/golden_newbin.sh apxinf_rust:/tmp/…)
+  ⎿  GOLDEN_STARTED
+
+● Bash(sleep 150; ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ls
+      /data/apxinf/serve/tl144/ready 2>/dev/null && touch
+      /data/apxinf/serve/tl144/ready; echo…)
+  ⎿  /data/apxinf/serve/tl144/ready
+     ---
+     /tmp/9b_827_pc.log
+     … +9 lines (ctrl+o to expand)
+  ⎿  (timeout 4m)
+
+  Thought for 11s (ctrl+o to expand)
+
+● Golden 输出被 -d 丢弃（脚本没落盘）——稍后带落盘重跑。先打新桶 smoke：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu bash -c
+      'PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf python3
+      /data/apxinf/serve/smoke.py 0';…)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  (timeout 4m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 又是 ready mtime 竞态（touch 早于客户端启动）。客户端已在轮询，现在 touch
+  立即放行：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust touch
+      /data/apxinf/serve/tl144/ready && sleep 6 && docker exec apxinf_rust tail
+      -4 /data/apxinf/serve/tl144/std…)
+  ⎿  [serve] ready: /data/apxinf/serve/tl144 L=144（文件轮询中，shutdown 退
+     出）
+     [serve] #1: vision=70.4 prefix=106.1 flow=81.0 total=261.8ms |x|max=2.
+     … +5 lines (ctrl+o to expand)
+
+● Background command "Smoke test new-binary bucket" completed (exit code 0)
+● Bash(cat "C:\Users\素玄\AppData\Local\Temp\claude\D--compass-APXinf\7bccc587-c
+      325-43ca-9bce-01a3b43af572\tasks\bgd5ovxrx.output"; echo ===; ssh
+      root@192.168.13.119 "do…)
+  ⎿  [smoke] t0 frame0: L=144 patches(768, 588) noise(50, 32) nact|max|=2.5
+     55
+     [smoke] tl144 ready in 256s
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 验证梯第 2 档过：新二进制 bit 级恒等（max_diff 0.0244 / rel 1.0%
+  与旧基线四位小数全同，稳态 254.6-255.9ms）——库化 + serve_loop→GeServe
+  重构零行为变化坐实。
+
+  收尾冒烟桶，golden 带落盘重跑：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ps -o pid,cmd
+      -p 2026646 2026674 2027192 2027199 2>/dev/null | head -6; touch
+      /data/apxinf/serve/tl144…)
+  ⎿      PID CMD
+     2026646 /data/apxinf/target_libcheck/release/examples/ge_model_probe
+     2026674 /data/apxinf/target_libcheck/release/examples/ge_model_probe
+
+  Thought for 7s (ctrl+o to expand)
+
+● Golden 上轮已退（输出丢了）。重跑带落盘（chip 3 已空）：
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_rust bash -c 'bash
+      /tmp/g.sh 3 > /tmp/golden_newbin.out 2>&1' && sleep 3 && docker exec
+      apxinf_rust bash -c 'pgre…)
+  ⎿  2027504
+     2027531
+     LAUNCHED
+
+  Thought for 8s (ctrl+o to expand)
+
+● Golden 跑着（~4min）。期间推进第②步 PyO3——看 apxinf-py 的结构与 cuda 先例：
+
+  Thought for 21s, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● PyO3 层设计定形（新 pyclass 与 Model 并列、接口与 spool client
+  逐位对齐）。先收 golden 结果：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust cat
+      /tmp/golden_newbin.out 2>/dev/null | tail -30")
+  ⎿  (No output)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ls -la
+      /tmp/golden_newbin.out 2>/dev/null; pgrep -f \"target_libcheck\" | while
+      read p; do st=\$(cut -…)
+  ⎿  -rw-r--r-- 1 root root 0 Sep 23 10:35 /tmp/golden_newbin.out
+     alive 2027504
+     alive 2027539
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● Golden 还在跑（grep 管道未 flush）。期间看 npu_ge.py 全貌——③ 的施工面：
+
+● Bash(ssh root@192.168.13.119 "wc -l
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py && sed -n '1,53p'
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py")
+  ⎿  286 /data/apxinf/robo_src/apxinf_robo/npu_ge.py
+     """Ascend GE static-OM engine (route C) — serve-process + bucketed pol
+     icy.
+     … +49 lines (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "sed -n '95,200p'
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py")
+  ⎿      def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.
+     ndarray):
+             """One inference round-trip. patches [768,588] f32 / ids [L] /
+     … +103 lines (ctrl+o to expand)
+
+  Thought for 1m 9s (ctrl+o to expand)
+
+● ③ 的关键架构约束确认：torch_npu 8.5.1 与引擎 9.0.1 ACL 同进程互斥（当初 spool
+  设计的根因）。查 9.0.1 toolkit 是否宿主可挂（决定 npu 容器能否直调）：
+
+● Bash(ssh root@192.168.13.119 "docker inspect apxinf_rust --format '{{range
+      .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' | head -12;
+      docker exec apxinf…)
+  ⎿  /usr/local/Ascend/driver -> /usr/local/Ascend/driver
+     /usr/local/dcmi -> /usr/local/dcmi
+     /usr/local/bin/npu-smi -> /usr/local/bin/npu-smi
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 18s (ctrl+o to expand)
+
+● Toolkit 在镜像层（宿主不可挂）——同进程双 CANN runtime 是硬约束。②
+  验收形态定：PyO3 面 + rust 容器内 python 直调实测（bit 对拍 spool 桶）；npu
+  容器侧 inproc 启用是部署项（需 9.0.1 libs 供给 + torch_npu 剥离，后续立项）。
+
+  收 golden：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ls -la
+      /tmp/golden_newbin.out; tail -25 /tmp/golden_newbin.out'")
+  ⎿  -rw-r--r-- 1 root root 5774 Sep 23 10:38 /tmp/golden_newbin.out
+     [e2e] step 4 cond host-vs-golden max_diff=0.004321
+     [e2e] step 5 cond host-vs-golden max_diff=0.000350
+     … +23 lines (ctrl+o to expand)
+
+  Thought for 22s (ctrl+o to expand)
+
+● Golden 全绿：step0_x1 0.0% / actions 0.9%（与 M3 基线逐字一致）——① 
+  库化收口（验证梯 1+2 全过）。
+
+  开写 ② PyO3。apxinf-py/Cargo.toml 加 half 依赖 + lib.rs 追加 GeServeModel：
+
+● Update(apxinf\crates\apxinf-py\Cargo.toml)
+  ⎿  Added 1 line
+      15  apxinf-core = { path = "../apxinf-core" }
+      16  apxinf-model = { path = "../apxinf-model" }
+      17  apxinf-tokenizer = { path = "../apxinf-tokenizer", features = [
+          "sentencepiece"] }
+      18 +half = "2"                                                     
+      19  # Keep pyo3 default features (incl. `macros`); `extension-modul
+          e` is opt-in
+      20  # below so `cargo test` can still link a Python interpreter for
+           the harness.
+      21  pyo3 = "0.22"
+
+● Update(apxinf\crates\apxinf-py\src\lib.rs)
+  ⎿  Added 175 lines
+       868      }
+       869  }
+       870  
+       871 +/// GE 三段 OM in-process 引擎（昇腾 route C 直调面，feature 
+           +`ascend`）。                                                 
+       872 +///                                                          
+       873 +/// 与 serve 桶进程（`ge_model_probe GEB_E2E_SERVE`）同一实现
+           +（crate 库面                                                 
+       874 +/// `GeServe`），无 spool 轮询。接口与 `npu_ge._BucketClient.
+           +request` 逐位                                                
+       875 +/// 对齐：patches [768,588] f32 / ids [L] u32 / noise [50,32]
+           + f32 →                                                       
+       876 +/// actions 前 7 列 [50,7] f32 + 段计时。                    
+       877 +///                                                          
+       878 +/// ⚠ 进程级单管线（配置走全局 env）；设备选择由             
+       879 +/// `ASCEND_RT_VISIBLE_DEVICES` 决定（与 spool 桶一致）。本扩
+           +展链接 9.0.1                                                 
+       880 +/// CANN——不能与 torch_npu（8.5.1）同进程加载。              
+       881 +#[cfg(feature = "ascend")]                                   
+       882 +mod ge_serve_py {                                            
+       883 +    use super::runtime_err;                                  
+       884 +    use apxinf_ascend::AscendBackend;                        
+       885 +    use apxinf_model::pi05::GeServe;                         
+       886 +    use apxinf_model::{Pi05Config, Pi05Weights};             
+       887 +    use half::f16;                                           
+       888 +    use numpy::ndarray::Array2;                              
+       889 +    use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyRe
+           +adonlyArray2};                                               
+       890 +    use pyo3::exceptions::PyValueError;                      
+       891 +    use pyo3::prelude::*;                                    
+       892 +    use std::cell::Cell;                                     
+       893 +    use std::path::PathBuf;                                  
+       894 +    use std::sync::OnceLock;                                 
+       895 +                                                             
+       896 +    static GE_INIT: OnceLock<Result<(), String>> = OnceLock::
+           +new();                                                       
+       897 +                                                             
+       898 +    fn ge_init_once() -> PyResult<()> {                      
+       899 +        let res = GE_INIT.get_or_init(|| {                   
+       900 +            apxinf_ascend::ge_builder::init("Ascend310P3")   
+       901 +                .map_err(|e| e.to_string())                  
+       902 +        });                                                  
+       903 +        match res {                                          
+       904 +            Ok(()) => Ok(()),                                
+       905 +            Err(msg) => Err(pyo3::exceptions::PyRuntimeError:
+           +:new_err(format!(                                            
+       906 +                "apxinf_py.GeServeModel: ge_builder init 失败
+           +（须先于 acl runtime）: {msg}"                               
+       907 +            ))),                                             
+       908 +        }                                                    
+       909 +    }                                                        
+       910 +                                                             
+       911 +    /// A loaded in-process GE pipeline: three OM segments + 
+           +weights host                                                 
+       912 +    /// consumers, owned for the lifetime of the handle.     
+       913 +    #[pyclass(unsendable, name = "GeServeModel")]            
+       914 +    pub struct GeServeModel {                                
+       915 +        backend: AscendBackend,                              
+       916 +        serve: GeServe,                                      
+       917 +        last_ms: Cell<(f32, f32, f32)>,                      
+       918 +    }                                                        
+       919 +                                                             
+       920 +    #[pymethods]                                             
+       921 +    impl GeServeModel {                                      
+       922 +        /// Open a pipeline from a pre-baked bucket directory
+           +.                                                            
+       923 +        ///                                                  
+       924 +        /// * `om_dir` — bucket dir containing `{vision,prefi
+           +x,flow}_real.om`                                             
+       925 +        ///   (gate-era build; e.g. `/data/apxinf/om_cache/tl
+           +144`).                                                       
+       926 +        /// * `tokens` — the bucket's token length L (must ma
+           +tch the OMs).                                                
+       927 +        /// * `ckpt` — LeRobot checkpoint dir (token-embeddin
+           +g + styles host                                              
+       928 +        ///   consumers; one-time ~60s load).                
+       929 +        /// * `fast` — GEB_SERVE_FAST device-direct path (def
+           +ault true).                                                  
+       930 +        #[staticmethod]                                      
+       931 +        #[pyo3(signature = (om_dir, tokens, ckpt, fast=true))
+           +]                                                            
+       932 +        fn open(om_dir: PathBuf, tokens: usize, ckpt: PathBuf
+           +, fast: bool) -> PyResult<Self> {                            
+       933 +            ge_init_once()?;                                 
+       934 +            let real = Pi05Weights::from_safetensors(&Pi05Con
+           +fig::default(), &ckpt)                                       
+       935 +                .map_err(runtime_err)?;                      
+       936 +            let backend = AscendBackend::new(0).map_err(runti
+           +me_err)?;                                                    
+       937 +            let om_dir = om_dir                              
+       938 +                .to_str()                                    
+       939 +                .ok_or_else(|| PyValueError::new_err("om_dir 
+           +must be a utf-8 path"))?                                     
+       940 +                .to_owned();                                 
+       941 +            let serve = GeServe::open(&backend, &real, &om_di
+           +r, tokens, fast);                                            
+       942 +            Ok(Self {                                        
+       943 +                backend,                                     
+       944 +                serve,                                       
+       945 +                last_ms: Cell::new((0.0, 0.0, 0.0)),         
+       946 +            })                                               
+       947 +        }                                                    
+       948 +                                                             
+       949 +        /// One frame. patches `[768,588]` float32 / ids `[L]
+           +` uint32 /                                                   
+       950 +        /// noise `[50,32]` float32 → `(actions [50,7] float3
+           +2, (vision_ms,                                               
+       951 +        /// prefix_ms, flow_ms))`. Actions are the normalized
+           +-domain flow                                                 
+       952 +        /// terminal state's first 7 (deployable) columns — i
+           +dentical bytes                                               
+       953 +        /// to the spool protocol.                           
+       954 +        #[pyo3(signature = (patches, ids, noise))]           
+       955 +        fn infer<'py>(                                       
+       956 +            &mut self,                                       
+       957 +            py: Python<'py>,                                 
+       958 +            patches: PyReadonlyArray2<'py, f32>,             
+       959 +            ids: PyReadonlyArray1<'py, u32>,                 
+       960 +            noise: PyReadonlyArray2<'py, f32>,               
+       961 +        ) -> PyResult<(Bound<'py, PyArray2<f32>>, (f32, f32, 
+           +f32))> {                                                     
+       962 +            const VT: usize = 768;                           
+       963 +            const VPW: usize = 588;                          
+       964 +            const HOR: usize = 50;                           
+       965 +            const ADIM: usize = 32;                          
+       966 +            const GD: usize = 7;                             
+       967 +            let ps = patches.shape();                        
+       968 +            if ps != [VT, VPW] {                             
+       969 +                return Err(PyValueError::new_err(format!(    
+       970 +                    "GeServeModel.infer: patches expected [{V
+           +T}, {VPW}], got {ps:?}"                                      
+       971 +                )));                                         
+       972 +            }                                                
+       973 +            let ns = noise.shape();                          
+       974 +            if ns != [HOR, ADIM] {                           
+       975 +                return Err(PyValueError::new_err(format!(    
+       976 +                    "GeServeModel.infer: noise expected [{HOR
+           +}, {ADIM}], got {ns:?}"                                      
+       977 +                )));                                         
+       978 +            }                                                
+       979 +            let ids = ids                                    
+       980 +                .as_slice()                                  
+       981 +                .map_err(|_| PyValueError::new_err("ids must 
+           +be C-contiguous uint32"))?                                   
+       982 +                .to_vec();                                   
+       983 +            if ids.len() != self.serve.tokens {              
+       984 +                return Err(PyValueError::new_err(format!(    
+       985 +                    "GeServeModel.infer: ids length {} != buc
+           +ket tokens {}（挑桶错）",                                    
+       986 +                    ids.len(),                               
+       987 +                    self.serve.tokens                        
+       988 +                )));                                         
+       989 +            }                                                
+       990 +            let p16: Vec<f16> = patches                      
+       991 +                .as_slice()                                  
+       992 +                .map_err(|_| PyValueError::new_err("patches m
+           +ust be C-contiguous float32"))?                              
+       993 +                .iter()                                      
+       994 +                .map(|&v| f16::from_f32(v))                  
+       995 +                .collect();                                  
+       996 +            let n16: Vec<f16> = noise                        
+       997 +                .as_slice()                                  
+       998 +                .map_err(|_| PyValueError::new_err("noise mus
+           +t be C-contiguous float32"))?                                
+       999 +                .iter()                                      
+      1000 +                .map(|&v| f16::from_f32(v))                  
+      1001 +                .collect();                                  
+      1002 +            let out = self.serve.infer(&self.backend, &p16, &
+           +ids, &n16);                                                  
+      1003 +            let mut a7: Vec<f32> = Vec::with_capacity(HOR * G
+           +D);                                                          
+      1004 +            for r in 0..HOR {                                
+      1005 +                for c in 0..GD {                             
+      1006 +                    a7.push(out.actions[r * ADIM + c].to_f32(
+           +));                                                          
+      1007 +                }                                            
+      1008 +            }                                                
+      1009 +            let ms = (out.vision_ms, out.prefix_ms, out.flow_
+           +ms);                                                         
+      1010 +            self.last_ms.set(ms);                            
+      1011 +            let arr = Array2::from_shape_vec((HOR, GD), a7).m
+           +ap_err(runtime_err)?;                                        
+      1012 +            Ok((arr.into_pyarray_bound(py), ms))             
+      1013 +        }                                                    
+      1014 +                                                             
+      1015 +        /// Bucket token length L.                           
+      1016 +        #[getter]                                            
+      1017 +        fn tokens(&self) -> usize {                          
+      1018 +            self.serve.tokens                                
+      1019 +        }                                                    
+      1020 +                                                             
+      1021 +        /// Whether the GEB_SERVE_FAST device-direct path is 
+           +active.                                                      
+      1022 +        #[getter]                                            
+      1023 +        fn fast(&self) -> bool {                             
+      1024 +            self.serve.fast                                  
+      1025 +        }                                                    
+      1026 +                                                             
+      1027 +        /// Last frame's segment timings (vision_ms, prefix_m
+           +s, flow_ms).                                                 
+      1028 +        #[getter]                                            
+      1029 +        fn last_ms(&self) -> (f32, f32, f32) {               
+      1030 +            self.last_ms.get()                               
+      1031 +        }                                                    
+      1032 +                                                             
+      1033 +        fn __repr__(&self) -> String {                       
+      1034 +            format!(                                         
+      1035 +                "GeServeModel(tokens={}, fast={}, last_ms={:?
+           +})",                                                         
+      1036 +                self.serve.tokens,                           
+      1037 +                self.serve.fast,                             
+      1038 +                self.last_ms.get()                           
+      1039 +            )                                                
+      1040 +        }                                                    
+      1041 +    }                                                        
+      1042 +}                                                            
+      1043 +                                                             
+      1044  #[pymodule]
+      1045  fn apxinf_py(module: &Bound<'_, PyModule>) -> PyResult<()> {
+      1046      module.add_class::<Model>()?;
+      1047      module.add_class::<HfTokenizer>()?;
+      1048      module.add_class::<PySentencePieceTokenizer>()?;
+      1049 +    #[cfg(feature = "ascend")]                               
+      1050 +    module.add_class::<ge_serve_py::GeServeModel>()?;        
+      1051      module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+      1052      Ok(())
+      1053  }
+
+  Thought for 18s (ctrl+o to expand)
+
+● 修 Cargo.toml——apxinf-py 需直接依赖 apxinf-ascend（ge_builder init 调用）：
+● Update(apxinf\crates\apxinf-py\Cargo.toml)
+  ⎿  Added 1 line
+      15  apxinf-core = { path = "../apxinf-core" }
+      16  apxinf-model = { path = "../apxinf-model" }
+      17  apxinf-tokenizer = { path = "../apxinf-tokenizer", features = [
+          "sentencepiece"] }
+      18 +apxinf-ascend = { path = "../apxinf-ascend", optional = true } 
+      19  half = "2"
+      20  # Keep pyo3 default features (incl. `macros`); `extension-modul
+          e` is opt-in
+      21  # below so `cargo test` can still link a Python interpreter for
+           the harness.
+
+● Update(apxinf\crates\apxinf-py\Cargo.toml)
+  ⎿  Added 1 line, removed 1 line
+      33  cuda = ["apxinf-model/cuda"]
+      34  # Ascend NPU (310P3) via apxinf-ascend. Kernel ops live; the PI
+          0.5
+      35  # executor registration on Ascend devices is stage-2 work in pr
+          ogress.
+      36 -ascend = ["apxinf-model/ascend"]                               
+      36 +ascend = ["apxinf-model/ascend", "dep:apxinf-ascend"]          
+
+  Thought for 2s (ctrl+o to expand)
+
+● 同步 + 编译 apxinf-py：
+
+● Bash(scp /d/compass/APXinf/apxinf/crates/apxinf-py/Cargo.toml
+      root@192.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-py/Cargo.toml
+      && scp /d/compass/APXinf/apx…)
+  ⎿  warning: unused variable: `stream`
+     warning: unused import: `Backend as _`
+     warning: unused import: `apxinf_core::Backend as _`
+     … +18 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 三错两因：Pi05Weights 路径 + shape() 需 trait 导入。修：
+
+● Update(apxinf\crates\apxinf-py\src\lib.rs)
+  ⎿  Added 2 lines, removed 3 lines
+      882  mod ge_serve_py {
+      883      use super::runtime_err;
+      884      use apxinf_ascend::AscendBackend;
+      885 -    use apxinf_model::pi05::GeServe;                          
+      886 -    use apxinf_model::{Pi05Config, Pi05Weights};              
+      885 +    use apxinf_model::pi05::{GeServe, Pi05Config, Pi05Weights}
+          +;                                                             
+      886      use half::f16;
+      887      use numpy::ndarray::Array2;
+      889 -    use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyRea
+          -donlyArray2};                                                 
+      888 +    use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyRea
+          +donlyArray2, PyUntypedArrayMethods};                          
+      889      use pyo3::exceptions::PyValueError;
+      890      use pyo3::prelude::*;
+      891      use std::cell::Cell;
+
+● Bash(scp /d/compass/APXinf/apxinf/crates/apxinf-py/src/lib.rs
+      root@192.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-py/src/lib.rs
+      && ssh root@192.168.13.119 "…)
+  ⎿      Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.18
+     s
+     Wed Sep 23 10:41:19 UTC 2026
+  ⎿  (timeout 5m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● Check 过。release 构建 cdylib + 查 rust 容器 python 环境：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'source
+      /data/apxinf/rust_env.sh && cd /data/apxinf/apxinf_engine &&
+      CARGO_TARGET_DIR=/data/apxinf/targ…)
+  ⎿     Compiling apxinf-py v0.1.0 (/data/apxinf/apxinf_engine/crates/apxin
+     f-py)
+         Finished `release` profile [optimized] target(s) in 56.33s
+     Wed Sep 23 10:42:35 UTC 2026
+  ⎿  (timeout 10m)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust python3 -c 'import sys,
+      numpy; print(sys.version.split()[0], numpy.__version__)' 2>&1; docker exec
+      apxinf_rust…)
+  ⎿  3.12.13 2.5.1
+     ModuleNotFoundError: No module named 'safetensors'
+
+  Thought for 16s (ctrl+o to expand)
+
+● cdylib 成。npu 容器 dump 帧数据 → rust 容器跑 PyO3 直调验证（芯 2）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c \"
+      import numpy as np, os…)
+  ⎿  DUMPED L = 144
+
+● Write(syx_docs\dev_logs\pyo3_check.py)
+  ⎿  Wrote 41 lines to syx_docs\dev_logs\pyo3_check.py
+       1 """PyO3 GeServeModel 进程内直调验证（rust 容器）：
+       2 1) import apxinf_py（cdylib 链 9.0.1 CANN）
+       3 2) open tl144 桶 + infer ×3（replay t0 frame0，与 smoke.py 同帧
+       4 3) 对拍 nact：期望与 spool 桶逐位同数字（max_diff=0.0244 / rel=1
+         .0%）
+       5 """
+       6 import sys
+       8 
+       9 sys.path.insert(0, "/data/apxinf/pyo3_check")
+      10 import numpy as np
+     … +36 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_check.py
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/pyo3_check.py apxinf_rust:/data/apxin…)
+  ⎿  total 9976
+     drwxr-xr-x  2 root root    4096 Sep 23 10:43 .
+     drwxr-xr-x 37 root root   12288 Sep 23 10:43 ..
+     … +6 lines (ctrl+o to expand)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'for p in
+      \$(pgrep -f \"target_libcheck.*ge_model_probe\"); do st=\$(cut -d\" \" -f3
+      /proc/\$p/stat 2>/…)
+  ⎿  Error: Exit code 143
+
+  Thought for 11s (ctrl+o to expand)
+
+● 143 无输出（可能加载卡）。改 -d + 落盘跑：
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_rust bash -c
+      'ASCEND_RT_VISIBLE_DEVICES=2
+      LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/usr/local/Ascend…)
+  ⎿  Traceback (most recent call last):
+       File "/data/apxinf/pyo3_check/check.py", line 11, in <module>
+         import apxinf_py
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 老坑（libascend_hal 在 driver 段）——追加继承式 LD_LIBRARY_PATH：
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_rust bash -c 'export
+      LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/usr/local/Ascend/as
+      cend-toolkit/lates…)
+  ⎿  import OK 0.1.0
+     frame: patches(768, 588) ids(144,) noise(50, 32) nact|max|=2.555
+  ⎿  (timeout 2m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Import 过了，open 中（权重+OM ~3min）。等收结果：
+● Bash(sleep 180; ssh root@192.168.13.119 "docker exec apxinf_rust cat
+      /data/apxinf/pyo3_check/run.log; echo ---; docker exec apxinf_rust bash -c
+      'pgrep -f check.py |…)
+  ⎿  import OK 0.1.0
+     frame: patches(768, 588) ids(144,) noise(50, 32) nact|max|=2.555
+     vision OM built: depth=18 n_in=187 n_out=1
+     … +408 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 1m 1s (ctrl+o to expand)
+
+● n_in 187 != model 277——Seg 构造与 OM 输入数不符。看桶日志同一 OM 的
+  introspection 实证（桶为什么能跑）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust grep -A3
+      'loading.*vision_real' /data/apxinf/serve/tl144/stdout.log | head -8; echo
+      ===; docker exec apxinf_rus…)
+  ⎿  [e2e] loading /data/apxinf/om_cache/tl144/vision_real.om
+     [geb] io: n_in=277 n_out=111
+     [geb]   in[0] size=903168 dims=768,588
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 真凶：桶 vision depth=27，我钉死 GEB_DEPTH=18 把 vision 砍成 18 层（vision
+  有独立的 GEB_DEPTH_VISION）。查默认值后修 open：
+
+● Bash(grep -n "GEB_DEPTH_VISION\|GEB_DEPTH_PREFIX"
+      /d/compass/APXinf/apxinf/crates/apxinf-model/src/pi05/ascend_ge.rs | head
+      -4; ssh root@192.168.13.119 "grep -oE 'GE…)
+  ⎿  2027:    let depth = envi("GEB_DEPTH_VISION", envi("GEB_DEPTH", 27)) a
+     s usize;
+     2446:    let depth = envi("GEB_DEPTH_PREFIX", envi("GEB_DEPTH", 18)) a
+     s usize;
+
+  Thought for 5s (ctrl+o to expand)
+
+● 修 open——撤掉 GEB_DEPTH 钉死（默认 27/18/18 才是对的）。查 PREFIX_DROP_EMPTY
+  默认值：
+
+  Thought for 4s, searched for 1 pattern (ctrl+o to expand)
+
+● PREFIX_DROP_EMPTY 默认 0 须钉 256 ✓，GEB_DEPTH 撤钉（分段默认 27/18/18）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 4 lines, removed 3 lines
+      6215              ("GEB_QKV3", "1"),
+      6216              ("GEB_ROPEFLAT", "1"),
+      6217              ("GEB_WCONST", "1"),
+      6218 -            // 拓扑一致性（Seg 构造读，须与 OM 全深构建同值；
+           -进程内场景                                                   
+      6219 -            // env 不受控，一律钉死）                        
+      6220 -            ("GEB_DEPTH", "18"),                             
+      6218 +            // 拓扑一致性（Seg 构造读，须与 OM 构建同值；进程
+           +内场景 env                                                   
+      6219 +            // 不受控，钉死生产值）。⚠ 不钉 GEB_DEPTH——分段默
+           +认                                                           
+      6220 +            // vision=27 / prefix=18 / flow=18 与 OM 一致，钉
+           + 18 会把                                                     
+      6221 +            // vision 砍成 18 层（n_in 187≠277 首跑教训）    
+      6222              ("GEB_PREFIX_DROP_EMPTY", "256"),
+      6223              ("GEB_LAYER_OFFSET", "0"),
+      6224          ] {
+
+● Bash(scp /d/compass/APXinf/apxinf/crates/apxinf-model/src/pi05/ascend_ge.rs
+      root@192.168.13.119:/data/apxinf/apxinf_engine/crates/apxinf-model/src/pi0
+      5/ascend_ge.rs…)
+  ⎿     Compiling apxinf-py v0.1.0 (/data/apxinf/apxinf_engine/crates/apxin
+     f-py)
+         Finished `release` profile [optimized] target(s) in 38.74s
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_rust bash -c 'export
+      LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/usr/local/Ascend/as
+      cend-toolkit/lates…)
+  ⎿  [e2e] 无 golden actions——只验有限性（golden 对拍/LIBERO 归下一步）
+     [serve] GEB_SERVE_FAST：styles 设备驻留 10 步 × 110 槽（master 2252800
+      字节，一次上传）
+     … +17 lines (ctrl+o to expand)
+  ⎿  (timeout 6m 40s)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 进到 flow 构装后炸。看完整日志定错位：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust grep -vE '^\[geb\]
+      in|^\[geb\]   out' /data/apxinf/pyo3_check/run2.log | tail -30")
+  ⎿  [e2e] loading /data/apxinf/om_cache/tl144/prefix_real.om
+     [geb] io: n_in=138 n_out=36
+     [e2e] prefix kv ×36 |max|=67.9375
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 三段全通 + fast 驻留构装成功（open 应已返回）。看 python
+  侧输出头部与进程状态：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'head -3
+      /data/apxinf/pyo3_check/run2.log; grep -E
+      \"^open|^try|PYO3|panicked|Error|Traceback\" /data/a…)
+  ⎿  import OK 0.1.0
+     frame: patches(768, 588) ids(144,) noise(50, 32) nact|max|=2.555
+     vision OM built: depth=27 n_in=277 n_out=1
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 进程活着（TBE 噪音是 stderr）——python print 被 pipe 缓冲。等进程退出收全量：
+
+● Bash(sleep 90; ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'grep
+      -E \"^open|^try|PYO3|panicked|Traceback|RuntimeError\"
+      /data/apxinf/pyo3_check/run2.log…)
+  ⎿  2033419
+     SCAN
+  ⎿  (timeout 3m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 还没退且 pid 漂移（GE 子进程噪音）。杀掉重跑带
+  PYTHONUNBUFFERED=1（定位卡点）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'pkill -f
+      check.py; sleep 1' ; docker exec -d apxinf_rust bash -c 'export
+      LD_LIBRARY_PATH=/data/apxinf/…)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     … +18 lines (ctrl+o to expand)
+  ⎿  (timeout 6m 40s)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Unbuffered 下 open 仍未返回——看 run3 完整时序定位：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust grep -vE '^\[geb\]
+      in|^\[geb\]   out' /data/apxinf/pyo3_check/run3.log | sed -n
+      '1,10p;30,60p'")
+  ⎿  import OK 0.1.0
+     frame: patches(768, 588) ids(144,) noise(50, 32) nact|max|=2.555
+     vision OM built: depth=27 n_in=277 n_out=1
+     … +18 lines (ctrl+o to expand)
+  Thought for 17s (ctrl+o to expand)
+
+● TBE 报错是主进程先死的果——非确定性崩溃点（run2 到 flow、run3 到 prefix）= C
+  级段错误。查宿主 dmesg 段错误记录：
+
+● Bash(ssh root@192.168.13.119 "dmesg -T 2>/dev/null | grep -iE
+      'segfault|sigsegv' | tail -5; journalctl -k --since '10 minutes ago'
+      2>/dev/null | grep -i segfault | t…)
+  ⎿  DMESG_DONE
+
+  Thought for 16s (ctrl+o to expand)
+
+● 无内核记录。strace 跟踪死亡信号取证：
+
+● Write(syx_docs\dev_logs\pyo3_strace.sh)
+  ⎿  Wrote 9 lines to syx_docs\dev_logs\pyo3_strace.sh
+      1 #!/bin/bash
+        RT）与来源
+      3 export LD_LIBRARY_PATH=/data/apxinf/ascendc/ge_builder/build:/usr
+        /local/Ascend/ascend-toolkit/latest/lib64:${LD_LIBRARY_PATH:-}
+      5 export PYTHONUNBUFFERED=1
+      6 strace -f -qq -e trace=signal -o /data/apxinf/pyo3_check/signals.
+        check/run4.log 2>&1
+      7 echo "STRACE_RC=$?"
+      8 grep -E "SIGSEGV|SIGABRT|SIGKILL|SIGBUS|killed" /data/apxinf/pyo3
+      9 date
+     … +4 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/pyo3_strace.sh
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/pyo3_strace.sh apxinf_rust:/tmp/s.sh…)
+  ⎿  2033882 --- SIGPIPE {si_signo=SIGPIPE, si_code=SI_USER, si_pid=2033882
+     , si_uid=0} ---
+     2033882 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2033
+     … +16 lines (ctrl+o to expand)
+  ⎿  (timeout 6m 40s)
+
+  Thought for 25s (ctrl+o to expand)
+
+● 无致命信号——是挂死不是崩溃。py-spy 看 python 栈定挂点：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'pgrep -f
+      check.py; echo ---; pip install -q py-spy 2>&1 | tail -1; which py-spy'"
+      2>&1 | tail -4)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  (timeout 2m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 不等 pip（源慢）。直接 /proc 取证：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'P=\$(pgrep -f
+      check.py | head -1); echo PID=\$P; cat /proc/\$P/status 2>/dev/null | grep
+      -E \"State|Th…)
+  ⎿  PID=2034065
+     State:     S (sleeping)
+     Threads:   1
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 那是 strace 壳。找真 python 进程：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'ps -ef | grep
+      -E \"python3|ge_model\" | grep -v grep | grep -v defunct | head -5; echo
+      ---; for P in \…)
+  ⎿  root     1104478       1  0 Sep22 ?        00:00:00 /usr/local/python3
+     .12.13/bin/python3 -c from multiprocessing.resource_tracker import mai
+     n;main(8)
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● Python 已退，壳在等。收 run4 全尾与退出码：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'grep -vE
+      \"^\\[geb\\]   in|^\\[geb\\]   out\" /data/apxinf/pyo3_check/run4.log |
+      tail -18; echo ===SIG…)
+  ⎿  [e2e] step 5 |x|max=98.3125
+     [e2e] step 6 |x|max=98.0000
+     [e2e] step 7 |x|max=97.6875
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 37s (ctrl+o to expand)
+
+● Run4 与 run2 同型：fmech 构装完 → TBE 8 连 → 无 Traceback 无信号 = GE 内部 
+  exit() 整进程。疑 TBE（GE 的 python 编译子进程）在 python 宿主里相克。查本地
+  GE 开源仓的 TBE 禁用选项：
+
+  Thought for 12s, searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+
+● 本地 GE 仓无果。时间权衡：python 宿主 GE 兼容性是华为库深层问题（疑 TBE
+  子进程管理），盲试性价比低。策略切换：③ engine.py inproc
+  传输分支收口接入闭环（spool 生产保底 + inproc 可选直调），python
+  宿主障碍记档。看 npu_ge.py 的调用点：
+
+● Bash(ssh root@192.168.13.119 "sed -n '200,286p'
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py")
+  ⎿          return self._torch_pol.action_horizon
+
+         def _frame_inputs(self, observation: Mapping[str, Any]):
+     … +84 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 写 ③ inproc 分支。先找本地仓的 npu_ge.py 对应文件：
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(diff <(ssh root@192.168.13.119 cat
+      /data/apxinf/robo_src/apxinf_robo/npu_ge.py)
+      /d/compass/APXinf/src/apxinf_robo/npu_ge.py && echo IDENTICAL || echo
+      DIFFERS)
+  ⎿  IDENTICAL
+
+  Thought for 3s (ctrl+o to expand)
+
+● 本地与服务器一致。读关键段后编辑：
+
+  Thought for 7s, read 1 file (ctrl+o to expand)
+● 施工 ③：三处编辑（env 常量、InprocClient 类、policy 工厂）：
+
+● Update(src\apxinf_robo\npu_ge.py)
+  ⎿  Added 8 lines
+      49  _SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/dat
+          a/apxinf/serve"))
+      50  _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT"
+          , "1800"))
+      51  _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "1
+          80"))
+      52 +# 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust
+         +）或                                                           
+      53 +# inproc（进程内直调 PyO3 GeServeModel，免 spool 轮询 ~15ms）。
+      54 +# ⚠ inproc 前提：宿主进程链接 9.0.1 CANN（LD_LIBRARY_PATH 带 ge
+         +_builder +                                                     
+      55 +# toolkit lib64）且**不同时加载 torch_npu**（8.5.1 与 9.0.1 同 
+         +进程互斥）；                                                   
+      56 +# 另 GE 库在 python 宿主内的 TBE 子进程管理存在已知兼容障碍（见
+      57 +# syx_docs summary 2026-09-23）——import/open 失败自动回落 spool
+         +。                                                             
+      58 +_TRANSPORT = os.environ.get("APXINF_GE_TRANSPORT", "spool")    
+      59 +_OM_ROOT = Path(os.environ.get("APXINF_GE_OM_ROOT", str(_SERVE_
+         +ROOT.parent / "om_cache")))                                    
+      60  
+      61  
+      62  class _BucketClient:
+
+● Update(src\apxinf_robo\npu_ge.py)
+  ⎿  Added 23 lines
+      59  _OM_ROOT = Path(os.environ.get("APXINF_GE_OM_ROOT", str(_SERVE_
+          ROOT.parent / "om_cache")))
+      60  
+      61  
+      62 +class _InprocClient:                                           
+      63 +    """In-process engine client (PyO3 ``apxinf_py.GeServeModel`
+         +`) — the                                                       
+      64 +    crate library surface (``GeServe``), same frame implementat
+         +ion as the                                                     
+      65 +    serve processes. ``request`` is signature- and byte-compati
+         +ble with                                                       
+      66 +    ``_BucketClient.request`` so the policy switches transports
+         + unchanged.                                                    
+      67 +    """                                                        
+      68 +                                                               
+      69 +    def __init__(self, length: int, model_dir: str, *, fast: bo
+         +ol = True):                                                    
+      70 +        import apxinf_py  # ImportError -> caller falls back to
+         + spool                                                         
+      71 +                                                               
+      72 +        self.L = length                                        
+      73 +        om_dir = _OM_ROOT / f"tl{length}"                      
+      74 +        self._m = apxinf_py.GeServeModel.open(str(om_dir), leng
+         +th, model_dir, fast)                                           
+      75 +                                                               
+      76 +    def request(self, patches: np.ndarray, ids: np.ndarray, noi
+         +se: np.ndarray):                                               
+      77 +        acts, (tv, tp, tf) = self._m.infer(                    
+      78 +            np.ascontiguousarray(patches, dtype=np.float32),   
+      79 +            np.ascontiguousarray(ids, dtype=np.uint32),        
+      80 +            np.ascontiguousarray(noise, dtype=np.float32),     
+      81 +        )                                                      
+      82 +        return acts, (tv, tp, tf)                              
+      83 +                                                               
+      84 +                                                               
+      85  class _BucketClient:
+      86      """One token-length bucket: request/response against its se
+          rve process.
+      87  
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● Update(src\apxinf_robo\npu_ge.py)
+  ⎿  Added 21 lines, removed 3 lines
+      206              model_dir, tokenizer_dir=tokenizer_dir, precision=
+           precision, **kwargs
+      207          )
+      208          self._torch = self._torch_pol._torch
+      209 -        self._buckets: Dict[int, _BucketClient] = {}          
+      209 +        self._model_dir = str(model_dir)                      
+      210 +        self._buckets: Dict[int, Any] = {}                    
+      211  
+      212          self.metadata: Dict[str, Any] = dict(self._torch_pol.m
+           etadata)
+      213          self.metadata.update({"engine": "npu-ge", "precision":
+            "fp16"})
+      214  
+      215      # -- bucket routing --------------------------------------
+           --------------
+      216  
+      216 -    def _bucket(self, length: int) -> _BucketClient:          
+      217 +    def _bucket(self, length: int):                           
+      218 +        """Transport-aware bucket client (APXINF_GE_TRANSPORT=
+          +inproc|spool).                                                
+      219 +                                                              
+      220 +        inproc = in-process PyO3 engine (crate library surface
+          +). Falls back                                                 
+      221 +        to the spool bucket on import/availability failure so 
+          +eval keeps                                                    
+      222 +        running in the torch_npu container, where the 9.0.1-li
+          +nked extension                                                
+      223 +        cannot coexist with the 8.5.1 torch_npu runtime.      
+      224 +        """                                                   
+      225          client = self._buckets.get(length)
+      226          if client is None:
+      219 -            client = _BucketClient(length)                    
+      227 +            client = self._make_client(length)                
+      228              self._buckets[length] = client
+      229          return client
+      230  
+      231 +    def _make_client(self, length: int):                      
+      232 +        if _TRANSPORT == "inproc":                            
+      233 +            try:                                              
+      234 +                return _InprocClient(length, self._model_dir) 
+      235 +            except Exception as exc:  # ImportError or engine-
+          +side failure                                                  
+      236 +                print(                                        
+      237 +                    f"[npu-ge] inproc 客户端不可用（{exc!r}） 
+          +，回落 spool 桶 tl{length}"                                   
+      238 +                )                                             
+      239 +        return _BucketClient(length)                          
+      240 +                                                              
+      241      # -- Policy protocol -------------------------------------
+           ---------------
+      242  
+      243      @property
+
+  Thought for 5s (ctrl+o to expand)
+
+● 同步 npu_ge.py 到服务器两处副本 + 查现场：
+
+● Bash(ssh root@192.168.13.119 "ls /data/apxinf/engine_py/apxinf 2>/dev/null |
+      head -5; find /data/apxinf/engine_py -name npu_ge.py 2>/dev/null" && scp
+      /d/compass/APXi…)
+  ⎿  apxinf
+     examples
+     pyproject.toml
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● engine_py 无副本（仅 robo_src）。语法快检 + 起 supervisor 跑 task0
+  回归（npu_ge 改动零回归验证）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 -c 'import sys;
+      sys.path.insert(0, \"/data/apxinf/robo_src\"); from apxinf_robo import
+      npu_ge; print(\"I…)
+  ⎿    File "/data/apxinf/robo_src/apxinf_robo/engine.py", line 101, in req
+     uire_apxinf
+         raise ImportError(_INSTALL_HINT)
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 老坑（PYTHONPATH 第二段）。补全重跑：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu bash -c
+      'PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf python3 -c
+      \"from apxinf_robo import npu…)
+  ⎿  IMPORT_OK spool
+     SUPERVISOR_PID=2034129
+     alive pid=109 fast=0
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Bash(ssh root@192.168.13.119 "docker exec -d apxinf_npu bash
+      /data/apxinf/serve/run_ge_eval.sh 0 enginet0c >>
+      /data/apxinf/serve/eval_enginet0c_stdout.log 2>&1; slee…)
+  ⎿  1
+     Wed Sep 23 11:14:06 AM UTC 2026
+  ⎿  (timeout 1m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Task0 回归跑着（~15min）。期间收尾：子模块二次 commit（PyO3 + depth 修复）：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git add -A
+      crates/apxinf-model/src/pi05/ascend_ge.rs crates/apxinf-py/ && git commit
+      -m "feat(py): GeServeM…)
+  ⎿   M crates/apxinf-model/src/pi05/ascend_ge.rs
+      M crates/apxinf-py/Cargo.toml
+      M crates/apxinf-py/src/lib.rs
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 推平（e7e4cd1..787730a）。写战报文档：
+
+● Write(syx_docs\dev_logs\summary\2026-09-23_engine-integration.md)
+  ⎿  Wrote 67 lines to
+     syx_docs\dev_logs\summary\2026-09-23_engine-integration.md
+      1 # 引擎接入主线：执行器库化 + PyO3 面 + engine.py inproc 传输
+      3 日期：2026-09-23（接 handoff 主线"引擎正式接入 apxinf-robo 主路径
+        "；含全量 fast 回归收口）
+      5 ## 一句话
+      7 **三步接入落地：① 三段执行器从 example 沉到 crate 库面（`src/pi05
+        /ascend_ge.rs` + `GeServe` 进程内门面，验证梯全过——golden 0.0%/0.
+         绑定（rust 容器 python 直调三段全通，python 宿主内 GE 库存活为已
+        知障碍）；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支
+        0/10 + per-call model_ms P50 256.3ms = 376 基线 0.682×。**
+      9 ## 全量 fast 回归终数（gatefastall，此前只 task0 单测）
+     … +112 lines (ctrl+o to expand)
+
+● Background command "Check process alive and install py-spy" completed (exit
+code 0)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 更新 handoff（状态一句话 + ② 下一步 + ④ 清单）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**M3 达成——全量 LIBERO eval 10/10（success_rate 1.0，超越 torch 
+        -基线 9/10）+ 延迟 model_ms P50 325ms = 基线 376ms 的 0.87×**。闭
+        -环 0/10 真凶 = **ada-norm gate 通路整体缺失**（openpi `_gated_re
+        -sidual` 的 dense(cond) 第三段 gate 被引擎丢弃，36 处分支输出未门
+        -控）+ 残差基错用归一化值——修复在子模块 **ff42d2f**/外层 **e54771
+        -7**，golden e2e step0_x1 13.8%→0.0%、actions 409%→0.9%，task0 13
+        -2 步、全量 10 任务 122-163 步全成功。破案靠 replay 动作刑侦（std
+        -≈1.00 噪声分布推翻"norm 天花板"误诊）+ 源码对读；完整战报 summar
+        -y/2026-09-23_ada-gate-missing-root-cause.md。serve 系统已停（芯 
+        -片回基线；下次起 serve 前清 serve/tl*/ready+pid+shutdown，并核对
+        -桶内三件 OM 新鲜度——tl148 曾带 pre-gate 陈旧 flow 被误 spawn）。
+        -**M3 剩余为可选后置项**：ascend_executor M2 eager 路径补 gate、N
+        -ORM32 系重估（n32 桶 flow 旧 + rms32 v2 l17 ssum 饱和 29.5%）、 
+        -生产化（动态 L 分桶/引擎注册链接入 apxinf-robo 主路径）。**性能 
+        -轮第一点已落地（2026-09-23，GEB_SERVE_FAST = ④A 段间设备直连 + ④
+        -B styles 设备驻留）：task0 model_ms 316.1→254.3ms = 376 基线 0.6
+        -8×（破 0.70× 线），bit 级恒等（冒烟 max_diff 四位小数全同）+ tas
+        -k0 success 1.0——见 summary/2026-09-23_serve-fast-device-direct.m
+        -d。下一轮 = 全量 10 任务回归（fast 版）→ C in-process serving → 
+        -E msprof（vision 65ms 回归源）→ D int8 单算 probe 定生死。**    
+      5 +**引擎接入主线三步落地（2026-09-23，见 summary/2026-09-23_engine
+        +-integration.md）：① 执行器库化——ge_model_probe 6206 行沉到 crat
+        +e 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（open/infe
+        +r，serve_loop 与直调共用帧实现），验证梯全过（golden step0_x1 0.
+        +0%/actions 0.9% 与基线逐字同、新旧二进制冒烟 bit 恒等 0.0244/1.0
+        +% 四位全同）——子模块 e7e4cd1；② PyO3 `GeServeModel`（apxinf-py -
+        +-features ascend，接口与 spool 协议逐位对齐，rust 容器 python 直
+        +调三段全通；**已知障碍 = python 宿主内 GE 库在 open 尾声杀进程**
+        +，无信号无 Traceback + TBE 子进程 8 连报错，非确定点位，纯 Rust 
+        +宿主同代码稳定——疑 GE 的 TBE 子进程管理与 python 宿主相克）——787
+        +730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=inproc` 分支（_
+        +InprocClient 直调 PyO3，失败自动回落 spool 桶；npu 容器 torch_np
+        +u 8.5.1 与 9.0.1 同进程互斥，spool 仍为生产传输）。**全量 fast  
+        +回归终数锁定：10/10 + per-call model_ms P50 256.3ms = 0.682×**（
+        +跨任务 254.5-260.5 极稳，④A+B 收口）。此前战绩：M3 全量 10/10 + 
+        +0.87×（ada-gate 缺失真凶战报 2026-09-23_ada-gate-missing-root-ca
+        +use.md）、GEB_SERVE_FAST 254.3ms task0 口径（serve-fast-device-d
+        +irect.md）。**下一轮候选：python 宿主 GE 存活障碍（TBE 禁用选项/
+        +华为渠道）→ eval 全链 inproc（9.0.1 libs 供给 + torch_npu 剥离）
+        +→ ④ 动态 L 定形；性能余项顺路（E msprof vision 65ms、D int8 prob
+        +e）。**                                                         
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -继续 APXinf 昇腾 NPU（**M3 收官 10/10 + 0.87× → 性能第一点 GEB_
+         -SERVE_FAST 落地：task0 254.3ms = 0.68×，bit 恒等**）。**下一轮 
+         -主线已改（2026-09-23 与用户对齐）：引擎正式接入 apxinf-robo 主 
+         -路径**（此前一直是 ge_model_probe 探针 + spool 文件轮询的脚手架
+         -形态——行为/性能已达标，接入才算"适配完成"）。施工四步：① 执行器
+         -库化（三段执行器 + styles 预计算 + E2eStage 含 GEB_SERVE_FAST  
+         -从 example 沉到 crate 库面）② PyO3 最小接口（apxinf-py `--featu
+         -res ascend` 构建先例；暴露 load + infer(obs)→actions）③ engine.
+         -py 路由 `engine="npu-ge"`（阶段 1 npu-torch 同构先例）④ 动态 L 
+         -定形（预置桶集先行，padding+mask/shape_range 后置）——做完 ①-③  
+         -即进程内直调（= ④C in-process，spool 15ms 顺便消失），全量 10/1
+         -0 回归收口。**接入前先跑全量回归（fast 版）锁 0.68× 终数**：fas
+         -t supervisor（start_supervisor_fast.sh）→ `run_ge_eval.sh all g
+         -atefastall`（~40min）。性能余项降为顺路：E msprof vision 65ms  
+         -回归源、D int8 单算 probe。验证梯（10/10 是回归基线）：golden s
+         -tep0_x1/actions（4min，≤0.1%/≤2%）→ smoke A/B bit 同一性 → task
+         -0（~15min）→ 全量（25-40min，只在大改后跑）。⚠ 复现 eval 前置：
+         -起 serve 前清 serve/tl*/ready+pid+shutdown + 核对桶内三件 OM 新
+         -鲜度；**直起桶后起冒烟客户端须 touch ready（mtime 判定陷阱）** 
+         -；eval summary 开跑即写骨架（null ≠ 崩溃）；⚠ 纪律照旧（PYTHONP
+         -ATH 追加/GEB_SAVE 全路径/kill 用 pgrep+方括号+stat 判 Z/长命令 
+         -带 date/验证档位梯/服务器脚本"本地写 → scp → bash 文件"三步——do
+         -cker exec 嵌套引号必翻车）。                                   
+      13 +继续 APXinf 昇腾 NPU（**引擎接入三步落地：① crate 库面 GeServe 
+         +（e7e4cd1，golden/冒烟 bit 恒等双验）② PyO3 GeServeModel（78773
+         +0a，rust 容器 python 三段全通；python 宿主内 GE 杀进程 = 已知障
+         +碍）③ engine.py inproc 传输分支（回落 spool 保底）；全量 fast  
+         +回归 10/10 + 256.3ms = 0.682× 收口**——见 summary/2026-09-23_eng
+         +ine-integration.md）。下一轮候选按优先级：**A. python 宿主 GE  
+         +存活障碍**（现状：open 尾声（fmech 构装后）GE 杀整进程，无信号 
+         +无 Traceback，TBE 子进程 8 连 "main process disappeared" 伴随，
+         +死亡点位非确定；strace 信号级已验证非 SIGSEGV/SIGABRT；候选：GE
+         + init 选项禁 TBE / ge.exec_pythonPath 指向受控 python / 华为渠 
+         +道）→ 通了则 eval 全链 inproc（还需 9.0.1 libs 拷到 /data 供 np
+         +u 容器 + torch_npu 剥离=前处理 CPU 化，**9.0.1 toolkit 在 rust 
+         +容器镜像层非挂载**）；B. ④ 动态 L 定形（预置桶集 tl138-148+tl20
+         +0 已备，padding+mask/shape_range 后置）；C. 性能余项（E msprof 
+         +vision 65ms 回归源、D int8 单算 probe）。⚠ 库面关键纪律：**GeSe
+         +rve::open 的 env 钉死不含 GEB_DEPTH**（分段默认 vision=27/prefi
+         +x=18/flow=18，钉 18 砍 vision 层 → n_in 187≠277）；⚠ 新坑（engi
+         +ne-integration 战报运维节全列）：set -u+source rust_env 炸 / ba
+         +sh export 不吃带点名（须 env 前缀）/ ready mtime touch 须在客户
+         +端启动后 / cdylib 要 cp 去 lib 前缀 / docker exec -d stdout 丢 
+         +弃须脚本自落盘 / **eval 期间并行编译用 CARGO_TARGET_DIR=/data/a
+         +pxinf/target_libcheck 不碰生产二进制**。验证梯照旧（golden ≤0.1
+         +%/≤2% → 冒烟 A/B bit 同 → task0 → 全量大改后）。               
+      14  
+      15  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      16  
+
+  Thought for 3s (ctrl+o to expand)
+
+● 更新 handoff ④ 清单 C 行与建议路线 + roadmap：
+
+● Update(syx_docs\dev_logs\handoff.md)  ⎿  Added 1 line, removed 1 line
+      20  |---|---|---|---|---|
+      21  | **A** | ✅ **已落地（2026-09-23，GEB_SERVE_FAST）**：**段间设
+          备直连**——prefix 36 路 kv 异步 d2d（零 host 中转）+ flow x 设备
+          驻留（ob→binds[0] d2d，只末步下载）+ 去 per-step sync（10 次→1 
+          次） | **实测 −45~62ms**（flow 117→80、prefix 130→105-115；task
+          0 model_ms 316→254.3） | 同流顺序链保证计算序不变——bit 恒等 | 
+          已过验证梯：冒烟 A/B bit 同（max_diff 四位全同）+ task0 success
+           1.0；全量回归待下一轮 |
+      22  | **B** | ✅ **已落地（同上，与 A 同一开关）**：**styles 设备驻
+          留**——legacy 110 槽被 10 步复用须逐步重传（1100 次 h2d/调用）；
+          改为每步独立视图拼 2.25MB master 一次上传 ⇒ **帧内零拷贝** | 并
+          入上项（flow −35~37ms 的主体） | styles 跨帧恒定 + DeviceBuffer
+          ::view_of 非拥有视图 | 低（同 A） |
+      23 -| **C** | **in-process serving**（去 spool 轮询）：model_ms 325
+         - vs bench 310 的 15ms 差 = 文件轮询 + 进程边界 | **−10~15ms** |
+         - 引擎注册链接入 apxinf-robo 主路径（Python 端直接调 E2eStage） 
+         -，同时是生产化必经 | 中：PyO3 绑定 + apxinf_robo engine 缝（阶 
+         -段 1 已有 npu-torch 同构先例）；多桶 L 分派逻辑要在进程内重建 |
+      23 +| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py in
+         +proc 分支）**：**in-process serving**——执行器沉 crate 库面（GeS
+         +erve 门面，spool/直调同源帧实现）+ PyO3 GeServeModel + npu_ge.p
+         +y `APXINF_GE_TRANSPORT=inproc`（回落 spool 保底） | spool 15ms 
+         +在 inproc 生效环境免（eval 全链 inproc 待 python 宿主 GE 障碍解
+         +除） | 引擎单实现三入口（example/PyO3/spool）；python 宿主 GE  
+         +存活障碍见 summary/2026-09-23_engine-integration.md | 已过：gol
+         +den+bit 恒等双验、rust 容器 python 三段直调全通；task0/全量回归
+         +走 spool 保底无回归 |                                          
+      24  | **D** | **int8/w8a8 权重量化**（prefix/vision 大头）：310P in
+          t8 cube ~100 TOPS vs fp16 16 TFLOPS（6× 算力比）；prefix 116ms 
+          里 MatMul 主导 | prefix **或 −30~60%** | CUDA 侧原仓有 int8/fp8
+           executor 先例；昇腾侧 MatMulV2 int8 支持待探（opp 注册表 + 单
+          算 probe） | 高：数值校准（Gemma outlier）+ 全链行为复验；先做
+          单算 probe 定可行性再立项 |
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      25  | **E** | **vision/prefix 图组织复查**（msprof 数据驱动）：visi
+          on 65ms vs 早期 55.9ms 的回归源；LN aux 输出、TransData 残余、a
+          ttention 形态（manual vs PFA）复选 | 未知（5-15ms 级） | gate 
+          修复后数值可信，可放心换算子形态对拍；DUMP_GE_GRAPH 查融合机会 
+          | 低：纯实验性，逐项 golden 对拍守护 |
+      26  | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集
+           vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.
+          7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归
+          档决策 | 部署 TTFB/运维 | — | 低 |
+      27  
+      28 -**建议路线**：~~A+B 先做~~ **已完成（254.3ms task0 口径 = 0.68×
+         -，超预期）**。**主线改为引擎接入（2026-09-23 与用户对齐）= ④C i
+         -n-process + ④F 生产化的合并施工**：执行器库化 → PyO3 → engine.p
+         -y 路由 → 动态 L，全量 10/10 回归收口；D int8 probe / E msprof  
+         -降为顺路项。                                                   
+      28 +**建议路线**：~~A+B 先做~~ **已完成（全量口径 256.3ms = 0.682× 
+         +，10/10）**。~~主线 = 引擎接入~~ **三步已落地（①库化 e7e4cd1 ②P
+         +yO3 787730a ③engine.py inproc 分支）**。下一轮优先级：python 宿
+         +主 GE 存活障碍（TBE 禁用选项/华为渠道）→ eval 全链 inproc（9.0.
+         +1 libs 供给 + torch_npu 剥离）→ ④ 动态 L 定形；D int8 probe / E
+         + msprof 顺路。                                                 
+      29  
+      30  ## ③ Export 标题建议
+      31  
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 2 lines, removed 1 line
+      149    - **预置风险**：PFA 的 GE IR 注册名/attrs 待验证（C1 第 0 个
+           实验，aclnn 用的 V3，GE 侧注册名可能不同）；~2000 op 大图编译
+           时长/内存未知（POC 19 节点秒级；不可行则按层拆 OM 接力）；ada-
+           norm 先 GE 内置组合（AscendC kernel 入 GE 图走 AscendC-ops-dev
+            skill 的 ge_fullgraph 路线，后置不阻塞）；ACLGraph 路径保留为
+           回退
+      150      - 已完成前置：kernel 面_ops 层（matmul/add/mul/silu/rms_no
+           rm/pfa/cat/bias/euler，全部真机对拍）；normal_generator；featu
+           re 挂接；M2 构建半
+      151    - 完成后 checkpoint bench → LIBERO 对标（M3）
+      152 -- **✅ 性能轮第一点（2026-09-23，handoff ④A+B）——GEB_SERVE_FAS
+          -T 段间设备直连 + styles 设备驻留**（见 summary/2026-09-23_serv
+          -e-fast-device-direct.md）：serve 热路径 host 往返全消灭——prefi
+          -x 36 路 kv 异步 d2d 直连、flow x 设备驻留 + 去 per-step sync（
+          -10→1）、styles 每步独立视图一次上传帧内零拷贝（env 开关，legac
+          -y 保留，**OM 无需重烤**）。**task0 model_ms 316.1→254.3ms = 37
+          -6 基线 0.68×（破 0.70× 目标线）**，bit 级恒等（冒烟 A/B max_di
+          -ff 四位小数全同）+ task0 success 1.0；全量 10 任务回归 = 下一 
+          -轮第一动作。余项：C in-process serving（去 spool）、E msprof（
+          -vision 65ms 回归源）、D int8 单算 probe、全量 eval 口径 P50 复
+          -测                                                            
+      152 +- **✅ 性能轮第一点（2026-09-23，handoff ④A+B）——GEB_SERVE_FAS
+          +T 段间设备直连 + styles 设备驻留**（见 summary/2026-09-23_serv
+          +e-fast-device-direct.md）：serve 热路径 host 往返全消灭——prefi
+          +x 36 路 kv 异步 d2d 直连、flow x 设备驻留 + 去 per-step sync（
+          +10→1）、styles 每步独立视图一次上传帧内零拷贝（env 开关，legac
+          +y 保留，**OM 无需重烤**）。**task0 model_ms 316.1→254.3ms = 37
+          +6 基线 0.68×（破 0.70× 目标线）**，bit 级恒等（冒烟 A/B max_di
+          +ff 四位小数全同）+ task0 success 1.0；**全量 10 任务 fast 回归
+          +已收口（gatefastall）：10/10 + per-call model_ms P50 256.3ms =
+          + 0.682×**（跨任务 254.5-260.5 极稳）                          
+      153 +- **✅ 引擎接入主线三步（2026-09-23，见 summary/2026-09-23_eng
+          +ine-integration.md）**：① 执行器库化——ge_model_probe 6206 行沉
+          + crate 库面 `src/pi05/ascend_ge.rs` + `GeServe` 进程内门面（op
+          +en/infer；serve_loop 与直调共用帧实现），验证梯全过（golden 0.
+          +0%/0.9% 逐字同基线 + 新旧二进制冒烟 bit 恒等）——子模块 e7e4cd1
+          +；② PyO3 `GeServeModel`（apxinf-py --features ascend，与 spool
+          + 协议逐位对齐；rust 容器 python 三段直调全通；**python 宿主内 
+          +GE 库杀进程 = 已知障碍**，疑 TBE 子进程管理相克，无信号无 Trac
+          +eback）——787730a；③ engine.py npu-ge 加 `APXINF_GE_TRANSPORT=i
+          +nproc` 分支（失败回落 spool；torch_npu 8.5.1 与 9.0.1 同进程互
+          +斥，spool 仍为生产传输）。**引擎执行代码单一实现在 crate（exam
+          +ple/PyO3/spool 三入口同源）**——接入从脚手架形态升级为库面 + 多
+          +入口。遗留：python 宿主 GE 障碍、9.0.1 libs 供给 + torch_npu  
+          +剥离（eval 全链 inproc）、动态 L 定形（预置桶集 tl138-148+tl20
+          +0）、E msprof / D int8 顺路                                   
+      154  - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm
+           、silu、add/mul/scale、embedding、rope
+      155  - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
+      156  - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，
+           再热点融合
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu bash -c 'cat
+      /data/apxinf/serve/eval_enginet0c_summary.json 2>/dev/null | python3 -c
+      \"import json,sys; s=json.l…)
+  ⎿  0 / 1
+     1
+     Wed Sep 23 11:15:59 AM UTC 2026
+
+  Thought for 6s (ctrl+o to expand)
+
+● Task0 跑着（~15min）。等结果期间准备外层提交内容清单。等待后收结果：
+
+● Bash(sleep 540; ssh root@192.168.13.119 "docker exec apxinf_npu bash -c
+      'python3 -c \"
+      import json…)
+  ⎿  Error: Exit code 2
+     /usr/bin/bash: eval: line 6: syntax error near unexpected token `)'
+     /usr/bin/bash: eval: line 6: `\" 2>/dev/null; rows = [json.loads(l) for l 
+     in open(\\\"/data/apxinf/serve/eval_enginet0c.jsonl\\")] if __import__(\\\"
+     os\\\").path.exists(\\\"/data/apxinf/serve/eval_enginet0c.jsonl\\\") else 
+     []'
+
+  Thought for 5s (ctrl+o to expand)
+
+● 嵌套引号翻车（老纪律）。写小脚本走三步：
+
+● Write(syx_docs\dev_logs\collect_eval.py)
+  ⎿  Wrote 18 lines to syx_docs\dev_logs\collect_eval.py
+       1 import json
+       2 import sys
+       4 tag = sys.argv[1]
+       5 s = json.load(open(f"/data/apxinf/serve/eval_{tag}_summary.json"
+         ))
+       7 for tid, t in sorted(suite.items(), key=lambda kv: int(kv[0])):
+       8     print(f"task {tid}: completed {t['completed']} success {t['s
+         uccesses']}")
+         ag}.jsonl")]
+      10 ms = []
+     … +11 lines (ctrl+o to expand)
+
+● Bash(scp /d/compass/APXinf/syx_docs/dev_logs/collect_eval.py
+      root@192.168.13.119:/tmp/ && ssh root@192.168.13.119 "docker cp
+      /tmp/collect_eval.py apxinf_npu:/tmp/c.p…)
+  ⎿  task 0: completed 0 success 0
+     Traceback (most recent call last):
+       File "/tmp/c.py", line 9, in <module>
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Sleep 没生效（语法错连带）。真等 10 分钟再收：
+
+● Bash(sleep 600 && scp /d/compass/APXinf/syx_docs/dev_logs/collect_eval.py
+      root@192.168.13.119:/tmp/ 2>/dev/null; ssh root@192.168.13.119 "docker cp
+      /tmp/collect_eval…)
+  ⎿  Error: Exit code 143
+     Command timed out after 10m 0s
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_npu python3 /tmp/c.py
+      enginet0c; date")
+  ⎿  task 0: completed 1 success 1
+       task 0: steps 138 success True model_ms/call 258.7
+     per-call P50 258.7 min 258.7 max 258.7
+     Wed Sep 23 11:26:46 AM UTC 2026
+
+  Thought for 7s (ctrl+o to expand)
+
+● Task0 无回归（success 1、138 步、258.7ms）。收工序列：服务器停 serve → 外层仓
+  commit（npu_ge.py + 文档 + 脚本 + 子模块 bump）：
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'for p in
+      \$(pgrep -f \"supervisor.s[h]\"); do kill \$p 2>/dev/null; done; sleep 1;
+      for d in /data/apxi…)
+  ⎿  still_alive 2034144
+     still_alive 2034158
+     still_alive 2034173
+     … +8 lines (ctrl+o to expand)
+  ⎿  (timeout 1m)
+
+● Bash(ssh root@192.168.13.119 "docker exec apxinf_rust bash -c 'sleep 5; for p
+      in \$(pgrep -f \"ge_model_prob[e]\"); do st=\$(cut -d\" \" -f3
+      /proc/\$p/stat 2>/dev/nu…)
+  ⎿  ALIVE=0
+     | 0       0                     | 0000:01:00.0    | 0            24178
+     / 44278                            |
+     … +6 lines (ctrl+o to expand)
+  ⎿  (timeout 1m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 服务器干净（引擎零活体、芯片回基线）。外层仓提交：
+
+● Bash(git status --short | head -15 && git add src/apxinf_robo/npu_ge.py apxinf
+      syx_docs/dev_logs/summary/2026-09-23_engine-integration.md
+      syx_docs/dev_logs/handoff.m…)
+  ⎿  Error: Exit code 128
+     fatal: pathspec 'src/apxinf_robo/npu_ge.py' did not match any files
+
+● Bash(pwd; cd /d/compass/APXinf && git status --short | head -15)
+  ⎿  /d/compass/APXinf/apxinf
+      M apxinf
+      M src/apxinf_robo/npu_ge.py
+     … +12 lines (ctrl+o to expand)
+
+● Bash(git add apxinf src/apxinf_robo/npu_ge.py
+      syx_docs/dev_logs/summary/2026-09-23_engine-integration.md
+      syx_docs/dev_logs/handoff.md syx_docs/plans/npu-port-roadmap…)
+  ⎿  warning: in the working copy of 'src/apxinf_robo/npu_ge.py', LF will b
+     e replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 全链收口。总结本轮（goal：引擎正式接入 apxinf-robo 主路径）：
+
+  达成情况
+
+  全量 fast 回归终数先锁定：10/10 成功 + per-call model_ms P50 256.3ms = 376 
+  基线的 0.682×（10 任务 254.5-260.5ms 极稳）——上轮 GEB_SERVE_FAST 优化从 task0
+  单测升级到全量口径坐实。
+
+  接入三步全部落地：
+
+  步: ① 库化
+  内容: ge_model_probe 6206 行 git mv 沉到 src/pi05/ascend_ge.rs + 新 GeServe
+  进程内门面（open/infer），serve_loop 帧体改为调门面——spool 
+  与直调共用同一帧实现；example 变 40 行薄壳
+  验证: cargo check 一次过；golden 对拍 step0_x1 0.0% / actions 0.9%（与 M3
+  基线逐字同）；新旧二进制冒烟 max_diff 0.0244 四位小数全同（bit 恒等）；tl200
+  flow 重烤顺验建图 parity 0.1%
+  ────────────────────────────────────────
+  步: ② PyO3
+  内容: GeServeModel（apxinf-py --features ascend），接口与 spool 协议逐位对齐
+  验证: rust 容器 python 直调：import ✓、三段 OM 全通、styles 驻留构装 ✓
+  ────────────────────────────────────────
+  步: ③ engine.py
+  内容: npu_ge.py 加 APXINF_GE_TRANSPORT=inproc 分支（_InprocClient
+  直调，失败自动回落 spool）
+  验证: task0 回归 success、138 步、258.7ms——spool 生产路径零回归
+
+  一个如实交底的障碍：②的最后一公里——GE 库在 python 宿主进程内 open
+  尾声会杀掉整个进程（无段错误信号、无 Traceback，伴随 TBE
+  编译子进程报错，死亡点位非确定；strace 信号级已排除
+  SIGSEGV/SIGABRT）。同一代码在纯 Rust
+  宿主完全稳定（golden/冒烟/烤桶全过）。疑华为 GE 库的 TBE 子进程管理与 python
+  宿主相克，已记档并给出后续路线（TBE 禁用选项 / ge.exec_pythonPath /
+  华为渠道）。npu 容器侧本来就有 torch_npu 8.5.1 与 9.0.1
+  同进程互斥的硬约束，所以 spool 仍是生产传输，inproc 是可切换选项。
+
+  收尾：引擎执行代码现在是 crate
+  单实现、三入口（example/PyO3/spool）同源；两仓推平（子模块 e7e4cd1+787730a →
+  fork/ascend-port，外层 2f907ef）；战报
+  summary/2026-09-23_engine-integration.md + handoff/roadmap 更新；服务器 serve
+  全停、芯片回基线。
+
+  下一轮候选（handoff 已写）：python 宿主 GE 障碍攻关 → eval 全链 inproc（9.0.1
+  libs 供给 + torch_npu 剥离）→ 动态 L 定形；性能余项（vision 65ms、int8
+  probe）顺路。
+
+✔ Goal achieved (8h · 1 turn · 86.1k tokens) (ctrl+o to expand)
+✻ Churned for 1h 34m 5s · done 7:25 PM
+
+※ recap: 昇腾 NPU 引擎接入 apxinf-robo 主路径的目标已完成：库化+PyO3+engine.py 三步落地并推平，全量回归 10/10、0.682×。下一步是攻关 python 宿主内 GE 库杀进程的障碍，打通 eval 全链 inproc。 (disable recaps in /config)
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   249.2k/1m tokens (25%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2.9k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 246.8k tokens (24.7%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 750.3k (75.0%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
