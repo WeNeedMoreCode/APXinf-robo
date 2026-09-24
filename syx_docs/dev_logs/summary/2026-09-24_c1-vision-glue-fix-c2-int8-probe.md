@@ -4,7 +4,7 @@
 
 ## 一句话
 
-**C1：vision "65-68ms 回归" 三实验定罪 = 纯 host glue（设备侧 56.26ms 与 C2 收官 55.86 一致，双口径互证）——真凶 d2h 3.4ms + f16 解码 5.1ms；零拷贝字节视图 + 三段全挂流修复后 vision 66→59.4ms，sum 246 = 376 基线的 0.654×，bit 恒等 + task0 行为 1.0。C2：QuantMatmulDequant 在 310P GE 图内单算三连全过（编译/数值 0.564%/性能 2.41×）——int8 全链立项条件满足。**
+**C1：vision "65-68ms 回归" 三实验定罪 = 纯 host glue（设备侧 56.26ms 与 C2 收官 55.86 一致，双口径互证）——真凶 d2h 3.4ms + f16 解码 5.1ms；零拷贝字节视图 + 三段全挂流修复后 vision 66→59.4ms，sum 246 = 376 基线的 0.654×，bit 恒等 + task0 行为 1.0。C2：QuantMatmulDequant 在 310P GE 图内单算三连全过（编译/数值 0.564%/性能 2.41×）；真权重 L1/L2 判决——朴素 per-token W8A8 被 Gemma 激活 outlier 打爆（12.7%），smoothquant 修复成立（0.831%，性能零代价）——int8 全链立项条件满足（须带 smooth 校准）。**
 
 ## C1：vision serve 段 glue 判决链与修复
 
@@ -54,6 +54,33 @@ task0 闭环 eval（supervisor fast + 流水化 serve）：**success 1.0（162 �
 2. f16 基线链 `transpose_x2=true + desc[n,k]` 需要 **wt() 转置管线字节**，裸 [n,k] row-major 读错（饱和 ±65504）；probe 用无转置形态（transpose_x2=false + [k,n] 转置存储）自证。
 3. `rand_f16` 第三参是**除数**（值域 U(±100/div)）——div=1 时 y 必然饱和 65504（C1 探针数据教训重演第三次）。
 4. `pkill -f ge_model_probe` 会自匹配自杀（命令行含模式串）。
+
+## C2 续：真权重 L1/L2 判决（同日 13:00-13:15，子模块 7e8cced）
+
+### L1 权重量化误差谱（纯 host，`int8_weight_errspec.py`，per-output-row int8）
+
+| 权重组（用途） | rel_rms 中位 | 最差矩阵 | worst_row max |
+|---|---|---|---|
+| gemma_expert（flow） | **0.76-0.80%** | 1.20% | ≤2.6% |
+| paligemma 主干（prefix） | 0.87-1.04% | 2.03%（L00） | **11.2%**（down_proj 个别行，L00/01/05/07/08 集中） |
+
+对照：理论均匀量化 0.454%、f16 表示噪声 0.028%。真权重 ≈ 合成的 2 倍——权重侧无障碍，outlier 集中在 paligemma 主干 down_proj 的个别行（缓解：per-group / 混合精度）。
+
+### L2 真权重+真激活执行差（`GEB_OPTEST=qmd GEB_QMD_REAL=1`：x = golden res0 [712,2048]（std=10.8，**|max|=559** = Gemma 激活 outlier 实锤）× w = L07 mlp.gate [2048,16384]）
+
+| 形态 | Q-vs-F 执行差 | W8A8 数学自检 |
+|---|---|---|
+| 朴素 per-token W8A8 | **12.693%**（合成的 0.564% 恶化 22×） | 0.0298（精确） |
+| **smoothquant**（`GEB_QMD_SMOOTH=1`，α=0.5，s_k∈[1.3,138.8] host 预折叠，数学恒等） | **0.831%** | 0.0241（精确） |
+
+判决：**朴素 W8A8 不可用**（per-token scale 被 outlier 拉爆，host 双参考定位误差全在激活量化侧——W8A16 ref 27.7）；**smoothquant 修复成立**（0.831% = f16 执行差同量级，性能零代价 1.364ms 不变）。生产化路径 = s_k 折进 int8 权重 + 算子原生 `smooth_scale` 输入（x 原样进图，零额外算子）。m=712 n=16384 形态 int8/f16 = 1.56×（大 N 下 f16 效率更高所致）。
+
+### 立项终审（更新）
+
+- 数值面：smoothquant 后 0.831%/层（worst 层 worst 投影）——与 f16 累加序差同量级，**行为风险从"致命"降为"须 LIBERO 实测"**
+- 校准面：s_k 需要每层每投影一组 per-input-channel 因子（静态校准——golden 帧或小样本集的激活 per-channel max；单帧已work，多样本求 max 更稳）
+- 工程面：prefix OM 重烤（int8 权重 Data/Const + smooth_scale 输入）；flow 同构但 10 步欧拉放大待判
+
 
 ### 立项外推（下轮决策输入）
 
