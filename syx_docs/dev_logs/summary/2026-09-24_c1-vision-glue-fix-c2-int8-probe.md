@@ -75,11 +75,23 @@ task0 闭环 eval（supervisor fast + 流水化 serve）：**success 1.0（162 �
 
 判决：**朴素 W8A8 不可用**（per-token scale 被 outlier 拉爆，host 双参考定位误差全在激活量化侧——W8A16 ref 27.7）；**smoothquant 修复成立**（0.831% = f16 执行差同量级，性能零代价 1.364ms 不变）。生产化路径 = s_k 折进 int8 权重 + 算子原生 `smooth_scale` 输入（x 原样进图，零额外算子）。m=712 n=16384 形态 int8/f16 = 1.56×（大 N 下 f16 效率更高所致）。
 
+### 泛化性验证（`GEB_QMD_MATRIX` 旋钮，子模块 5d6d406，同 golden 激活 × 4 权重矩阵）
+
+| 矩阵 | n | s_k 范围 | smooth 后执行差 | int8 加速 |
+|---|---|---|---|---|
+| p7gate | 16384 | [1.3, 138.8] | 0.831% | 1.56× |
+| p0gate（L1 worst 层） | 16384 | [1.0, **831**] | **0.678%** | 1.56× |
+| p17gate | 16384 | [0.9, 24.3] | 0.655% | 1.54× |
+| a7gate（expert = flow 侧） | 2048 | [3.2, 67.8] | 1.424% | 1.49× |
+
+全部矩阵 smooth 后 0.66-1.42%——f16 执行差同量级，泛化成立（expert 侧略高：权重 std 0.038 更小 → 相对量化噪声大 + n=2048 小矩阵）。**性能实数修正：生产 gate_up 形态 [712×2048×16384] int8 = 1.49-1.56×（合成 m832/n8192 的 2.41× 是形状效应）——立项收益预期按 prefix matmul 1.5-1.6× 重估，全链 ~200ms = 0.53× 量级**。
+
 ### 立项终审（更新）
 
-- 数值面：smoothquant 后 0.831%/层（worst 层 worst 投影）——与 f16 累加序差同量级，**行为风险从"致命"降为"须 LIBERO 实测"**
-- 校准面：s_k 需要每层每投影一组 per-input-channel 因子（静态校准——golden 帧或小样本集的激活 per-channel max；单帧已work，多样本求 max 更稳）
+- 数值面：smoothquant 后 0.66-1.42%/层（4 矩阵泛化验证）——与 f16 累加序差同量级，**行为风险从"致命"降为"须 LIBERO 实测"**
+- 校准面：s_k 需要每层每投影一组 per-input-channel 因子（静态校准——golden 帧或小样本集的激活 per-channel max；单帧已 work，多样本求 max 更稳）
 - 工程面：prefix OM 重烤（int8 权重 Data/Const + smooth_scale 输入）；flow 同构但 10 步欧拉放大待判
+- **收益实数**：生产形态 int8 = 1.5-1.6×（非 2.41×）→ prefix matmul 70ms 级 → ~45ms，全链 ~200ms = 0.53× 量级
 
 
 ### 立项外推（下轮决策输入）
