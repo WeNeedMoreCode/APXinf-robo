@@ -1,6 +1,6 @@
-# Python 宿主 GE 存活障碍攻坚：死因链定位 + 死亡点推进到 open 尾后 SEGV
+# Python 宿主 GE 存活障碍攻坚：GIL 劫持根因定罪 + 修复终结（✅ 已解）
 
-日期：2026-09-24（凌晨 23:37-02:15，接 handoff 优先级 A；2:30 时限收档）
+日期：2026-09-24（凌晨 23:37-02:15 定位链；上午 10:30-11:00 gdb 定罪 + 修复终结）
 
 ## 一句话
 
@@ -41,18 +41,36 @@ aclgrphBuildInitialize（geb_init 无条件调）
 
 ## 交付物
 
-- **子模块 c883290**（fork/ascend-port 已推）：`ge_init_once` 默认跳过 init（inproc 快速失败可诊断，优于死进程）+ `APXINF_GE_BUILD_INIT=1` 逃生门；注释含完整死因链与战报指针
-- **`syx_docs/dev_logs/pyo3_noinit.sh`**（服务器 /data/apxinf/pyo3_check/ 同步）：判决脚本（当前形态 = 逃生门 + forkserver 关闭；跑 3 连）
-- 服务器 pyo3_check 目录：新 cdylib（no-init 默认）已部署
+- **子模块 c883290 + 2dbffe9**（fork/ascend-port 已推）：c883290 判决实验版（no-init 默认）→ 2dbffe9 终局版（allow_threads GIL 修复 + forkserver-off 默认 + `APXINF_GE_NO_BUILD_INIT=1` 逃生门）
+- **`syx_docs/dev_logs/pyo3_noinit.sh` / `pyo3_segv_diag.sh` / `pyo3_segv_gdb.sh` / `pyo3_stability.sh`**（服务器 /data/apxinf/pyo3_check/ 同步）：判决/定罪/稳定复验脚本链
+- 服务器 pyo3_check 目录：修复版 cdylib 已部署
 
 ## 下一步（按性价比排序）
 
-1. **gdb core dump**：容器 core pattern 确认落点，`gdb python3 core` 看栈——最后一公里的直接证据（te import 注入 vs GIL vs GE 收尾，一栈定罪）
-2. **若 te import 注入是根因**：尝试让 `te_fusion` 包 import 失败（PYTHONPATH 屏蔽）——但 init 会整体失败（构图又需要 init），死结；真正的出路在工程形态：
-3. **构图/python 宿主剥离**（工程方向，下轮主候选）：
-   - a. inproc worker 子进程化：multiprocessing fork 一个 worker 做 init+构图+open，主进程 pipe 通信（语义 = spool 的进程隔离 + pipe 传输，免文件轮询 ~15ms）
-   - b. binds 与构图解耦：`geb_model_load` 已 CacheIo（OM introspection 有 IO size/dims）——load-only 模式跳过构图、binds 从 OM introspection 来，则 init 整个不需要（no-init 路径已验证不死）
-4. **华为渠道**：素材已齐（复现器 + 机制链 + core），可精确提问"GE aclgrphBuildInitialize 在 python 宿主（libpython 已加载）内的 te fusion static path 支持性"
+~~1. gdb core dump 定剩余死因~~ **✅ 已做（同日上午）——见下"终局"节，GIL 劫持定罪 + 修复终结，A2 剥离工程不再需要**。剩余真实下一步 = **A3 eval 全链 inproc**（9.0.1 libs 拷 /data 供 npu 容器 + torch_npu 剥离=前处理 CPU 化）+ B 动态 L + C 性能余项，见 handoff。
+
+## 终局（同日上午 10:30-11:00）：gdb 一栈定罪 + 两行修复
+
+**core dump 实为空**（容器 core_pattern 走 apport 管道、容器内无 apport → core 从未落盘；"core dumped" 只是 shell 措辞）——改用 **gdb --batch live 跑**（openEuler dnf 装 gdb）。faulthandler 先证 python 主栈停在 `check.py:23`（PyO3 open 帧内），gdb 抓到全栈：
+
+```
+#0  get_state () at Objects/obmalloc.c:866        ← CPython pymalloc 内部
+#1  _PyObject_Malloc (nbytes=1320)
+#3  PyType_GenericAlloc
+#4  pyo3 PyNativeTypeInitializer::into_new_object   ← 创建 GeServeModel 返回对象
+#6  <GeServeModel as IntoPy>::into_py
+#7  GeServeModel::__pymethod_open__
+```
+
+**根因（GIL 劫持）**：open 主体持 GIL 跑 → 构图深处的 `aclgrphBuildInitialize` → te fusion py_decouple **static path**（python 宿主里 `dlsym(RTLD_DEFAULT,"Py_Initialize")` 命中宿主符号）→ `HandleManager::Initialize` 见 `PyGILState_Check()!=0`（PyO3 持有）→ **`TE_PyEval_SaveThread()` 偷走 PyO3 的 GIL 并存走 thread state**。open 全部完成后 PyO3 `into_py` 要分配 python 对象 → 解释器状态已烂 → pymalloc `get_state()` SEGV。（forkserver 关闭只是把死点从中途稳定到 open 尾；真正的凶手一直是 GIL 劫持。）
+
+**修复（子模块 2dbffe9，两行根因）**：
+1. `GeServeModel::open` 主体包进 `Python::allow_threads`（GIL 释放区）——init 时 `PyGILState_Check()==0`，te **不触发 SaveThread**；te 内部 python 调用自走 `PyGILState_Ensure/Release`，宿主线程状态全程完好
+2. `ge_init_once` 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（forkserver off 固化）；逃生门反转为 `APXINF_GE_NO_BUILD_INIT=1`
+
+**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 rel=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态同量级）+ `PYO3_GESERVE_OK RC=0`；3 次独立进程稳定复验见 pyo3_stability.sh。
+
+**结构性认识修正**：此前"GE 库内部 exit() / TBE 子进程相克"的推测均不成立——是**可修复的 GIL 协议违反**（te static path 假定自己是宿主里唯一的 python 管理者）。inproc 全链（engine.py → PyO3 → crate GeServe）在 rust 容器内已无障碍。
 
 ## 顺带事实
 
