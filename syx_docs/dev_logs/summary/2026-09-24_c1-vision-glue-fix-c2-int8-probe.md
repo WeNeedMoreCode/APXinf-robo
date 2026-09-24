@@ -100,9 +100,9 @@ prefix 102ms 设备时间里 matmul 若占 60-75ms → int8 后 ~20-31ms → pre
 
 ## 遗留与下一步
 
-- **spool 口径疑点**：task0 model_ms 264 vs 直调 246 差 ~18ms（gatefast 时代 254.3 vs 247 直调差 ~7ms）——spool 往返开销变大？33 样本 P50 + 桶芯片分配待排查；全量回归（gatefastall 同口径对比）可判
-- **prefix asm 2.5ms**：token 查表（144×2048 mul）跨 replan 恒定可缓存（eval 里 prompt 不变）——B 级优化
-- C2 立项内容（若做）：真权重 int8 量化误差谱 probe → prefix OM 权重 int8 化重烤（ND 直入已验证）→ golden parity → LIBERO 行为 → 全量回归；TransData 税在整图的复查
+- ~~spool 口径疑点~~ **销案（同日 13:28）**：task0 复跑 model_ms P50 = **258.0**（首跑 264.0、gatefast 时代 254.3）——跨次波动 ±3%（芯片分配/桶 warmup 噪声），无真回归；spool 往返开销 ~12-18ms 属已知口径差
+- ~~prefix asm 2.5ms~~ **已修（同日 13:30，子模块 1bf4201）**：token 查表缓存（prompt 跨 replan 恒定）→ asm 2.5→1.5ms，sum 稳态 245.5，bit 恒等 0.0244。⚠ supervisor 桶进程要用新二进制须重启（本轮 eval 用的旧 inode）
+- C2 立项内容（若做）：smooth 因子静态校准（多样本）→ s_k 折权重 + smooth_scale 输入 → prefix OM int8 重烤 → golden parity → LIBERO 行为 → 全量回归
 - B 动态 L 定形 / M2 eager 补 gate / A3 inproc 可选——handoff 原序不变
 
 ## 交付物
