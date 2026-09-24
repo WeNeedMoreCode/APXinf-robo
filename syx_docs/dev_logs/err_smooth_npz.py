@@ -54,6 +54,12 @@ def main():
         rel = np.abs(y - y_ref).max() / denom * 100
         print(f"{tag:<22} 执行差 rel={rel:.3f}%")
     print(f"|y|max={denom:.1f}，矩阵 {w.shape}，激活 {x.shape}")
+    # alpha 扫描（同在线单截面公式）：下轮 alpha 选择的直接依据
+    for alpha in (0.3, 0.4, 0.5, 0.6, 0.7):
+        s_a = np.power(np.maximum(a_k, 1e-8) / np.maximum(w_k, 1e-8), alpha).astype(np.float32)
+        ya = sim_w8a8(x, w, s_a)
+        rel = np.abs(ya - y_ref).max() / denom * 100
+        print(f"alpha={alpha:.1f}（在线截面）   执行差 rel={rel:.3f}%")
 
 
 if __name__ == "__main__":
