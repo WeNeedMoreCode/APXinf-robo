@@ -68,7 +68,7 @@ aclgrphBuildInitialize（geb_init 无条件调）
 1. `GeServeModel::open` 主体包进 `Python::allow_threads`（GIL 释放区）——init 时 `PyGILState_Check()==0`，te **不触发 SaveThread**；te 内部 python 调用自走 `PyGILState_Ensure/Release`，宿主线程状态全程完好
 2. `ge_init_once` 默认 `MIN_COMPILE_RESOURCE_USAGE_CTRL=ub_fusion,op_compile`（forkserver off 固化）；逃生门反转为 `APXINF_GE_NO_BUILD_INIT=1`
 
-**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 rel=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态同量级）+ `PYO3_GESERVE_OK RC=0`；3 次独立进程稳定复验见 pyo3_stability.sh。
+**验证**：`open 176.4s` 完整返回 + `infer ×3 max_diff=0.0244 rel=1.0%`（与 spool 桶逐位同）+ per-call 250-262ms（与 spool 稳态同量级）+ `PYO3_GESERVE_OK RC=0`。**3 次独立进程稳定复验全过**（pyo3_stability.sh）：RC 0/0/0、open 177.2/177.8s 复现稳定、infer ×9 全部 max_diff=0.0244 逐位同、稳态 sum 248-256ms——修复确定性强，无残留非确定行为。
 
 **结构性认识修正**：此前"GE 库内部 exit() / TBE 子进程相克"的推测均不成立——是**可修复的 GIL 协议违反**（te static path 假定自己是宿主里唯一的 python 管理者）。inproc 全链（engine.py → PyO3 → crate GeServe）在 rust 容器内已无障碍。
 
