@@ -13,7 +13,7 @@
 **状态**：prefix int8 生产化落地（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4 + **终版（Const+bias 砍除）独立全量 10/10 @ 238.9**（f16 256.3 = -17.4ms），prefix 105→**87ms**，直调 sum **228ms = 0.607×**；M2 eager gate 同日闭环（e768fb2）。三只 bug 已破（fusion 离线导出腐蚀 / smooth 乘法约定 1/s / L00 近零 fold → g 回图）。两仓已推平。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **B 动态 L 定形**——L 谱系 140-148 已实证（int8/f16 双套桶就位）；补 L 谱系探测脚本 + libero_spatial 泛化验收。⚠ 已知情报：spatial 两次挂 harness init（横幅后无输出、chip 无关、主进程 do_wait 子进程死——multiprocessing 谜题须先取证，object 套件全程正常）
+1. **B 动态 L 定形**——int8 桶 140-148 + 探测脚本就位；**spatial 谱系实证 153-156+（超 f16 预置 138-148，扩桶需求坐实）**。⚠ 移交情报（战报 2026-09-28 遗留节全录）：spatial 前两轮挂 init = **PYTHONPATH 覆盖丢容器默认项**（须 `:$PYTHONPATH` 追加）已修；第三轮 episodes 早断（桶数值健康、嫌疑在 spatial 套件 harness 本身）；**两个生产 supervisor 均僵尸（Sep 24 起）须用户决策重启**；f16 隔离 mini-sup（mini_sup_f16iso.sh）实测全通
 2. **校准 v2 + per-group**——golden 生成器补逐层激活 dump 替换单帧包络（L0 1.6-1.8% 的压缩杠杆）+ 权重面 per-group（rel_rms 2.14%）；验收 = L0 误差减半 + 全量 10/10 保持
 3. **flow int8 或段间融合**——0.53×（200ms）预算剩余缺口 = flow 81 + vision 60；物料同 prefix（smooth_calib_v1.npz 已含 flow/* 因子）
 

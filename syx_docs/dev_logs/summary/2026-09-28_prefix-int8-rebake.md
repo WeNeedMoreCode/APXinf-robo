@@ -40,7 +40,7 @@ prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant
 - **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87（bias 砍除 perf 持平 87.1-87.7）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间进一步融合；smooth_calib_v1.npz 已含 flow/* 因子）
 - bias 砍除终版：perf 持平但图更简（保留）；**Const 终版全量独立复验 10/10 @ 238.9**（混合口径 objection 闭合）
 - **M2 eager 补 gate 已闭环**（同日，子模块 e768fb2）：action_layer 两处残差 `branch·gate`（attention_style/mlp_style 第三段，gate_mats 缓存）；ascend_random_bench finite 1600/1600
-- **libero_spatial 尝试两次均挂 harness init**（横幅后无输出 30min+，chip 3/7 无关；主进程 do_wait 子进程已死——multiprocessing init 谜题，须独立取证轮；与引擎无关，object 套件全程正常）——B 动态 L 定形的泛化验收下轮带此情报重试
+- **libero_spatial 三轮取证（B 动态 L 验收的完整移交情报）**：①前两轮挂 harness init——根因实锤 = **PYTHONPATH 前缀式覆盖丢了容器默认项**（torch_npu/atb/tbe 路径；wrapper 是 `:$PYTHONPATH` 追加式——修正后 init 全通）；②第三轮 episodes 早断：每桶仅 1-2 次推理即跳任务、无 completion 行、无 jsonl——**桶侧完全健康**（f16 隔离桶 tl153/154/155 数值正常 253ms/|x|max~2.6），嫌疑收敛到 spatial 套件 harness 本身（env/state 配置类），与引擎无关（object 套件全程 10/10）；③**意外发现：两个生产 supervisor 均为僵尸（Sep 24 起）**——f16 共享桶 ensure 无人消费 4 天，任何人下次 eval 新 L 会静默卡死，**须用户决策重启**（我按纪律未动）；④**spatial L 谱系实证 153-156+，超出 f16 预置桶 138-148**——扩预置桶需求坐实。基建交付：mini_sup_f16iso.sh（f16 隔离 mini-sup，bake_one.sh 标准烤器 + 零触碰共享设施）实测全通（tl153-156 自动烤+spawn）
 - 校准 v2（逐层真激活替换单帧包络）：L0 1.6-1.8% 的下一压缩杠杆；权重面 per-group 量化同列
 - qmd 的 bias 输入（int32）与 x_scale/x_offset 输入在 310P 编译不可用/未探明——留档
 - **每任务 L 谱系确认 140-148**（9 桶）；eval 客户端 `APXINF_GE_SERVE_ROOT` 可指隔离根——本轮 int8 全量 eval 即用 `serve_i8` 隔离桶跑（mini_sup_i8.sh 复刻 supervisor 语义 + int8 env，未触碰共享 supervisor/tl 桶）
