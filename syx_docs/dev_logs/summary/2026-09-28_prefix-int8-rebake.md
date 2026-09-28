@@ -43,11 +43,21 @@ prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant
 - **生产桶全量 v2 化**（tl140-148+200 重烤 9+1/10 全成）+ task0 复验 **1/1**（prefix 88.2ms 不变）；mini_sup_i8/spawn 脚本同步指向 v2 因子（**env 必须追随 OM 的因子版本**——v1 smooth 配 v2 OM 是静默数值错配）
 - per-group 量化：受算子 weight_scale=[n] per-row 契约约束，310P 该 op 无 per-group 输入——留档不可行（除非换算子）
 
+## libero_spatial 泛化验收达成（2026-09-29 凌晨终局）
+
+**9/9 全 success（rate 1.0，零行为失败）**；task7 为客户端 segfault 缺测（missing 而非 fail——两次独立复现：清场后仍 20min 超时、桶仅受理 1 次推理后客户端无痕死）。**B 动态 L 的泛化验收线达成**：f16 引擎第二任务套件（spatial）多任务集成功，兼作引擎推广性证据。到达路径（四坑连环，全取证）：
+1. init 挂 = PYTHONPATH 前缀覆盖丢容器默认项（须 `:$PYTHONPATH` 追加）——破
+2. **mini-sup 多实例互杀**（docker exec -d 反复启动 → 实例互清 spool 打死对方 serve → 客户端等 ready 静默超时三连）——单实例后 task1-6 连续通过——**主根因**，入 memory
+3. **NPU OOM**（8 只 f16iso serve 累积 + torch 前处理 6GB，t8/9 首跑炸）——清桶 + shutdown 标记防盲目 respawn 后补跑通过
+4. ledger scope 校验拒绝跨任务条目 → 逐任务独立 jsonl + 合并 + `--tasks all` 生成终 summary（spatial_by_task.sh / spatial_makeup.sh）
+- **spatial L 谱系实证 149-156**（超 f16 预置 138-148）——扩预置桶需求坐实；task7 segfault 为唯一残留疑点（gdb/py-spy 附着复现留下轮）
+
 ## 遗留与下一步
 
 - **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87-88（bias 砍除 perf 持平）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间融合；校准 v2 生成器可同法扩 flow 侧 dump）
 - **M2 eager 补 gate 已闭环**（同日，子模块 e768fb2）
-- **libero_spatial 终定性（B 动态 L 验收的移交情报）**：①init 挂根因 = **PYTHONPATH 前缀覆盖丢容器默认项**（须 `:$PYTHONPATH` 追加）已破；②**episode 中途无痕崩溃**：单任务模式 task0 success=True（76 步），task1-3 各桶受理 1-8 次推理后客户端静默死（无 traceback、timeout 900s 三连）——**引擎侧完全健康**（桶数值正常、object 全程 10/10），定性 harness/环境级 segfault（torch_npu+EGL+多进程组合嫌疑），须独立取证轮（可用 gdb/py-spy 附着复现）；③ledger scope 校验拒绝跨任务条目——逐任务须独立 jsonl 后合并（spatial_by_task.sh v2 已实现合并+终 summary 生成）；④**mini-sup 多实例互杀坑**：docker exec -d 反复启动 = 实例互相清 spool/打死对方 serve（tl150 双 bake 实锤）——同隔根只允许一份；⑤**两个生产 supervisor 僵尸（Sep 24 起）须用户决策重启**；⑥spatial L 谱系 **149-156**（超 f16 预置 138-148，扩桶需求坐实）
+- task7 spatial 客户端 segfault 疑点（唯一缺测项）
+- **两个生产 supervisor 僵尸（Sep 24 起）须用户决策重启**
 - qmd 的 bias 输入（int32）与 x_scale/x_offset 在 310P 编译不可用/未探明——留档
 - PyO3 inproc int8 open 挂（AclError -2）——非生产路径，留档
 - int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（v2 因子）
