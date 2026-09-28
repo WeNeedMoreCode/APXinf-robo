@@ -34,7 +34,7 @@ bake_prefix() { # bake_prefix <L> <chip>
     echo "[i8sup] bake tl${L}_i8 prefix (chip$c) $(date)" >> "$LOG"
     env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
       ASCEND_RT_VISIBLE_DEVICES=$c \
-      GEB_SEG=prefix GEB_PREFIX_INT8=1 GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 \
+      GEB_SEG=prefix GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v2_engine.safetensors GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 \
       GEB_WCONST=1 GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=$L GEB_CKPT=$CKPT \
       GEB_SAVE=$d/prefix_real.om "$BIN" >> "$LOG" 2>&1
   fi
@@ -55,7 +55,7 @@ spawn_bucket() { # spawn_bucket <L>
     GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
     GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=$CKPT \
     GEB_PREFIX_INT8=1 \
-    GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v1_engine.safetensors \
+    GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v2_engine.safetensors \
     "$BIN" > "$spool/stdout.log" 2>&1 &
   echo $! > "$spool/pid"
   LAST_RESPAWN[$L]=$(date +%s)

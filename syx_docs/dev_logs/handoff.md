@@ -10,14 +10,14 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**：prefix int8 生产化落地（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4 + **终版（Const+bias 砍除）独立全量 10/10 @ 238.9**（f16 256.3 = -17.4ms），prefix 105→**87ms**，直调 sum **228ms = 0.607×**；M2 eager gate 同日闭环（e768fb2）。三只 bug 已破（fusion 离线导出腐蚀 / smooth 乘法约定 1/s / L00 近零 fold → g 回图）。两仓已推平。
+**状态**：prefix int8 生产化落地 + 校准 v2 升级（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4 + 终版独立全量 **10/10 @ 238.9**（f16 256.3）；**v2 因子 L0 误差减半（0.9%）**、actions 13.3→10.1%，生产桶全量 v2 化 + task0 复验 1/1，prefix 105→**87-88ms**，直调 **228ms = 0.607×**；M2 eager gate 闭环（e768fb2）。两仓已推平。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **B 动态 L 定形**——int8 桶 140-148 + 探测脚本就位；**spatial 谱系实证 153-156+（超 f16 预置 138-148，扩桶需求坐实）**。⚠ 移交情报（战报 2026-09-28 遗留节全录）：spatial 前两轮挂 init = **PYTHONPATH 覆盖丢容器默认项**（须 `:$PYTHONPATH` 追加）已修；第三轮 episodes 早断（桶数值健康、嫌疑在 spatial 套件 harness 本身）；**两个生产 supervisor 均僵尸（Sep 24 起）须用户决策重启**；f16 隔离 mini-sup（mini_sup_f16iso.sh）实测全通
-2. **校准 v2 + per-group**——golden 生成器补逐层激活 dump 替换单帧包络（L0 1.6-1.8% 的压缩杠杆）+ 权重面 per-group（rel_rms 2.14%）；验收 = L0 误差减半 + 全量 10/10 保持
-3. **flow int8 或段间融合**——0.53×（200ms）预算剩余缺口 = flow 81 + vision 60；物料同 prefix（smooth_calib_v1.npz 已含 flow/* 因子）
+1. **B 动态 L 定形**——int8 桶 140-148（v2）+ f16 隔离 mini-sup + 探测脚本就位；spatial 谱系 **149-156** 实证。⚠ 移交情报（战报遗留节全录）：spatial init 挂根因（PYTHONPATH 追加）已破；**episode 中途无痕崩溃待取证**（引擎洗清——桶健康 + object 10/10；gdb/py-spy 附着复现是下轮入口）；ledger scope 须逐任务独立 jsonl；**mini-sup 同根只许一份（多实例互杀）**；**两个生产 supervisor 僵尸（Sep 24 起）须用户决策重启**
+2. **flow int8 或段间融合**——0.53×（200ms）预算剩余缺口 = flow 81 + vision 60；物料同 prefix，校准 v2 生成器可同法扩 flow 侧 dump
+3. **校准 v3（多帧）**——v2 已把层间错配修掉（L0 0.9%），多帧激活（3-5 帧）进一步压尾差；验收 = actions <8% + 全量 10/10
 
-顺手项（不设 goal 也可）：PyO3 inproc int8 open 挂（AclError -2，非生产路径）。
+顺手项（不设 goal 也可）：PyO3 inproc int8 open 挂（AclError -2，非生产路径）；per-group 受算子契约约束已判不可行（留档）。
 
 **纪律**：手烤 OM 命令必须带 `env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json`（**漏带 = legacy 算子图重载后静默全饱和**，2026-09-28 实锤；bash 不认带点变量名前缀赋值）；qmd smooth_scale = **1/s（乘法约定）** f16 [k]；int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（勿动共享 supervisor）。验证梯照旧。
 

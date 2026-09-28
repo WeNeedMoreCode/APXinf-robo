@@ -24,14 +24,19 @@ f16 路径用 ones+权重折叠——两路在层内语义恒等，残差流两�
 smooth 落成 s_npz 正向值 → 乘法约定算子拿到 x·s @ w·s = s² 放大 ~1300×
 （kvk_l0 max_diff 13379 的根因）。现在 smooth 恒为 1/s_npz 并打印实值。
 """
+import sys
+
 import numpy as np
 import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
 
 CKPT = "/data/apxinf/weights/pi05_libero_finetuned/model.safetensors"
-NPZ = "/data/apxinf/pyo3_check/smooth_calib_v1.npz"
-OUT = "/data/apxinf/pyo3_check/smooth_calib_v1_engine.safetensors"
+# 用法：convert_smooth_engine.py [src.npz] [--invert]——src 缺省 v1 包络版；
+# v2 逐层真激活版 = smooth_calib_v2.npz（int8_smooth_calib_v2.py 产出）
+_args = [a for a in sys.argv[1:] if not a.startswith("--")]
+NPZ = _args[0] if _args else "/data/apxinf/pyo3_check/smooth_calib_v1.npz"
+OUT = NPZ.replace(".npz", "_engine.safetensors")
 ROOT = "model.paligemma_with_expert.paligemma.model.language_model"
 FOLD_SRC = {
     "q": "input_layernorm",

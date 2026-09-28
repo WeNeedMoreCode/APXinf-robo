@@ -21,7 +21,7 @@ env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 \
   GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
   GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=$CKPT \
   GEB_PREFIX_INT8=1 \
-  GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v1_engine.safetensors \
+  GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v2_engine.safetensors \
   nohup "$BIN" > "$spool/stdout.log" 2>&1 &
 echo $! > "$spool/pid"
 echo "spawned ISOLATED int8 serve: spool=$spool chip=$CHIP pid=$(cat "$spool/pid")"

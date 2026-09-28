@@ -35,16 +35,22 @@ prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant
 | 全量 10 任务（libero_object） | **10/10 rate 1.0**（Data 版口径 model_ms P50 281）——flow 10 步欧拉对 13% actions 漂移鲁棒，C2 立项时的行为残余风险**销案** |
 | perf（spool 直调，tl144 帧对拍） | f16：vision 60/prefix 104-108/flow 81，sum 243-249；int8-Data：prefix **129.5**（ND→NZ 每执行税 ~25ms ≈ 2GB/63GB/s，吃光算子 1.5× 收益）；int8-Const：prefix **87.3**，sum **228.2-228.7 = 0.607×**，帧漂移 0.1997（|nact|max 2.555）；bias 砍除版 prefix 87.1-87.7 **持平**（TileD+Add 对本就廉价；砍除保留，图更简） |
 
+## 校准 v2 闭环（2026-09-28 深夜追加）
+
+- **golden_gen_v2calib.py**：prefix 18 层 ×4 站点真激活 dump（nrm1/m/nrm2/act，全部 pre-hook——**forward_hook 在该 torch_npu 环境全哑**，从消费者输入侧取数绕过）；层间量级差巨大（nrm1_l0 max 19 vs l17 62、act_l17 3940）= v1 包络错配严重性实锤
+- **int8_smooth_calib_v2.py**（per-matrix 真激活 a_k）+ convert 参数化 npz 路径；smooth ∈ [0.0078, 6659] f16 安全域
+- **数值全面占优**（vs v1）：L0 1.8/1.6%→**0.9/0.8%（正好减半，验收线命中）**、L1 7.0→1.1%、L17 累积 31.5→**11.6%**、actions 13.3→**10.1%**
+- **生产桶全量 v2 化**（tl140-148+200 重烤 9+1/10 全成）+ task0 复验 **1/1**（prefix 88.2ms 不变）；mini_sup_i8/spawn 脚本同步指向 v2 因子（**env 必须追随 OM 的因子版本**——v1 smooth 配 v2 OM 是静默数值错配）
+- per-group 量化：受算子 weight_scale=[n] per-row 契约约束，310P 该 op 无 per-group 输入——留档不可行（除非换算子）
+
 ## 遗留与下一步
 
-- **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87（bias 砍除 perf 持平 87.1-87.7）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间进一步融合；smooth_calib_v1.npz 已含 flow/* 因子）
-- bias 砍除终版：perf 持平但图更简（保留）；**Const 终版全量独立复验 10/10 @ 238.9**（混合口径 objection 闭合）
-- **M2 eager 补 gate 已闭环**（同日，子模块 e768fb2）：action_layer 两处残差 `branch·gate`（attention_style/mlp_style 第三段，gate_mats 缓存）；ascend_random_bench finite 1600/1600
-- **libero_spatial 三轮取证（B 动态 L 验收的完整移交情报）**：①前两轮挂 harness init——根因实锤 = **PYTHONPATH 前缀式覆盖丢了容器默认项**（torch_npu/atb/tbe 路径；wrapper 是 `:$PYTHONPATH` 追加式——修正后 init 全通）；②第三轮 episodes 早断：每桶仅 1-2 次推理即跳任务、无 completion 行、无 jsonl——**桶侧完全健康**（f16 隔离桶 tl153/154/155 数值正常 253ms/|x|max~2.6），嫌疑收敛到 spatial 套件 harness 本身（env/state 配置类），与引擎无关（object 套件全程 10/10）；③**意外发现：两个生产 supervisor 均为僵尸（Sep 24 起）**——f16 共享桶 ensure 无人消费 4 天，任何人下次 eval 新 L 会静默卡死，**须用户决策重启**（我按纪律未动）；④**spatial L 谱系实证 153-156+，超出 f16 预置桶 138-148**——扩预置桶需求坐实。基建交付：mini_sup_f16iso.sh（f16 隔离 mini-sup，bake_one.sh 标准烤器 + 零触碰共享设施）实测全通（tl153-156 自动烤+spawn）
-- 校准 v2（逐层真激活替换单帧包络）：L0 1.6-1.8% 的下一压缩杠杆；权重面 per-group 量化同列
-- qmd 的 bias 输入（int32）与 x_scale/x_offset 输入在 310P 编译不可用/未探明——留档
-- **每任务 L 谱系确认 140-148**（9 桶）；eval 客户端 `APXINF_GE_SERVE_ROOT` 可指隔离根——本轮 int8 全量 eval 即用 `serve_i8` 隔离桶跑（mini_sup_i8.sh 复刻 supervisor 语义 + int8 env，未触碰共享 supervisor/tl 桶）
-- PyO3 inproc 直调 int8 open 挂（AclError -2 warmup 首帧，f16 同环境正常）——未定案，inproc 非生产路径（spool 正常），留档
+- **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87-88（bias 砍除 perf 持平）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间融合；校准 v2 生成器可同法扩 flow 侧 dump）
+- **M2 eager 补 gate 已闭环**（同日，子模块 e768fb2）
+- **libero_spatial 终定性（B 动态 L 验收的移交情报）**：①init 挂根因 = **PYTHONPATH 前缀覆盖丢容器默认项**（须 `:$PYTHONPATH` 追加）已破；②**episode 中途无痕崩溃**：单任务模式 task0 success=True（76 步），task1-3 各桶受理 1-8 次推理后客户端静默死（无 traceback、timeout 900s 三连）——**引擎侧完全健康**（桶数值正常、object 全程 10/10），定性 harness/环境级 segfault（torch_npu+EGL+多进程组合嫌疑），须独立取证轮（可用 gdb/py-spy 附着复现）；③ledger scope 校验拒绝跨任务条目——逐任务须独立 jsonl 后合并（spatial_by_task.sh v2 已实现合并+终 summary 生成）；④**mini-sup 多实例互杀坑**：docker exec -d 反复启动 = 实例互相清 spool/打死对方 serve（tl150 双 bake 实锤）——同隔根只允许一份；⑤**两个生产 supervisor 僵尸（Sep 24 起）须用户决策重启**；⑥spatial L 谱系 **149-156**（超 f16 预置 138-148，扩桶需求坐实）
+- qmd 的 bias 输入（int32）与 x_scale/x_offset 在 310P 编译不可用/未探明——留档
+- PyO3 inproc int8 open 挂（AclError -2）——非生产路径，留档
+- int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（v2 因子）
 
 ## 服务器状态
 
