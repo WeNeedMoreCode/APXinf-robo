@@ -6,20 +6,20 @@
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-24_c1-vision-glue-fix-c2-int8-probe.md）——① 终局事实：vision "回归"是 host glue 已修（0.654×）、aclmdlExecuteAsync 实为 host 阻塞语义、QuantMatmulDequant 在 310P GE 图内可用（契约：ND int8 + x_quant_mode="pertoken" + transpose_weight=true [n,k]）、朴素 W8A8 死于 Gemma 激活 outlier 须 smooth（α=0.5 已定案）、生产形态 int8 只有 1.5-1.6×；② 下轮入口：goal 三选一（见 ②）+ 物料路径（/data/apxinf/pyo3_check/ 下 int8_weights_v1.npz / smooth_calib_v1.npz）；③ 纪律：GeServe env 不含 GEB_DEPTH、裸 op attr 显式设、rand_f16 第三参是除数、验证梯四步。丢弃：E1-E5 实验输出、注册表勘察过程、编译失败两轮、alpha 扫描明细、spool 三连复测——战报已全文记录。
+聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-28_prefix-int8-rebake.md 与 2026-09-24_c1-vision-glue-fix-c2-int8-probe.md）——① 终局事实：prefix int8 已生产化（10/10 + 0.607×，g 回图方案、Const 免税、bias 砍除）；三只 bug 教训（fusion off 手烤必带 / smooth 乘法约定 1/s / v2 脚本 invert 静默丢失）；② 下轮入口：goal 菜单见 ②；物料 = /data/apxinf/pyo3_check/（smooth_calib_v1_engine.safetensors 引擎因子 / int8_weights_v1.npz 金标准 / convert_smooth_engine.py 等脚本）+ om_cache/tl{140-148,200}_i8 桶 + serve_i8 隔离 eval 设施；③ 纪律：手烤 fusion off env、qmd 契约、隔离 eval 根、验证梯四步。丢弃：三只 bug 的取证过程、probe NSM 1-6 模式明细、桶重烤波折、eval 客户端多 L 跳桶排查——战报已全文记录。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**：引擎全链直调 sum ~246ms = 376 基线 **0.654×**，行为 10/10 保持。int8 全链的前置物料已全部备齐并验证（算子契约 / smooth 校准因子 / int8 权重烘焙金标准 / α=0.5 定案）。全部判决数字与过程见 summary/2026-09-24_c1-vision-glue-fix-c2-int8-probe.md；两仓已推平（子模块 1bf4201 / 外层 25afdf1）。
+**状态**：prefix int8 生产化落地（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4（对拍 ALL_OK / golden L0 1.6-1.8% / task0 1.0 / 全量 **10/10**），prefix 105→**87ms**，直调 sum **228ms = 0.607×**。int8 三只 bug 已破（fusion 离线导出腐蚀 / smooth 乘法约定 1/s / L00 近零 fold 通道 → g 回图方案）。两仓已推平。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **prefix OM int8 重烤**——Seg 构造中 prefix 的 mm 换 `QuantMatmulDequant`（int8 权重 + per-row scale + smooth s_k），量化实现对拍金标准 = `/data/apxinf/pyo3_check/int8_weights_v1.npz`（因子在 `smooth_calib_v1.npz`）；env 开关保留 f16 回退路径。验收梯：golden parity → task0 行为 → 全量 10 任务。预算：全链 ~200ms（0.53×）；行为不过即回退（残余风险 = flow 10 步欧拉对量化误差的放大，本轮不碰 flow）
-2. **B 动态 L 定形**——扩预置桶 + L 谱系探测脚本；验收 = libero_spatial 多任务集泛化（兼作引擎推广性证据）
-3. **M2 eager 补 gate**——技术债，1-2h
+1. **B 动态 L 定形**——L 谱系 140-148 已实证（9 桶就位）；补 L 谱系探测脚本 + libero_spatial 多任务集泛化验收（兼作引擎推广性证据）
+2. **校准 v2 + per-group**——golden 生成器补逐层激活 dump 替换单帧包络（L0 1.6-1.8% 的压缩杠杆）+ 权重面 per-group（rel_rms 2.14%）；验收 = L0 误差减半 + 全量 10/10 保持
+3. **flow int8 或段间融合**——0.53×（200ms）预算的剩余缺口在 flow 81ms + vision 60ms；物料同 prefix（smooth_calib_v1.npz 已含 flow/* 因子）
 
-顺手项（不设 goal 也可）：校准 v2（golden 生成器补逐层激活 dump，替换单帧包络）；权重面 per-group 量化（smooth 后权重 rel_rms 2.14% 的压缩杠杆）。
+顺手项（不设 goal 也可）：M2 eager 补 gate（1-2h 技术债）；PyO3 inproc int8 open 挂（AclError -2，非生产路径）。
 
-**纪律**：GeServe::open env 钉死不含 GEB_DEPTH；GE 裸 op 构图 attr 必须显式设（qmd 的 x_quant_mode / transpose_weight 教训）；验证梯照旧（golden ≤0.1%/≤2% → 冒烟 A/B bit 同 → task0 → 全量）。其余细节看战报遗留节与 ④。
+**纪律**：手烤 OM 命令必须带 `env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json`（**漏带 = legacy 算子图重载后静默全饱和**，2026-09-28 实锤；bash 不认带点变量名前缀赋值）；qmd smooth_scale = **1/s（乘法约定）** f16 [k]；int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（勿动共享 supervisor）。验证梯照旧。
 
 ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
 
@@ -30,12 +30,12 @@
 | **A** | ✅ **已落地（2026-09-23，GEB_SERVE_FAST）**：**段间设备直连**——prefix 36 路 kv 异步 d2d（零 host 中转）+ flow x 设备驻留（ob→binds[0] d2d，只末步下载）+ 去 per-step sync（10 次→1 次） | **实测 −45~62ms**（flow 117→80、prefix 130→105-115；task0 model_ms 316→254.3） | 同流顺序链保证计算序不变——bit 恒等 | 已过验证梯：冒烟 A/B bit 同（max_diff 四位全同）+ task0 success 1.0；全量回归待下一轮 |
 | **B** | ✅ **已落地（同上，与 A 同一开关）**：**styles 设备驻留**——legacy 110 槽被 10 步复用须逐步重传（1100 次 h2d/调用）；改为每步独立视图拼 2.25MB master 一次上传 ⇒ **帧内零拷贝** | 并入上项（flow −35~37ms 的主体） | styles 跨帧恒定 + DeviceBuffer::view_of 非拥有视图 | 低（同 A） |
 | **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py inproc 分支）；python 宿主障碍已终结（2026-09-24 2dbffe9，GIL 劫持定罪 + allow_threads 修复，open 完整返回 + infer 与 spool 逐位同）**：**in-process serving**——执行器沉 crate 库面（GeServe 门面，spool/直调同源帧实现）+ PyO3 GeServeModel + npu_ge.py `APXINF_GE_TRANSPORT=inproc`（回落 spool 保底）。**剩余 = A3 eval 全链 inproc**（9.0.1 libs 供给 npu 容器 + torch_npu 剥离=前处理 CPU 化） | spool 15ms 在 inproc 生效环境免 | 引擎单实现三入口（example/PyO3/spool） | 已过：golden+bit 恒等双验、rust 容器 python 直调全通（修复后 RC=0 稳定）；task0/全量回归走 spool 保底无回归 |
-| **D** | **✅ 单算 probe 全过（2026-09-24，GEB_OPTEST=qmd，子模块 3b5d54f）：`QuantMatmulDequant` 在 310P GE 图内单算三连判决**——编译✓（**ND int8 权重直入**，注册表 FRACTAL_NZ 提示不拦；attr 契约 = `x_quant_mode="pertoken"` + `transpose_weight=true` [n,k]，缺 attr = task_distribute 拒且 plog 无细节）；数值✓（Q-vs-f16 执行 rel=0.564%；host 双参考 W8A8 0.0156 ≪ W8A16 0.2774 ⇒ 内部 per-token 激活量化）；性能✓（**2.41×** vs 生产转置布局 1.790ms @ m832 k2048 n8192）。**剩 = 全链立项**：真权重误差谱（Gemma outlier）→ prefix OM int8 重烤 → golden/LIBERO 行为判 | prefix **或 −35~45ms，全链 0.44-0.55× 量级** | 融合单算（激活量化在算子内部，host 激活流不变）；scale per-channel host 可精确计算 | 中：量化误差在 10 步欧拉的行为放大待 LIBERO 判；整图 TransData 税复查 |
+| **D** | **✅ prefix int8 生产化收官（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）**：7 投影 ×18 层全换 QuantMatmulDequant（native smooth_scale = **1/s 乘法约定** + Const 烤入免 ND→NZ 税 + Gemma (1+g) 回图方案）；验收梯 4/4——对拍 npz 金标准 ALL_OK / golden L0 1.6-1.8%（18 层线性累积 L17 ~31-42%，actions 13.3%）/ task0 1.0 / **全量 10/10**；prefix 105→**87ms**，直调 sum **228ms = 0.607×**。三 bug 教训入 ② 纪律（fusion off 手烤必带等）。剩：校准 v2/per-group（误差杠杆）、flow 侧 int8（预算缺口主体）、bias int32 输入 310P 编译不可用留档 | 0.53× 预算剩 ~28ms 缺口（vision 60 + prefix 87 + flow 81 分解） | — | 已闭环 |
 | **E** | **✅ C1 判决+修复完成（2026-09-24，子模块 ada176d）**：vision serve 65-68 "回归" = 纯 host glue（E2 设备 bench 56.26 ≈ C2 收官 55.86，设备侧洗清；真凶 = d2h 3.4 + f16 解码 5.1ms；111 输出 dataset 重建 0.3ms 洗清）→ 零拷贝字节视图 + `copy_h2d/d2h_async` 三段挂流单次 sync → **vision 59.4 / sum 246 = 0.654×**，bit 恒等 + task0 1.0 | **已兑现 −6.6ms** | `GEB_SERVE_TIMING=1` 分段计时常驻 | 剩余小项：~~prefix asm 2.5ms~~ 已修（token 查表缓存 1bf4201，asm→1.5ms）、flow enq 2.4ms；aclmdlExecuteAsync 实为 host 阻塞语义（bench 循环掩盖/serve 单发暴露） |
 | **F** | **生产化配套**（非性能项）：动态 L 方案定形（预置桶集 vs padding+mask vs input_shape_range）、OM 懒加载/共享加载（3.7GB prefix 每桶 spawn ~1min）、M2 eager 路径补 gate、NORM32 归档决策 | 部署 TTFB/运维 | — | 低 |
 
-**建议路线**（历史划线从略：A/B 设备直连、引擎接入三步、python 宿主障碍、C1+C2 连打均已完成，数字见表内与战报）：**下一轮 = ② 的 goal 三选一**——① prefix OM int8 重烤（前置物料已齐）→ ② B 动态 L 定形 → ③ M2 eager 补 gate。A3 eval 全链 inproc 保持可选（abi 墙 + 宿主重写 vs ~5ms/帧收益，见 ④C）。
+**建议路线**（历史划线从略：A/B 设备直连、引擎接入、C1 vision glue、C2 int8 全链均已收官，数字见表内与战报）：**下一轮 = ② 的 goal 三选一**——① B 动态 L 定形 → ② 校准 v2 + per-group → ③ flow int8 / 段间融合。A3 eval 全链 inproc 保持可选（abi 墙 + 宿主重写 vs ~5ms/帧收益，见 ④C）。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-24_c1-c2-perf-wave2.md（性能第二波：vision glue 定罪+修复 0.654× + QuantMatmulDequant int8 单算 2.41× 全过）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-28_prefix-int8-rebake.md（prefix int8 生产化：三 bug 取证 + 10/10 + 0.607×）
