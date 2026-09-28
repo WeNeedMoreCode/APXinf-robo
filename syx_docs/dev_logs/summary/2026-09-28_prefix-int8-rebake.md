@@ -2,7 +2,7 @@
 
 ## 终局一行
 
-prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant`（smooth W8A8 + 算子原生 smooth_scale），**验收梯 4/4 通过**：量化对拍金标准 ALL_OK → e2e golden parity（L0 单层 1.6-1.8%，actions 13.3%）→ task0 success 1.0 → **全量 10/10 rate 1.0**。perf：prefix **105 → 87.3ms**（Const 烤入免 ND→NZ 税），全链直调 **228.5ms = 0.607×**（f16 基线 243-249）。env 开关 `GEB_PREFIX_INT8=1`，f16 回退 = 不设。
+prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant`（smooth W8A8 + 算子原生 smooth_scale），**验收梯 4/4 通过**：量化对拍金标准 ALL_OK → e2e golden parity（L0 单层 1.6-1.8%，actions 13.3%）→ task0 success 1.0 → **全量 10/10**。**终版（Const + bias 砍除）独立全量复验 10/10 @ model_ms P50 238.9**（f16 同口径 256.3 = **-17.4ms**），直调 sum **228.5ms = 0.607×**；prefix **105→87ms**。env 开关 `GEB_PREFIX_INT8=1`，f16 回退 = 不设。**M2 eager 补 gate 同日闭环**（残差裸加 → `branch·gate` 两处，与 GE gatew 同源；bench finite 1600/1600）。
 
 ## 实现面（子模块 ascend_ge.rs）
 
@@ -37,8 +37,10 @@ prefix 7 投影（q/k/v/o/gate/up/down × 18 层）全部换 `QuantMatmulDequant
 
 ## 遗留与下一步
 
-- **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87.3（单算 1.5× 理论 ~70，bias op 已砍后待测）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间进一步融合）
-- bias 砍除版（TileD+Add 对 ×5/层 移除）已实现待 perf 复测（本轮收尾时全量重烤中）
+- **~28ms 到 0.53× 预算的缺口分解**：vision 60（C1 后残余）+ prefix 87（bias 砍除 perf 持平 87.1-87.7）+ flow 81（本轮不碰——下一杠杆：flow 侧 int8 或段间进一步融合；smooth_calib_v1.npz 已含 flow/* 因子）
+- bias 砍除终版：perf 持平但图更简（保留）；**Const 终版全量独立复验 10/10 @ 238.9**（混合口径 objection 闭合）
+- **M2 eager 补 gate 已闭环**（同日，子模块 e768fb2）：action_layer 两处残差 `branch·gate`（attention_style/mlp_style 第三段，gate_mats 缓存）；ascend_random_bench finite 1600/1600
+- **libero_spatial 尝试两次均挂 harness init**（横幅后无输出 30min+，chip 3/7 无关；主进程 do_wait 子进程已死——multiprocessing init 谜题，须独立取证轮；与引擎无关，object 套件全程正常）——B 动态 L 定形的泛化验收下轮带此情报重试
 - 校准 v2（逐层真激活替换单帧包络）：L0 1.6-1.8% 的下一压缩杠杆；权重面 per-group 量化同列
 - qmd 的 bias 输入（int32）与 x_scale/x_offset 输入在 310P 编译不可用/未探明——留档
 - **每任务 L 谱系确认 140-148**（9 桶）；eval 客户端 `APXINF_GE_SERVE_ROOT` 可指隔离根——本轮 int8 全量 eval 即用 `serve_i8` 隔离桶跑（mini_sup_i8.sh 复刻 supervisor 语义 + int8 env，未触碰共享 supervisor/tl 桶）

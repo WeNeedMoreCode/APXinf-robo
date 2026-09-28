@@ -10,14 +10,14 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**：prefix int8 生产化落地（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4（对拍 ALL_OK / golden L0 1.6-1.8% / task0 1.0 / 全量 **10/10**），prefix 105→**87ms**，直调 sum **228ms = 0.607×**。int8 三只 bug 已破（fusion 离线导出腐蚀 / smooth 乘法约定 1/s / L00 近零 fold 通道 → g 回图方案）。两仓已推平。
+**状态**：prefix int8 生产化落地（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）：验收梯 4/4 + **终版（Const+bias 砍除）独立全量 10/10 @ 238.9**（f16 256.3 = -17.4ms），prefix 105→**87ms**，直调 sum **228ms = 0.607×**；M2 eager gate 同日闭环（e768fb2）。三只 bug 已破（fusion 离线导出腐蚀 / smooth 乘法约定 1/s / L00 近零 fold → g 回图）。两仓已推平。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **B 动态 L 定形**——L 谱系 140-148 已实证（9 桶就位）；补 L 谱系探测脚本 + libero_spatial 多任务集泛化验收（兼作引擎推广性证据）
+1. **B 动态 L 定形**——L 谱系 140-148 已实证（int8/f16 双套桶就位）；补 L 谱系探测脚本 + libero_spatial 泛化验收。⚠ 已知情报：spatial 两次挂 harness init（横幅后无输出、chip 无关、主进程 do_wait 子进程死——multiprocessing 谜题须先取证，object 套件全程正常）
 2. **校准 v2 + per-group**——golden 生成器补逐层激活 dump 替换单帧包络（L0 1.6-1.8% 的压缩杠杆）+ 权重面 per-group（rel_rms 2.14%）；验收 = L0 误差减半 + 全量 10/10 保持
-3. **flow int8 或段间融合**——0.53×（200ms）预算的剩余缺口在 flow 81ms + vision 60ms；物料同 prefix（smooth_calib_v1.npz 已含 flow/* 因子）
+3. **flow int8 或段间融合**——0.53×（200ms）预算剩余缺口 = flow 81 + vision 60；物料同 prefix（smooth_calib_v1.npz 已含 flow/* 因子）
 
-顺手项（不设 goal 也可）：M2 eager 补 gate（1-2h 技术债）；PyO3 inproc int8 open 挂（AclError -2，非生产路径）。
+顺手项（不设 goal 也可）：PyO3 inproc int8 open 挂（AclError -2，非生产路径）。
 
 **纪律**：手烤 OM 命令必须带 `env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json`（**漏带 = legacy 算子图重载后静默全饱和**，2026-09-28 实锤；bash 不认带点变量名前缀赋值）；qmd smooth_scale = **1/s（乘法约定）** f16 [k]；int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（勿动共享 supervisor）。验证梯照旧。
 
