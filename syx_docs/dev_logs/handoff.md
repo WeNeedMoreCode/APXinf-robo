@@ -1,25 +1,23 @@
-# Handoff（2026-09-29 int8 生产化 + spatial 泛化收官 → 下一轮压缩用）
+# Handoff（2026-09-30 flow int8 行为翻车回滚 + 段间融合否决 → 下一轮压缩用）
 
 ## 状态一句话
 
-**prefix int8 生产化全梯收官 + libero_spatial 泛化落地（2026-09-28~29，全数字见 summary/2026-09-28_prefix-int8-rebake.md）**：int8 验收梯 4/4（对拍 ALL_OK / golden L0 0.9%（v2 校准）/ task0 / **全量 10/10 @ 238.9ms**，f16 基线 256.3），prefix 105→87-88ms、直调 228ms = 0.607×；spatial **9/9 全 success**（泛化证据）+ 谱系 149-156 实证；M2 eager gate 闭环。历史里程碑（引擎库化/PyO3/inproc、C1 vision glue、C2 单算 probe、GIL 劫持终结）见 ②④ 与各战报。下轮 = ② 的 goal 菜单三选一。
+**goal ①（flow int8 / 段间融合）取证收官（2026-09-30，全数字见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）**：flow int8（gate,up,down 子集）数值面全绿（对拍零翻转 / golden step0 0.1%、actions 10.0% / serve flow 81→75.6ms、sum 225.1 = 0.598×）但**行为面 task0/task1 连续 520 打满 → 生产回滚 flow f16**（全桶已换 + mini_sup 已撤 env；回滚位 = Sep 28 验收的 prefix int8 v2 + flow f16 配置）；**段间融合（10 步单 OM）取证否决**（flow sync=70.6ms 纯设备时间主导，enq 仅 3ms，unroll 上界 ~3ms）；**qmd 小 M 收益被 per-op quant 开销吃掉**（-5.4ms vs 带宽模型 -30ms，单算+全图双取证）。历史里程碑见 ④ 与各战报。下轮 = ② 菜单。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-28_prefix-int8-rebake.md）——① 终局事实：prefix int8 生产化（全量 10/10 + 0.607× + v2 校准 L0 0.9%）；spatial 9/9 泛化 + 谱系 149-156；关键教训 = fusion off 手烤必带 / qmd smooth 乘法约定 1/s / **mini-sup 同根只许一份** / PYTHONPATH 须追加式；② 下轮入口：goal 菜单见 ②；物料 = /data/apxinf/pyo3_check/（**smooth_calib_v2_engine.safetensors 生产因子** / int8_weights_v1.npz 金标准 / 全套脚本）+ om_cache/tl{140-148,200}_i8 桶（v2）+ serve_i8 / serve_f16iso 隔离 eval 设施；③ 纪律：手烤 fusion off env、env 须追随 OM 的因子版本、隔离 eval 根、验证梯四步。丢弃：三只 bug 取证过程、spatial 四坑排查过程、桶重烤波折——战报已全文记录。
+聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）——① 终局事实：flow int8 数值绿/行为翻车已回滚（资产保留：引擎 env 开关 + 因子四件套 + 烤制配方）；段间融合否决；qmd M=50 开销定罪；② 下轮入口：goal 菜单见 ②；物料 = /data/apxinf/pyo3_check/（flow 因子四件套 + prefix v2 生产因子）+ serve_i8（回滚位）+ probe_fi8/tl144_ab 实验桶；③ 纪律：**A/B 隔离根必须全谱系桶+supervisor**（单桶根过不了 L 漂移）、eval timeout ≥1800 且谱系桶先烤全、docker exec -d bash -c 内联形态进程随 ssh 断连无声死（用脚本文件形态）。丢弃：sshd 断连风暴应对过程、A/B 三连阻排查过程——战报已全文记录。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**（2026-09-29 凌晨终局，见 summary/2026-09-28_prefix-int8-rebake.md）：① int8 验收梯 4/4 + 终版全量 **10/10 @ 238.9**（f16 256.3）+ **校准 v2**（L0 减半 0.9%、actions 10.1%、桶全量 v2 化），prefix 105→**87-88ms**、直调 **228ms = 0.607×**；② **libero_spatial 泛化 9/9 全 success**（task7 客户端 segfault 缺测非失败；谱系 149-156 实证）；③ M2 gate 闭环（e768fb2）。两仓已推平。
+**状态**（2026-09-30，见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）：① flow int8 数值全绿 + perf 75.6ms（-5.4）但 task0/1 连续打满 → **已回滚**（回滚位复验 <!-- REVERT_T0 -->）；② 段间融合取证否决（sync 70.6 设备主导）；③ qmd 小 M 开销定罪（单算 probe GEB_QMD_M/K + 全图双取证）。两仓已推平（引擎 50024cb / 外层 bump）。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **flow int8 或段间融合**——0.53×（200ms）预算剩余缺口 = flow 81 + vision 60；物料同 prefix（校准 v2 生成器可同法扩 flow 侧 dump）
-2. **校准 v3（多帧）**——v2 已把层间错配修掉（L0 0.9%），多帧激活（3-5 帧）压尾差；验收 = actions <8% + 全量 10/10
-3. **spatial task7 segfault 取证 + 扩预置桶落地**——gdb/py-spy 附着复现（唯一缺测项）；149-156 桶并入生产 supervisor 管理（⚠ 两个生产 supervisor 僵尸 Sep 24 起**须用户决策重启**）
+1. **qmd x_scale 静态化探明**——0.53× 剩余 ~25ms 的唯一大杠杆（flow 设备 70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标）；IR 面 x_scale/x_offset 输入 310P 未探明，先单算 probe
+2. **校准 v3（行为面优先）**——flow 侧因子改 per-step 感知（当前 10 步 amax 包络可能过平滑）+ prefix 多帧；验收 = actions <8% + 全量 10/10 + **flow int8 重启行为梯**
+3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装（apxinf_npu）；**本轮新增同款证据：task0 也出现客户端停摆（L 漂移 ensure 死锁）**——task7 疑云可用同工具链复现；149-156 桶并入生产管理（⚠ 共享 supervisor 僵尸 Sep 24 起**须用户决策重启**）
 
-顺手项（不设 goal 也可）：PyO3 inproc int8 open 挂（AclError -2，非生产路径）；per-group 受算子契约约束已判不可行（留档）；**纪律：mini-sup 同根只许一份（多实例互杀，memory 已记）**。
-
-**纪律**：手烤 OM 命令必须带 `env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json`（**漏带 = legacy 算子图重载后静默全饱和**，2026-09-28 实锤；bash 不认带点变量名前缀赋值）；qmd smooth_scale = **1/s（乘法约定）** f16 [k]；int8 eval 用隔离根 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` + mini_sup_i8.sh（勿动共享 supervisor）。验证梯照旧。
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor，单桶根被 L 漂移击穿）；eval timeout ≥1800。
 
 ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
 

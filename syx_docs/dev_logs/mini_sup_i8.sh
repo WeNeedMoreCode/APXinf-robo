@@ -29,7 +29,9 @@ bake_prefix() { # bake_prefix <L> <chip>
   local L=$1 c=$2 d=$OM/tl${L}_i8
   mkdir -p "$d"
   [ -f "$OM/tl$L/vision_real.om" ] && cp -n "$OM/tl$L/vision_real.om" "$d/"
-  [ -f "$OM/tl$L/flow_real.om" ] && cp -n "$OM/tl$L/flow_real.om" "$d/"
+  # flow 回 f16（2026-09-30 行为判决：flow int8 gud 数值全绿但 task0/1 连续
+  # 520 打满——行为退化疑云，A/B 隔离受 infra 阻未终裁；生产回滚保守位）
+  [ -f "$OM/tl$L/flow_real.om" ] && cp "$OM/tl$L/flow_real.om" "$d/"
   if [ ! -f "$d/prefix_real.om" ]; then
     echo "[i8sup] bake tl${L}_i8 prefix (chip$c) $(date)" >> "$LOG"
     env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
