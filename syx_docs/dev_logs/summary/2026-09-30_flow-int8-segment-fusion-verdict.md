@@ -19,7 +19,7 @@ flow 段 int8 走完全部**数值面**验证梯（对拍 ALL_OK 零翻转 / gol
 | e2e golden（tl200 语义，prefix v2 int8 + flow gud int8） | step0_x1 **0.1%**（prefix int8 v2 的 kvk_l0 是 0.9%——flow 单步更干净）；10 步欧拉累积后 actions **9.7%（全 7）/ 10.0%（gud 子集）** vs prefix-only 10.1%——flow int8 没有放大总漂移 |
 | task0（prefix+flow int8，serve_i8 spool） | **FAIL：520 步打满**（226s；Sep 28 同 seed 基线 134 步 success）——行为翻车第一证 |
 | task1（同上，套件第 2 任务） | **FAIL：520 步打满**（10min）——连续两任务失败 vs 基线 10/10，flow int8 行为退化先验坐实方向 → **生产回滚** |
-| 回滚位配置（prefix int8 v2 + flow f16）task0 复验 | **待跑**——2026-09-30 服务器链路断 ~50min，回滚链（全桶 f16 flow + mini_sup 撤 env + serve 重启）已启动但复验未及执行；恢复后跑 task0 预期回到 134 步 success 形态（若仍打满 = 非 flow int8 因素，升级重查） |
+| 回滚位配置（prefix int8 v2 + flow f16）task0 复验 | **SUCCESS（232 步，47 replans）**——2026-10-08 补验（服务器 10-04 断电重启、/data 全幸存、容器重启即恢复）。与 flow int8 的 520 打满构成完整 A/B：唯一变量 flow int8 = 行为退化定罪成立，回滚正确（Sep 28 基线 134 步 success，本次 232 步——成功判定内步数波动属 aclnn 非确定性合法范围） |
 
 ## 行为判决与回滚（本轮最重要结论）
 

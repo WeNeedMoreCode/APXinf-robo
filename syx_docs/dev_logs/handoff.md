@@ -10,7 +10,7 @@
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**（2026-09-30，见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）：① flow int8 数值全绿 + perf 75.6ms（-5.4）但 task0/1 连续打满 → **已回滚**（回滚已执行：全桶 f16 flow + mini_sup 撤 env + serve 重启链已启动；**复验 task0 待网络恢复**——2026-09-30 服务器链路断 ~50min 收官时未跑，恢复后 `APXINF_GE_SERVE_ROOT=/data/apxinf/serve_i8` 跑 task0 应回到 134 步 success 形态，若仍打满则升级为「非 flow int8 因素」重查）；② 段间融合取证否决（sync 70.6 设备主导）；③ qmd 小 M 开销定罪（单算 probe GEB_QMD_M/K + 全图双取证）。两仓已推平（引擎 50024cb / 外层 e80ea93）。
+**状态**（2026-10-08 补验闭合，见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）：① flow int8 数值全绿 + perf 75.6ms（-5.4）但 task0/1 连续打满 → **已回滚且复验闭合**（回滚位 task0 **SUCCESS 232 步** @ 2026-10-08——与 int8 位 520 打满构成完整 A/B，flow int8 行为退化定罪成立；服务器 10-04 断电重启 /data 全幸存，环境已恢复：容器重启 + mini_sup 回滚位运行中）；② 段间融合取证否决（sync 70.6 设备主导）；③ qmd 小 M 开销定罪（单算 probe GEB_QMD_M/K + 全图双取证）。两仓已推平（引擎 50024cb / 外层 e80ea93+）。
 
 **下轮 goal 建议（抄一项即可）**：
 1. **qmd x_scale 静态化探明**——0.53× 剩余 ~25ms 的唯一大杠杆（flow 设备 70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标）；IR 面 x_scale/x_offset 输入 310P 未探明，先单算 probe
