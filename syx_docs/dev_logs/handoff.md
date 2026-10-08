@@ -1,23 +1,22 @@
-# Handoff（2026-10-08 qmd x_scale 静态化探明收官 → 下一轮压缩用）
+# Handoff（2026-10-08 晚 分解式 w8a8 出局判决 → 下一轮压缩用）
 
 ## 状态一句话
 
-**goal ①（qmd x_scale 静态化探明）收官（2026-10-08，全数字见 summary/2026-10-08_qmd-xscale-static-verdict.md）**：静态 x_scale 在 310P 无实现（qmd 唯一 bin 只实现 pertoken，x_scale 输入被 bit 级忽略）；**探明产出完整路线图**——w8a16（WQBMV2，eager rel 0.066% 数值最优）被 310P 模板墙挡死；**分解式 w8a8（DynamicQuantV2+TransQuantParamV2+QuantBatchMatmulV3）三算子链离线 build 通过 = 量化侧唯一存续路线**（数值面=现行 w8a8 同数学，行为面依赖校准 v3）；0.53× 在量化侧无可达路径（上界 ~215ms/0.57×），结构下限证据链补全。上轮（flow int8 行为回滚 + 复验闭合）见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md。下轮 = ② 菜单。
+**分解式 w8a8 出局（2026-10-08 晚，全数字见 summary/2026-10-08_qbmv3-pertoken-template-wall.md）**：上轮判"唯一存续"的 DQ+TQP+QBMV3 链在 run 阶段证伪——per-token 语义在 310P kernel 模板清单不存在（core 200 只实例化 u64-scale+无 pertoken；接 pertoken_scale → KeyError '21'，源码+运行时双证）；no-pertoken 唯一形态 = 静态 x scale-only（运行确认 0.027%），且三算子链 m=50 比 qmd **慢 2×**（0.119 vs 0.059ms）——语义、性能双杀。**qmd per-token = 310P 量化侧终点形态，量化侧全线收束**（四条路线判决表见战报）。剩余可动杠杆 = 行为面（校准 v3）与生产面（task7/扩桶）。上轮（qmd 静态 x_scale 探明）见 summary/2026-10-08_qmd-xscale-static-verdict.md。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-10-08_qmd-xscale-static-verdict.md）——① 终局事实：静态 x_scale 死（三模式取证）；w8a16 死于模板墙但 kernel 活（eager 证据）；分解式 w8a8 build 通过 + 全部契约坑已探明（QBMV3 dtype attr 必显式、u64 packed scale op-to-op、ge_builder 已补 uint64）；ops 家族分类学入 memory + ge-offline-om skill 速查表；② 下轮入口：goal 菜单见 ②；probe 资产 = GEB_QMD_XS/WQ/WA/Z/Z2 五旋钮（全 env 门控）+ pyo3_check/{wq_eager_test,wq_cap_check}.py；取证钥匙 = ASCEND_SLOG_PRINT_TO_STDOUT=1；③ 纪律：改 ge_builder.cpp 须同步 cmake 源（/data/apxinf/ascendc/ge_builder/，双源副本坑 skill #43）；env 助手别传 =0 当未设；A/B 隔离 = 等价生产根；eval timeout ≥1800。丢弃：probe 迭代过程细节——战报已全文记录。
+聚焦保留：**结论与入口，不保数字**（数字全在两份 summary）——① 终局：分解式 w8a8 出局（per-token 模板墙 KeyError '21' + 静态形态 2× 慢双杀；qmd per-token = 量化侧终点）；判据升级 = `*_tiling_key.h` 模板清单 + `platform_config/<SoC>.ini` AIC_version（core 200=310P / 220=新芯片）强于注册表 json（simplifiedKey 假门）——skill #44 + memory 已更新；② probe 资产：GEB_QMD_Z3（=1 模板墙复现 / =2 DQ 单算 / =3 no-pertoken 语义解码）+ 上轮 XS/WQ/WA/Z/Z2；③ 纪律不变：手烤 OM fusion off、A/B 隔离等价生产根、eval timeout ≥1800、scp 直推单文件（Syncthing 本地未跑时）；服务器 chip 3 空闲（chip 2 被他人 python 占用、4/5 有 ge_model_probe 残留进程待核）。丢弃：probe 迭代过程——战报已全文记录。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**（2026-10-08，见 summary/2026-10-08_qmd-xscale-static-verdict.md）：① qmd 静态 x_scale 310P 无实现（bin 忽略输入）；② w8a16 数值最优但离线模板墙死；③ **分解式 w8a8（DQ+TQP+QBMV3）build 通过**——待数值对拍 + 单算 bench + 全图 A/B + 引擎接线；0.53× 量化侧无路径（终点估 ~215ms/0.57×，前提行为面修复）。两仓已推平（引擎含 probe 链 X/W/Z/Z2 + ge_builder uint64；skill 陷阱 #40-43 + 速查表回填）。
+**状态**（2026-10-08 晚，见 summary/2026-10-08_qbmv3-pertoken-template-wall.md）：量化侧全线收束——分解式 w8a8 出局（per-token 模板墙 + 静态形态 2× 慢），**qmd per-token 是 310P 量化终点形态，0.53× 无路径终审闭合**。两仓已推平（引擎含链 Z3 probe；skill #44 + 速查表改判 + memory 更新）。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **分解式 w8a8 落地**——Z2 数值对拍（packed scale 语义解码）→ DQ@M=50 单算 bench → 引擎接线（GEB_FLOW_INT8_DECOMP）→ 全图 A/B → golden → 行为梯（与校准 v3 合流点）
-2. **校准 v3（行为面优先）**——flow 侧 per-step 感知因子 + prefix 多帧；验收 = actions <8% + 全量 10/10 + flow int8 行为梯（分解式的行为面同此依赖）
-3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装；149-156 桶并入生产管理（⚠ 共享 supervisor 僵尸须用户决策）
+1. **校准 v3（行为面优先，当前推荐首项）**——flow 侧 per-step 感知因子 + prefix 多帧；验收 = actions <8% + 全量 10/10 + flow int8 行为梯（回收 flow int8 -5.4ms 的唯一路径；量化侧已收束，行为面是最后一块可动杠杆）。入口：上轮战报 summary/2026-09-30_flow-int8-segment-fusion-verdict.md 的回滚资产（env 开关 + 因子四件套 + 配方）+ 校准 v2 管线（2026-09-28 战报）
+2. **task7 segfault 取证 + 扩预置桶**——py-spy 已装；149-156 桶并入生产管理（⚠ 共享 supervisor 僵尸须用户决策）；顺带：chips 4/5 两个 ge_model_probe 残留进程（6.1GB each）核实清理
 
-**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor）；eval timeout ≥1800；**新量化算子先过 skill 速查表**（310P 离线可用性看家族）。
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor）；eval timeout ≥1800；**新量化算子先过 skill 速查表 + #44 判据**（tiling_key.h 模板清单，勿信注册表 json）。
 
 ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
 
@@ -25,15 +24,16 @@
 
 | # | 方向 | 预期收益 | 机制 | 风险/前置 |
 |---|---|---|---|---|
-| **A** | ✅ **已落地（2026-09-23，GEB_SERVE_FAST）**：**段间设备直连**——prefix 36 路 kv 异步 d2d（零 host 中转）+ flow x 设备驻留（ob→binds[0] d2d，只末步下载）+ 去 per-step sync（10 次→1 次） | **实测 −45~62ms**（flow 117→80、prefix 130→105-115；task0 model_ms 316→254.3） | 同流顺序链保证计算序不变——bit 恒等 | 已过验证梯：冒烟 A/B bit 同（max_diff 四位全同）+ task0 success 1.0；全量回归待下一轮 |
-| **B** | ✅ **已落地（同上，与 A 同一开关）**：**styles 设备驻留**——legacy 110 槽被 10 步复用须逐步重传（1100 次 h2d/调用）；改为每步独立视图拼 2.25MB master 一次上传 ⇒ **帧内零拷贝** | 并入上项（flow −35~37ms 的主体） | styles 跨帧恒定 + DeviceBuffer::view_of 非拥有视图 | 低（同 A） |
-| **C** | ✅ **已落地（2026-09-23，e7e4cd1+787730a+engine.py inproc 分支）；python 宿主障碍已终结（2026-09-24 2dbffe9，GIL 劫持定罪 + allow_threads 修复，open 完整返回 + infer 与 spool 逐位同）**：**in-process serving**——执行器沉 crate 库面（GeServe 门面，spool/直调同源帧实现）+ PyO3 GeServeModel + npu_ge.py `APXINF_GE_TRANSPORT=inproc`（回落 spool 保底）。**剩余 = A3 eval 全链 inproc**（9.0.1 libs 供给 npu 容器 + torch_npu 剥离=前处理 CPU 化） | spool 15ms 在 inproc 生效环境免 | 引擎单实现三入口（example/PyO3/spool） | 已过：golden+bit 恒等双验、rust 容器 python 直调全通（修复后 RC=0 稳定）；task0/全量回归走 spool 保底无回归 |
-| **D** | **✅ prefix int8 生产化收官（2026-09-28，见 summary/2026-09-28_prefix-int8-rebake.md）**：7 投影 ×18 层全换 QuantMatmulDequant（native smooth_scale = **1/s 乘法约定** + Const 烤入免 ND→NZ 税 + Gemma (1+g) 回图方案）；验收梯 4/4——对拍 npz 金标准 ALL_OK / golden L0 1.6-1.8%（18 层线性累积 L17 ~31-42%，actions 13.3%）/ task0 1.0 / **全量 10/10**；prefix 105→**87ms**，直调 sum **228ms = 0.607×**。三 bug 教训入 ② 纪律（fusion off 手烤必带等）。剩：校准 v2/per-group（误差杠杆）、flow 侧 int8（预算缺口主体）、bias int32 输入 310P 编译不可用留档 | 0.53× 预算剩 ~28ms 缺口（vision 60 + prefix 87 + flow 81 分解） | — | 已闭环 |
-| **E** | **✅ C1 判决+修复完成（2026-09-24，子模块 ada176d）**：vision serve 65-68 "回归" = 纯 host glue（E2 设备 bench 56.26 ≈ C2 收官 55.86，设备侧洗清；真凶 = d2h 3.4 + f16 解码 5.1ms；111 输出 dataset 重建 0.3ms 洗清）→ 零拷贝字节视图 + `copy_h2d/d2h_async` 三段挂流单次 sync → **vision 59.4 / sum 246 = 0.654×**，bit 恒等 + task0 1.0 | **已兑现 −6.6ms** | `GEB_SERVE_TIMING=1` 分段计时常驻 | 剩余小项：~~prefix asm 2.5ms~~ 已修（token 查表缓存 1bf4201，asm→1.5ms）、flow enq 2.4ms；aclmdlExecuteAsync 实为 host 阻塞语义（bench 循环掩盖/serve 单发暴露） |
-| **F** | **生产化配套**（非性能项）：~~动态 L 方案定形~~ ✓ 主体落地（2026-09-29：spatial 谱系 149-156 实证 + 隔离 mini-sup 基建；剩 149-156 桶并入生产 supervisor 管理 + task7 segfault 取证）；~~M2 eager 路径补 gate~~ ✓（e768fb2）；OM 懒加载/共享加载（3.7GB prefix 每桶 spawn ~1min）；NORM32 归档决策；**生产 supervisor 僵尸自 Sep 24 待用户决策重启** | 部署 TTFB/运维 | — | 低 |
+| **A** | ✅ 已落地（2026-09-23，GEB_SERVE_FAST）段间设备直连 + styles 设备驻留 | 实测 −45~62ms | 同流顺序链 bit 恒等 | 已过验证梯 + 全量回归 10/10 |
+| **B** | ✅ 已落地（同 A） | 并入 A | — | — |
+| **C** | ✅ 已落地（2026-09-24）：in-process serving（GeServe 门面 + PyO3 + allow_threads 修复）。剩余 = A3 eval 全链 inproc（abi 墙 + 宿主重写 vs ~5ms/帧） | spool 15ms 在 inproc 环境免 | 引擎单实现三入口 | 保持可选 |
+| **D** | ✅ prefix int8 生产化收官（2026-09-28）：qmd 7 投影×18 层 + v2 校准 + 10/10；prefix 105→87ms，直调 sum 228ms=0.607× | 已兑现 | — | 已闭环 |
+| **E** | ✅ C1 vision glue 修复（2026-09-24）：零拷贝 f16 字节视图 + 挂流单次 sync → vision 59.4ms | 已兑现 −6.6ms | `GEB_SERVE_TIMING=1` 常驻 | 剩 prefix asm 已修、flow enq 2.4ms 小项 |
+| **F** | **生产化配套**（非性能项）：动态 L 主体落地（剩 149-156 桶并入生产 supervisor + task7 segfault 取证）；OM 懒加载（3.7GB prefix 每桶 ~1min）；生产 supervisor 僵尸（Sep 24 起）待用户决策重启 | 部署 TTFB/运维 | — | 低 |
+| **G** | ~~量化侧新算子~~ **✗ 全线收束（2026-10-08 双轮终审）**：qmd 静态 x ✗ / w8a16 模板墙 ✗ / 分解式 per-token 模板墙 ✗ / 分解式 static 2× 慢 ✗——**qmd per-token = 310P 量化终点形态**；flow int8 -5.4ms 的回收走校准 v3（行为面，非算子面） | — | — | 判决表见 2026-10-08 两份战报 |
 
-**建议路线**（历史划线从略：A/B 设备直连、引擎接入、C1 vision glue、C2 int8 生产化、校准 v2、spatial 泛化、M2 gate 均已收官，数字见表内与战报）：**下一轮 = ② 的 goal 三选一**——① flow int8 / 段间融合（0.53× 缺口主体）→ ② 校准 v3 多帧 → ③ task7 segfault 取证 + 扩桶落地。A3 eval 全链 inproc 保持可选（abi 墙 + 宿主重写 vs ~5ms/帧收益，见 ④C）。
+**建议路线**：**下一轮 = 校准 v3**（② 菜单 1——量化侧收束后行为面是唯一可动杠杆，flow int8 回滚资产 + v2 管线都在）；task7/扩桶随后。A3 eval 全链 inproc 保持可选。
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-28_prefix-int8-rebake.txt（int8 生产化三 bug 取证 + 10/10 + v2 校准 + spatial 9/9 泛化 + M2 gate）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-08_qbmv3-template-wall.txt（分解式 w8a8 出局：KeyError '21' 源码定罪 + no-pertoken 语义解码 + 2× 慢 kill-shot）
