@@ -1,23 +1,23 @@
-# Handoff（2026-09-30 flow int8 行为翻车回滚 + 段间融合否决 → 下一轮压缩用）
+# Handoff（2026-10-08 qmd x_scale 静态化探明收官 → 下一轮压缩用）
 
 ## 状态一句话
 
-**goal ①（flow int8 / 段间融合）取证收官（2026-09-30，全数字见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）**：flow int8（gate,up,down 子集）数值面全绿（对拍零翻转 / golden step0 0.1%、actions 10.0% / serve flow 81→75.6ms、sum 225.1 = 0.598×）但**行为面 task0/task1 连续 520 打满 → 生产回滚 flow f16**（全桶已换 + mini_sup 已撤 env；回滚位 = Sep 28 验收的 prefix int8 v2 + flow f16 配置）；**段间融合（10 步单 OM）取证否决**（flow sync=70.6ms 纯设备时间主导，enq 仅 3ms，unroll 上界 ~3ms）；**qmd 小 M 收益被 per-op quant 开销吃掉**（-5.4ms vs 带宽模型 -30ms，单算+全图双取证）。历史里程碑见 ④ 与各战报。下轮 = ② 菜单。
+**goal ①（qmd x_scale 静态化探明）收官（2026-10-08，全数字见 summary/2026-10-08_qmd-xscale-static-verdict.md）**：静态 x_scale 在 310P 无实现（qmd 唯一 bin 只实现 pertoken，x_scale 输入被 bit 级忽略）；**探明产出完整路线图**——w8a16（WQBMV2，eager rel 0.066% 数值最优）被 310P 模板墙挡死；**分解式 w8a8（DynamicQuantV2+TransQuantParamV2+QuantBatchMatmulV3）三算子链离线 build 通过 = 量化侧唯一存续路线**（数值面=现行 w8a8 同数学，行为面依赖校准 v3）；0.53× 在量化侧无可达路径（上界 ~215ms/0.57×），结构下限证据链补全。上轮（flow int8 行为回滚 + 复验闭合）见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md。下轮 = ② 菜单。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）——① 终局事实：flow int8 数值绿/行为翻车已回滚（资产保留：引擎 env 开关 + 因子四件套 + 烤制配方）；段间融合否决；qmd M=50 开销定罪；② 下轮入口：goal 菜单见 ②；物料 = /data/apxinf/pyo3_check/（flow 因子四件套 + prefix v2 生产因子）+ serve_i8（回滚位）+ probe_fi8/tl144_ab 实验桶；③ 纪律：**A/B 隔离根必须全谱系桶+supervisor**（单桶根过不了 L 漂移）、eval timeout ≥1800 且谱系桶先烤全、docker exec -d bash -c 内联形态进程随 ssh 断连无声死（用脚本文件形态）。丢弃：sshd 断连风暴应对过程、A/B 三连阻排查过程——战报已全文记录。
+聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-10-08_qmd-xscale-static-verdict.md）——① 终局事实：静态 x_scale 死（三模式取证）；w8a16 死于模板墙但 kernel 活（eager 证据）；分解式 w8a8 build 通过 + 全部契约坑已探明（QBMV3 dtype attr 必显式、u64 packed scale op-to-op、ge_builder 已补 uint64）；ops 家族分类学入 memory + ge-offline-om skill 速查表；② 下轮入口：goal 菜单见 ②；probe 资产 = GEB_QMD_XS/WQ/WA/Z/Z2 五旋钮（全 env 门控）+ pyo3_check/{wq_eager_test,wq_cap_check}.py；取证钥匙 = ASCEND_SLOG_PRINT_TO_STDOUT=1；③ 纪律：改 ge_builder.cpp 须同步 cmake 源（/data/apxinf/ascendc/ge_builder/，双源副本坑 skill #43）；env 助手别传 =0 当未设；A/B 隔离 = 等价生产根；eval timeout ≥1800。丢弃：probe 迭代过程细节——战报已全文记录。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**（2026-10-08 补验闭合，见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）：① flow int8 数值全绿 + perf 75.6ms（-5.4）但 task0/1 连续打满 → **已回滚且复验闭合**（回滚位 task0 **SUCCESS 232 步** @ 2026-10-08——与 int8 位 520 打满构成完整 A/B，flow int8 行为退化定罪成立；服务器 10-04 断电重启 /data 全幸存，环境已恢复：容器重启 + mini_sup 回滚位运行中）；② 段间融合取证否决（sync 70.6 设备主导）；③ qmd 小 M 开销定罪（单算 probe GEB_QMD_M/K + 全图双取证）。两仓已推平（引擎 50024cb / 外层 e80ea93+）。
+**状态**（2026-10-08，见 summary/2026-10-08_qmd-xscale-static-verdict.md）：① qmd 静态 x_scale 310P 无实现（bin 忽略输入）；② w8a16 数值最优但离线模板墙死；③ **分解式 w8a8（DQ+TQP+QBMV3）build 通过**——待数值对拍 + 单算 bench + 全图 A/B + 引擎接线；0.53× 量化侧无路径（终点估 ~215ms/0.57×，前提行为面修复）。两仓已推平（引擎含 probe 链 X/W/Z/Z2 + ge_builder uint64；skill 陷阱 #40-43 + 速查表回填）。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **qmd x_scale 静态化探明**——0.53× 剩余 ~25ms 的唯一大杠杆（flow 设备 70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标）；IR 面 x_scale/x_offset 输入 310P 未探明，先单算 probe
-2. **校准 v3（行为面优先）**——flow 侧因子改 per-step 感知（当前 10 步 amax 包络可能过平滑）+ prefix 多帧；验收 = actions <8% + 全量 10/10 + **flow int8 重启行为梯**
-3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装（apxinf_npu）；**本轮新增同款证据：task0 也出现客户端停摆（L 漂移 ensure 死锁）**——task7 疑云可用同工具链复现；149-156 桶并入生产管理（⚠ 共享 supervisor 僵尸 Sep 24 起**须用户决策重启**）
+1. **分解式 w8a8 落地**——Z2 数值对拍（packed scale 语义解码）→ DQ@M=50 单算 bench → 引擎接线（GEB_FLOW_INT8_DECOMP）→ 全图 A/B → golden → 行为梯（与校准 v3 合流点）
+2. **校准 v3（行为面优先）**——flow 侧 per-step 感知因子 + prefix 多帧；验收 = actions <8% + 全量 10/10 + flow int8 行为梯（分解式的行为面同此依赖）
+3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装；149-156 桶并入生产管理（⚠ 共享 supervisor 僵尸须用户决策）
 
-**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor，单桶根被 L 漂移击穿）；eval timeout ≥1800。
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor）；eval timeout ≥1800；**新量化算子先过 skill 速查表**（310P 离线可用性看家族）。
 
 ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
 

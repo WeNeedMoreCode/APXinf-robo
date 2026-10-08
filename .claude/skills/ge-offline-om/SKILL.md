@@ -114,6 +114,26 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 | 37 | geb_model_build 返回 **rc=-8** | **rc=-8 = aclmdlLoadFromMem 失败**（不是编译上限）——"model built: N bytes" 已打印、装载阶段挂：最常见是烤桶时芯片被占（大 OM 3.7GB 装不下）；曾两次被误读为"编译规模上限"（2026-09-22 定案：depth18 全深度编译+落盘在干净芯片全通） | 烤桶前确认目标芯片空闲（npu-smi）；rc=-8 时 grep 日志 "model built"（编译是否成功）与 "aclmdlLoadFromMem failed"（装载失败实锤）；换干净芯片重试即可 |
 | 38 | f32 desc 的 ReduceSumD/ReduceSum 输出 ≈ 65504 附近（≈ host 的 8%）；opp 注册表 json 明明有 d=1（fp32）simplifiedKey | **310P tbe 归约算子的 f32 是假支持**——FE 混精度路径把 f32 图回退成 f16 kernel（内部 f16 累加），行和 >65504 饱和；Cast 的 f32 倒是真语义（f16→f32 直出逐位）。与 #arm32 的 AddRmsNorm 假 f32 同族 | 方差/大数和的 fp32 语义改走 **MatMulV2（f16 in/out）**：cube 引擎内部 fp32 累加（实测 0.05% = f16 量化级）。预缩放防单元素平方溢出 f16：xs=x·s（s=1/32）→ sq=xs² → ssum=mm(sq, ones [1,w] Const) → rsqrt(ssum)·(s·√w) 折回 |
 | 39 | TileD 做"每元素连续重复"方向广播（rank-1 [rows]+multiples=[w]，或 [1,rows]+multiples=[1,w] flat 形态）：编译运行全正常，但输出**散点腐蚀 ~8%**（两种 rank 锚定逐位同错——同一 kernel）；dim0 整行复制方向（[1,w]+multiples=[rows,1]）生产验证干净 | 310P f16 的连续平铺 kernel 自身缺陷（编译/执行零报错，纯数值坑） | 行广播（per-row 标量铺满 [rows,w]）用 **dim0 复制 + 转置桥**：[rows,1]→Reshape [1,rows]→TileD multiples=[w,1]→[w,rows]→TransposeD(perm=[1,0])→[rows,w]（实测 0.08% 干净，2026-09-22 n32v t11/t13/t14 定罪） |
+| 40 | 新代量化算子（`ops_nn/dynamic` 类，如 **WeightQuantBatchMatmulV2**）编译 rc=-7，slog 见 `[OP] OpName:[X] DoTilingImpl ... Do op tiling failed, no valid template is found`（ASCEND_SLOG_PRINT_TO_STDOUT=1 可见） | **AscendC kernel-template 机制按 SoC 注册模板**——该算子的模板族（源码目录 `impl/ops_nn/ascendc/<op>/arch35/`）无 310P 项，310P 只有老式 TBE 路径的算子能离线建。**逐算子看脸，不是类别墙**：同在 ops_nn/dynamic 的 DynamicQuantV2 / TransQuantParamV2 / QuantBatchMatmulV3 在 310P 全部可建 | 建图前先查注册表+模板：`config/ascend310p/<目录>/<op>.json` 是否存在 → 失败时开 slog 按本条症状定性。判 kernel/运行时是否支持可用 torch_npu eager 对照（apxinf_npu 容器直调 `torch.ops.npu.npu_weight_quant_batchmatmul` 等，WQBMV2 eager 在 310P 通、数值正确——死只是死在离线 tiling） |
+| 41 | QuantBatchMatmulV3 编译 rc=-7，slog 见 `[OP_PROTO][QuantBmmInferShape] "GetOpAttr out_dtype failed!"` → infershape pass 停 | 该算子 infer 函数**硬要求显式 `dtype` attr**（输出 dtype，1=DT_FLOAT16）；注册表 json 里的 attrs 值（dtype: 1）是预编译 bin 烤入值，**不是图级默认**——图上必须 SetAttr | `set_attr_int("dtype", 1)`；同族经验：新代算子的 attrs 无默认时（注册表 value=None 或只含 bin 值），按报错逐个补显式 attr |
+| 42 | TransQuantParamV2（f32 scale → uint64 packed）`set_output_desc` rc=-3；或 QuantBatchMatmulV3 的 u64 scale 输入没 dtype 可用 | ① u64 打包输出的 shape 由算子推断——**显式 [n] desc 会冲突**，省略 output desc 走推断；② ge_builder FFI dtype 表原生无 uint64（fp16/fp32/int32/int64/int8/bool）——已补 `"uint64"→ge::DT_UINT64`（2026-10-08），u64 张量建议走 op-to-op 连线不设 u64 Data | packed scale 链：TransQuantParamV2(f32 [n]) --y--> QuantBatchMatmulV3.scale；u64 desc 只在 QBMV3 输入侧声明 |
+| 43 | 改了引擎目录 `crates/apxinf-ascend/ascendc/ge_builder/ge_builder.cpp` 后 `cargo build`/cmake make 均显示 up-to-date，新 dtype/接口不生效 | **ge_builder C++ shim 是独立 cmake 工程、双源副本**：构建源在 `/data/apxinf/ascendc/ge_builder/`（build/ 子目录 make），引擎目录里的 .cpp/.so 只是 staged 副本——cargo 完全不编它 | 改 cpp 后：cp 到 /data/apxinf/ascendc/ge_builder/ → build/ 里 make → strings 验证（如 `grep -c uint64`）→ cp .so 回引擎目录；曾因此误判 uint64 不支持 |
+
+## 310P 离线量化算子速查（2026-10-08 实测）
+
+opp 分两个家族，**离线可用性截然不同**：`ops_legacy`（老式 TBE，预编译 binary + 原生 tiling）离线稳；`ops_nn/dynamic`（新代 AscendC 模板机制）**逐算子看脸**——模板注册表有无 310P 项决定成败（陷阱 #40）。w8a16/w8a8 全景：
+
+| 算子 | 家族 | 310P 离线 | 备注 |
+|---|---|---|---|
+| QuantMatmulDequant | ops_legacy | ✅ | 现行 w8a8（x f16 原样进、算子内 per-token 动态量化 + smooth_scale 输入）。**x_scale/x_offset 可选输入存在但被 kernel 忽略**——pertensor attr 编译过却 bit 级同 pertoken；perchannel/pertokenScale 直接拒。静态 x 路径在 310P 无实现 |
+| WeightQuantBatchMatmulV2 | ops_nn/dynamic | ❌ 模板墙 | w8a16（x 全程 f16，数值最优：eager rel 0.066%）；9.0.1 离线 tiling "no valid template"（arch35 模板族无 310P），8.5.1 eager 可跑——kernel 本体在，离线机制挡死 |
+| DynamicQuantV2 | ops_nn/dynamic | ✅ | per-token 量化独立化（x f16 → y int8 + scale/offset f32），**带 smooth_scales 可选输入**；vllm-ascend w8a8 分解主力 |
+| TransQuantParamV2 | ops_nn/dynamic | ✅ | f32 scale (+offset) → uint64 packed scale（QBMV3 配套；陷阱 #42） |
+| QuantBatchMatmulV3 | ops_nn/dynamic | ✅ | x1 int8 ND + x2 int8 **FRACTAL_NZ** + scale u64 + pertoken_scale f32 可选 → y f16；**dtype attr 必须显式**（陷阱 #41）。与 DQ 组成分解式 w8a8（实测三算子链 build 通过） |
+| AscendQuantV2 | ops_nn/dynamic | ✅（scale 为必选输入=静态量化形态） | x f16 + scale f16 → y int8；round/sqrt/dst_type/axis attrs |
+| add_rms_norm_dynamic_quant（norm+量化融合） | ops_nn/dynamic | ❌ 310P 无注册 | 静态版 add_rms_norm_quant / layer_norm_quant / pre_rms_norm_quant 在 legacy 有注册（语义未验） |
+
+取证链（判一个新算子离线可用性）：`config/ascend310p/<家族>/<op>.json` 存在性 → 失败时 `ASCEND_SLOG_PRINT_TO_STDOUT=1` 看是 attr 缺（#41 类）还是模板墙（#40 类）→ kernel 层存活性用 torch_npu eager 对照（apxinf_npu 容器，`torch.ops.npu.<name>`，schema 可从 `libop_plugin.so` strings 挖）。
 
 ## 环境与自检
 
