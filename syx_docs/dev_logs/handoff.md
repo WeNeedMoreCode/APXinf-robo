@@ -2,7 +2,7 @@
 
 ## 状态一句话
 
-**三项 goal 全推进至终态（全数字见 summary/2026-10-09_prod-readiness-task7-spatial-v3.md）**：① **v3 生产化切换 = 就绪待批**（生产根已清理、serve_supervisor_v3.sh + eval_prod_v3_all.sh 预置、全谱系 v3 桶热 138-157+200；启动被权限层拦 = 用户决策项，一条命令即切，老 f16 桶原样保留可分钟级回退）；② **task7 结案**（干净 v3 位下 faulthandler 无 fault + rc=0 + **SUCCESS 118 步**——09-29"无痕死"定罪环境性：mini-sup 互杀 + OOM 遗产；149-156_i8 扩桶 + tl200 v3 重烤 9/9，spatial 谱系实证扩至 **L=157**）；③ **spatial 泛化 = transfer 成立**（replay_s{0..3} 40 帧×4 + golden + sweep：object v3 因子距 spatial 专属拟合仅差 5-8%，**单一因子集覆盖双谱系无需重烤**；行为面 suite 因 **sshd 断连 ~1.5h** 收尾时未读终局——task0/1/7 已核实 SUCCESS，task2-9 结果在盘：`cat /data/apxinf/serve_i8/eval_spv3_all_summary.json`）。附带 infra 定罪：**lazy-bake vision 缺失死循环**（mini_sup 的 vision 拷贝源 plain tl$L 对 L>148 不存在 → 静默跳过 → serve 加载即 panic ~82s/轮——修复 = vision 源改 t712fix）。
+**三项 goal：②③ 闭环、① 就绪待批（全数字见 summary/2026-10-09_prod-readiness-task7-spatial-v3.md）**：① **v3 生产化切换 = 就绪待批**（生产根已清理、serve_supervisor_v3.sh + eval_prod_v3_all.sh 预置、全谱系 v3 桶热 138-157+200；启动被权限层拦 = 用户决策项，一条命令即切，老 f16 桶原样保留可分钟级回退）；② **task7 结案**（干净 v3 位下 faulthandler 无 fault + rc=0 + **SUCCESS 118 步**——09-29"无痕死"定罪环境性：mini-sup 互杀 + OOM 遗产；149-156_i8 扩桶 + tl200 v3 重烤 9/9，spatial 谱系实证扩至 **L=157**）；③ **spatial 泛化 = transfer 成立**（replay_s{0..3} 40 帧×4 + golden + sweep：object v3 因子距 spatial 专属拟合仅差 5-8%，**单一因子集覆盖双谱系无需重烤**；行为面 **全量 10/10 rate 1.0** @ per-call 235.2ms，task7 补齐——v3 校准方法与因子集跨谱系双面闭环）。附带战果：**lazy-bake vision 缺失死循环**（mini_sup 的 vision 拷贝源 plain tl$L 对 L>148 不存在 → 静默跳过 → serve 加载即 panic ~82s/轮——修复 = vision 源改 t712fix）；**119 sshd kex 协商损坏破案**（TCP 通零 banner——ssh 必带 `-o KexAlgorithms=ecdh-sha2-nistp256 -F /dev/null`，入 memory，旧配方作废）。
 
 ## ① Compact 参数（贴到 /compact 后）
 

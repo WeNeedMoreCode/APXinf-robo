@@ -43,11 +43,17 @@
 
 **结论：transfer 成立**——object v3 因子距 spatial 专属拟合仅 5.5%/7.8% 相对差（≪ v2→v3 的 2.3× 修复量级），且最优超参跨谱系稳定（prefix α0.5 / flow late α0.6 双双复现）→ **单一因子集覆盖双谱系，无需 spatial 专属因子、无需重烤**。flow v2→v3o 在 spatial 上 2.26× 改善，与 object 谱系同量级。
 
-**行为面**（serve_i8 v3 位，逐任务独立进程 + timeout 1800）：**sshd 断连窗口未闭**（03:20 起连接重置 ~1.5h+，共享机负载/限流——09-30 同款；服务器侧 suite 全 detached 不受影响）——已核实 **task0 SUCCESS（76 步，attempt1 因 tl157 死循环 technical_error → attempt2 自动重试成功）+ task1 rc=0**（success 字段未读）+ **task7 SUCCESS（取证跑 118 步）**，task2-9 在跑。**终局数字读法（ssh 恢复后）**：`cat /data/apxinf/serve_i8/eval_spv3_all_summary.json`（逐任务 `eval_spv3_t[0-9].jsonl`，合并 log `eval_spv3_all.log` 尾部有 SPATIAL_V3_ALL_DONE 标记）。
+**行为面**（serve_i8 v3 位，逐任务独立进程 + timeout 1800）：**全量 10/10 rate 1.0**（completed 10/10、missing 0、action_steps 76-207 全健康、replans 16-42/任务；task0 attempt1 因 tl157 死循环 technical_error → attempt2 自动重试成功——客户端重试机制实战验证）。**per-call model_ms 235.2**（235 次推理聚合，object 谱系同带 232）。对齐 09-29 基线（prefix v2 + flow f16 的 9/9 + task7 缺测）：v3 位补齐 task7 且配置更优（prefix v3 + flow int8 v3）。**goal ③ 双面闭环：transfer 数值判定 + 全量行为 10/10——v3 校准方法与因子集跨谱系成立。**
+
+## ssh 断连根因（本轮运维战果，另一 session 协同定位）
+
+- 现象：03:20-06:30 UTC 连接重置/握手挂死 ~3h；端口诊断 = **TCP 22 能 accept 但 sshd 零 banner**（listener 活、kex 协商死）
+- 根因：服务器 sshd 的**默认 kex 协商损坏**（负载或加密策略变动，未定）——**强制 `KexAlgorithms=ecdh-sha2-nistp256` 即通**（另一 session 首先恢复，本 session 同参数验证）
+- **新 SSH 配方（119 专用，旧配方已失效）**：`ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256 root@192.168.13.119`（Git Bash 下 -F NUL 不通须 /dev/null；已入 memory）
 
 ## 服务器状态（收尾时）
 
-- **sshd 拒连中**（ping 通、TCP reset——suite（~04:15 UTC 完成预估）+ v3 mini supervisor + 6 只活 serve 均不受影响）
+- ssh 经 kex 修复配方恢复；suite 终局已读（上）
 - serve_i8 根：v3 mini supervisor（修复版 bake_bucket：vision 源 t712fix）+ 桶 138-157_i8/200_i8 全热
 - 生产根 /data/apxinf/serve：**已清理就绪**（stale pid/ready 清、全桶 shutdown 标记、ensure_153 移除）+ serve_supervisor_v3.sh + eval_prod_v3_all.sh 预置——**启动待用户批准**
 - 老僵尸 = 已死于 10-04 断电（无进程）；43+ Z 态 defunct 已知无害
