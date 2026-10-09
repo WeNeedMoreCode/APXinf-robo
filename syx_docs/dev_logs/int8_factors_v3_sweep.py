@@ -24,18 +24,23 @@ flow 按 (采样帧, step∈{0,4,9}) 分组报告 per-step 误差（per-step s �
 产物：胜者 npz ×2 + 决策 JSON（全候选表）。
 """
 import json
+import os
 
 import numpy as np
 from safetensors import safe_open
 from safetensors.numpy import load_file
 
 CKPT = "/data/apxinf/weights/pi05_libero_finetuned/model.safetensors"
-CALIB = "/data/apxinf/golden/calib_v3.safetensors"
+CALIB = os.environ.get("CALIB", "/data/apxinf/golden/calib_v3.safetensors")
 V2_P = "/data/apxinf/pyo3_check/smooth_calib_v2.npz"
 V2_F = "/data/apxinf/pyo3_check/smooth_calib_v2_flow.npz"
-OUT_P = "/data/apxinf/pyo3_check/smooth_calib_v3.npz"
-OUT_F = "/data/apxinf/pyo3_check/smooth_calib_v3_flow.npz"
-OUT_JSON = "/data/apxinf/pyo3_check/sweep_v3.json"
+# v3o = 已产出的 v3 object 谱系因子（α 烤死，作为固定基线候选）——
+# spatial 跑法下即 transfer 判定对照：object 因子在 spatial 激活上的误差
+V3O_P = os.environ.get("V3O_P", "/data/apxinf/pyo3_check/smooth_calib_v3.npz")
+V3O_F = os.environ.get("V3O_F", "/data/apxinf/pyo3_check/smooth_calib_v3_flow.npz")
+OUT_P = os.environ.get("OUT_P", "/data/apxinf/pyo3_check/smooth_calib_v3.npz")
+OUT_F = os.environ.get("OUT_F", "/data/apxinf/pyo3_check/smooth_calib_v3_flow.npz")
+OUT_JSON = os.environ.get("OUT_JSON", "/data/apxinf/pyo3_check/sweep_v3.json")
 DEPTH = 18
 ALPHAS = (0.4, 0.5, 0.6)
 SIM_TAGS = ("a", "b", "c", "d")
@@ -94,6 +99,7 @@ def main():
 
     # ---- prefix 候选 ----
     v2p = dict(np.load(V2_P))
+    v3op = dict(np.load(V3O_P))  # object 谱系 v3 因子（transfer 对照/复用候选）
     report = {"prefix": {}, "flow": {}}
     print("== prefix（sim = 4 采样帧 × 126 矩阵，rms_rel 均值 / max_rel 均值）==")
 
@@ -102,8 +108,8 @@ def main():
             np.maximum(cal[f"penv_{PSRC[proj][0]}_l{i}"], 1e-8)
             / np.maximum(np.abs(Wp[(i, proj)]).max(axis=0), 1e-8), alpha).astype(np.float32)
 
-    # v2 因子是单一基线（α 已烤死在生成时）——不扫 α；v3 扫
-    for env_name, alpha_list in [("v2", (None,)), ("v3", ALPHAS)]:
+    # v2/v3o 因子是单一基线（α 已烤死在生成时）——不扫 α；v3 envelope 扫
+    for env_name, alpha_list in [("v2", (None,)), ("v3o", (None,)), ("v3", ALPHAS)]:
         for alpha in alpha_list:
             rms_l, max_l = [], []
             for i in range(DEPTH):
@@ -113,7 +119,12 @@ def main():
                         X = cal.get(f"sim_p_{t}_{key_site}_l{i}")
                         if X is None:
                             continue
-                        svec = v2p[f"prefix/L{i:02}/{proj}"] if env_name == "v2" else penv_s(i, proj, alpha)
+                        if env_name == "v2":
+                            svec = v2p[f"prefix/L{i:02}/{proj}"]
+                        elif env_name == "v3o":
+                            svec = v3op[f"prefix/L{i:02}/{proj}"]
+                        else:
+                            svec = penv_s(i, proj, alpha)
                         r, m = sim_err(X, Weff_p(i, proj), svec)
                         rms_l.append(r)
                         max_l.append(m)
@@ -123,6 +134,7 @@ def main():
 
     # ---- flow 候选（per-step 分组报告）----
     v2f = dict(np.load(V2_F))
+    v3of = dict(np.load(V3O_F))  # object 谱系 v3 flow 因子（transfer 对照）
     fenv_cache = {}
 
     def fenv_of(site, i, mode):
@@ -133,7 +145,7 @@ def main():
         return fenv_cache[key]
 
     print("== flow（sim = 4 帧 × steps {0,4,9} × 126 矩阵；分步报告）==")
-    for env_name in ("v2", "v3_uniform", "v3_late"):
+    for env_name in ("v2", "v3o", "v3_uniform", "v3_late"):
         for alpha in ALPHAS:
             per_step = {s: ([], []) for s in FLOW_STEPS}
             for i in range(DEPTH):
@@ -141,6 +153,8 @@ def main():
                     site = FSRC[proj][0]
                     if env_name == "v2":
                         svec = v2f[f"flow/L{i:02}/{proj}"]
+                    elif env_name == "v3o":
+                        svec = v3of[f"flow/L{i:02}/{proj}"]
                     else:
                         svec = np.power(
                             np.maximum(fenv_of(site, i, "uniform" if env_name == "v3_uniform" else "late"), 1e-8)
@@ -170,10 +184,15 @@ def main():
 
     def build(env_name, alpha, root, src, wmap, fenv_mode=None):
         out = {}
+        fixed = None
+        if env_name == "v2":
+            fixed = v2p if root == "prefix" else v2f
+        elif env_name == "v3o":
+            fixed = v3op if root == "prefix" else v3of
         for i in range(DEPTH):
             for proj in src:
-                if env_name == "v2":
-                    out[f"{root}/L{i:02}/{proj}"] = (v2p if root == "prefix" else v2f)[f"{root}/L{i:02}/{proj}"]
+                if fixed is not None:
+                    out[f"{root}/L{i:02}/{proj}"] = fixed[f"{root}/L{i:02}/{proj}"]
                 else:
                     site = src[proj][0]
                     if root == "prefix":
@@ -185,13 +204,14 @@ def main():
                         alpha).astype(np.float32)
         return out
 
-    if best_p == "v2":
-        pe, palpha = "v2", None
+    if best_p in ("v2", "v3o"):
+        pe, palpha = best_p, None
     else:
         pe, pa = best_p.split("_a")
         palpha = float(pa)
-    if best_f == "v2":
-        fe, falpha = "v2", None
+    if best_f.split("_a")[0] in ("v2", "v3o"):
+        fe = best_f.split("_a")[0]
+        falpha = None
         fmode = None
     else:
         fe, fa = best_f.split("_a")

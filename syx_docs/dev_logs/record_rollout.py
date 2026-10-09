@@ -44,7 +44,9 @@ from lerobot.utils.constants import OBS_LANGUAGE_TOKENS, OBS_LANGUAGE_ATTENTION_
 TASK = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 SUITE = os.environ.get("REPLAY_SUITE", "libero_object")
 CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
-OUT = f"/data/apxinf/replay/replay_t{TASK}.safetensors"
+# 谱系参数化：spatial 扩录用 REPLAY_OUT=/data/apxinf/replay/replay_s{task}.safetensors
+# ——默认路径勿改（object 谱系 replay_t* 是 v3 校准的原始资产）
+OUT = os.environ.get("REPLAY_OUT", "").format(task=TASK) or f"/data/apxinf/replay/replay_t{TASK}.safetensors"
 REPLAN = int(os.environ.get("REPLAN", 1))
 HORIZON = 50
 MAX_STEPS = int(os.environ.get("REPLAY_MAX_STEPS", 520))

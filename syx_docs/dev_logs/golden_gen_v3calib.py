@@ -35,8 +35,10 @@ from apxinf_robo.npu_torch import NpuTorchPi05Policy  # noqa: E402
 from lerobot.policies.pi05.modeling_pi05 import make_att_2d_masks  # noqa: E402
 
 CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
-OUT = "/data/apxinf/golden/calib_v3.safetensors"
-REPLAY = "/data/apxinf/replay/replay_t{}.safetensors"
+# 谱系参数化（spatial 扩录：CALIB_OUT=.../calib_v3_spatial.safetensors
+# REPLAY_FMT=.../replay_s{}.safetensors——勿覆盖 object 谱系产物）
+OUT = os.environ.get("CALIB_OUT", "/data/apxinf/golden/calib_v3.safetensors")
+REPLAY = os.environ.get("REPLAY_FMT", "/data/apxinf/replay/replay_t{}.safetensors")
 DEPTH = 18
 NSTEPS = 10
 FRAME_EVERY = int(os.environ.get("FRAME_EVERY", "4"))
