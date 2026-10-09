@@ -27,7 +27,7 @@ description: 昇腾 GE 静态 OM（离线模型）构建实战知识库——不
 | ACLGraph 捕获回放 | ~0.5 ms/task（拟合截距） | matmul task 前有明显 gap；task 数多时空隙成为主导成本 |
 | **GE 静态 OM** | **≈0（拟合截距归零）** | 静态 shape 专属 tiling，实测大 m 下比 aclnn runtime tiling 快 ~18% |
 
-GE OM 的代价：shape 必须编译期固定（动态 shape 走 input_shape_range，超出本 skill 经验范围）；编译依赖完整 python/tbe 工具链（见环境节）。
+GE OM 的代价：单 shape 必须编译期固定；**多 shape 用动态分档（dynamic gear，见下节，2026-10-10 已验证）**；编译依赖完整 python/tbe 工具链（见环境节）。
 
 ## 构图五要素
 
@@ -50,6 +50,28 @@ opts.emplace("input_shape", "x:64,512;w1:512,256;w2:256,512");  // atc --input_s
 ```
 
 不传 `input_shape` 的后果：编译返回 SUCCESS，但产物是 ~10KB 的空模型（无 kernel），模型 IO dims 全空、size=4。shape 解析优先级：选项 map > Data 节点 desc。
+
+## 动态分档（dynamic gear）——多 shape 单 OM（2026-10-10 验证）
+
+一组离散 shape（≤100 档，官方推荐 3-4）编译进**单个 OM**：编译期枚举档位、每档独立静态优化子图（保住静态 tiling 性能），运行时按输入选档执行。实测（310P3，spike：MatMulV2 + 32MB Const，档 650/712）：
+
+```cpp
+// build options（ge_ir_build.cc Impl::UpdateDataOpAttr 路径直读这五个键）
+opts["input_shape"]  = "x:-1,2048";   // -1 标记动态维
+opts["ge.dynamicDims"] = "650;712";   // 每档给全所有 -1 维的值（分号分组）
+opts["input_format"] = "ND";
+// 键名混合约定：input_shape/input_format 是短名，dynamic_dims 的键是 "ge.dynamicDims"
+//（kDynamicDims，ge_common_api_types.h:379）。dynamic_batch_size/image_size 同理带 ge. 前缀。
+```
+
+- **编译**：aclgrphBuildModel 正常收（与静态图同一构图 API，Data desc 可写 -1，选项 map 优先）。
+- **权重零重复**：MultiBatchClonePass 把 Const 提升到根图单份（`CreateRootGraph` 拷 OpDesc 接 Case 参数 + `ChangeConstToData` 把分支内 Const 变异为 Data 再克隆）——实测双档 OM 只比单档大 42KB（32MB Const 不翻倍）。
+- **运行**：`aclmdlGetInputDynamicGearCount/GetInputDynamicDims`（index 传 `(size_t)-1` 查全档）→ 每 execute 前调 `aclmdlSetInputDynamicDims(modelId, dataset, idx, &dims)` → `aclmdlExecute`。
+- **坑：动态 OM 的输入数 +1**（`ascend_mbatch_shape_data` gear-info 输入，实测 4 字节）——dataset 必须覆盖**全部**输入 buffer，缺了报 500002。
+- **根 Data shape = 最大档**：`GetInputSizeByIndex` 返回的 buffer 覆盖最大档，小档执行只填前 p 行；输出同理（`aclmdlGetCurOutputDims` 返回当前档实际 shape）。
+- **性能**：档内核 = 静态 kernel，实测 dyn 6.04ms ≈ static 5.57ms（差值在 SetDims+sync 口径内）= 分档机制零税。
+- **档外兜底**：hybrid 模式（`ge.dynamicNodeType=1` + `ge.compileHybridMode=1`）同图编两份——档位图 + 真·动态 shape 图，运行时档不匹配自动降级走动态图（GE docs/zh/design/features/dynamic_gear.md）。
+
 
 ## Data 节点的两个必设项
 
