@@ -1,8 +1,8 @@
 # 动态分档调研定案 + goal 新任务集泛化 + OM 冷启动分解（2026-10-10 轮）
 
-## 终局一行（待 ③ 收口后补全）
+## 终局一行
 
-① **动态 L 分桶生产化路线定案 = GE 动态分档（dynamic gear），310P 实证全绿**（spike：编译过 + 权重零重复（双档 OM 仅 +42KB）+ 档位真分发 + 数值 0.23% + 性能零税）——单 OM 替代 20 桶家族、单 serve 服务全谱系、22 档 ≪ 100 上限；② **OM 冷启动 125.6s 分解定案**（ckpt 全量解析 63.7s（e2e serve 实际只需嵌入表+time_mlp 子集）+ vision 11.9s + prefix 41.2s（含 2.1GB 嵌入查表）+ flow 8.8s）——lazy 施工与 gear 生产化同轮做（当前架构上做 lazy = 给将被替换的路径镀金）；③ goal 泛化轮（录制 → golden → sweep transfer 判定 → eval，数字见下）。
+三线全闭环：① **动态 L 分桶生产化路线定案 = GE 动态分档（dynamic gear），310P 实证全绿**（spike：编译过 + 权重零重复（双档 OM 仅 +42KB）+ 档位真分发 + 数值 0.23% + 性能零税）——单 OM 替代 20 桶家族、单 serve 服务全谱系、22 档 ≪ 100 上限；② **OM 冷启动 125.6s 分解定案**（ckpt 全量解析 63.7s（e2e serve 实际只需嵌入表+time_mlp 子集，~90% 白 parse）+ vision 11.9s + prefix 41.2s（含 2.1GB 嵌入查表）+ flow 8.8s）——lazy 施工与 gear 生产化同轮做（当前每 L 架构上做 lazy = 给将被替换的路径镀金）；③ **libero_goal 第三谱系泛化双面闭环**（数值面 transfer 成立：v3o 距 goal 专属拟合 6.6%/14.2% 相对差、最优超参三连复现；行为面 **10/10 @ per-call 234.0ms 中位（229 calls）**——三谱系 229/235/234 全带内，**单一因子集三谱系覆盖成立**）。附带：119 上行断流新坑（>~700B 上行即 RST）+ gzip 分块上传 workaround 入 memory。
 
 ## goal ① 动态 L 分桶生产化——调研定案
 
@@ -50,7 +50,8 @@
 | v3 goal 专属拟合胜者 | 1.960%（α0.5） | 0.769%（late α0.6） |
 
 **transfer 成立**：v3o 距 goal 专属拟合 prefix 6.6% / flow 14.2% 相对差（flow 已吃到 v2→v3 修复的 2.13× 主体）；**最优超参第三次跨谱系复现**（prefix α0.5 / flow late α0.6，object/spatial/goal 三连）→ **单一因子集三谱系覆盖，免重烤**。产物留档：calib_v3_goal.safetensors / smooth_calib_v3_goal{,_flow}.npz / sweep_v3_goal.json。
-- 行为面 eval（生产根 v3 位，timeout 1800，逐任务独立进程）：跑中，结果回填下节。
+- 行为面 eval（生产根 v3 位，timeout 1800，逐任务独立进程）：**全量 10/10 rate 1.0 @ per-call 234.0ms 中位（229 calls，min/max 230.7/239.7，action_steps 72-236）**。首请求 ensure tl138 spawn（~126s 冷启动计入 task0 首调用，timeout 内无险），后续任务全走 tl138 热桶。对齐：object 229.0 / spatial 235.2 / goal 234.0 —— **三谱系 per-call 全带内一致，单一 v3 因子集三谱系覆盖闭环**。产物：eval_goal_all_summary.json + eval_goal_t[0-9].jsonl。
+- **观察项（非阻塞）**：goal torch 录制器 tokenize 到 200 截断（4 任务全 40/40 帧 L=200），而生产 eval 客户端 task0 实际 L=138——两条路径在 goal 谱系的 prompt 构造有差异（object/spatial 两路径长度一致 138-148/200）。校准因子 per-matrix 与 L 无关 → transfer 判决不受影响；行为裁判 = eval（生产客户端路径）本身。根因待查（候选：goal 任务 language 字段在两条 suite 加载路径中的模板差异）。
 
 ## 运维事件：119 上行断流（新坑，已入 memory）
 

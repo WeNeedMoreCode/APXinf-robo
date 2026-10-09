@@ -1,35 +1,37 @@
-# Handoff（2026-10-09 白天轮 v3 生产化就绪 + task7 结案 + spatial transfer → 下一轮压缩用）
+# Handoff（2026-10-10 轮动态分档定案 + goal 三谱系泛化 → 下一轮压缩用）
 
 ## 状态一句话
 
-**三项 goal 全闭环（全数字见 summary/2026-10-09_prod-readiness-task7-spatial-v3.md）**：① **v3 生产化切换已执行 + 复验通过**（用户批准 06:33 UTC：退役 serve_i8 mini sup（16 serve 清光）→ 生产根 serve_supervisor_v3.sh 上线 → libero_object **9/10 + task3 重试 SUCCESS 119 步 = 有效 10/10 @ per-call 229.0ms**；task3 首跑打满判 aclnn 非确定性噪声——同 seed 重试健康、官方 torch 基线本身 9/10；老 f16 桶保留分钟级回退）；② **task7 结案**（干净 v3 位下 faulthandler 无 fault + rc=0 + **SUCCESS 118 步**——09-29"无痕死"定罪环境性：mini-sup 互杀 + OOM 遗产；149-156_i8 扩桶 + tl200 v3 重烤 9/9，spatial 谱系实证扩至 **L=157**）；③ **spatial 泛化 = transfer 成立**（replay_s{0..3} 40 帧×4 + golden + sweep：object v3 因子距 spatial 专属拟合仅差 5-8%，**单一因子集覆盖双谱系无需重烤**；行为面 **全量 10/10 rate 1.0** @ per-call 235.2ms，task7 补齐——v3 校准方法与因子集跨谱系双面闭环）。附带战果：**lazy-bake vision 缺失死循环**（mini_sup 的 vision 拷贝源 plain tl$L 对 L>148 不存在 → 静默跳过 → serve 加载即 panic ~82s/轮——修复 = vision 源改 t712fix）；**119 sshd kex 协商损坏破案**（TCP 通零 banner——ssh 必带 `-o KexAlgorithms=ecdh-sha2-nistp256 -F /dev/null`，入 memory，旧配方作废）。
+**三项 goal 全闭环（全数字见 summary/2026-10-10_dyn-gear-goal-suite-om-lazyload.md）**：① **动态 L 分桶生产化 = 路线定案 GE 动态分档（dynamic gear）**（spike 全绿：ge_builder 路径编译过、**权重零重复**（双档 OM 仅 +42KB，32MB Const 根图单份——源码 CreateRootGraph/ChangeConstToData 机制 + 实验双证）、档位真分发（GetCurOutputDims 650/712）、数值 0.23%、**性能零税** 6.04≈5.57ms；skill ge-offline-om 已回填动态分档节）；② **OM 冷启动 125.6s 分解定案**（ckpt 63.7s 全量解析 ~90% 白 parse（e2e serve 只需嵌入表+time_mlp）+ vision 11.9 + prefix 41.2（含 2.1GB 嵌入查表）+ flow 8.8s）——lazy 施工与 gear 生产化同轮（单 serve 常驻后冷 spawn 从每 L 一次变每芯一次）；③ **libero_goal 第三谱系双面闭环**（transfer：v3o 距 goal 专属拟合 prefix 6.6%/flow 14.2% 相对差，最优超参三连复现 prefix α0.5/flow late α0.6 → **单一因子集三谱系覆盖**；行为面 **10/10 @ per-call 234.0ms 中位（229 calls）**，三谱系 229/235/234 全带内）。附带：**119 上行断流新坑**（>~700B 上行即 RST、下行正常、scp 双协议死 → gzip+480B 分块 base64 append workaround，入 memory）；goal 录制器 200 vs eval 客户端 138 的 tokenize 差异（观察项，校准 L 无关不受影响）。
 
 ## ① Compact 参数（贴到 /compact 后）
 
-聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-10-09_prod-readiness-task7-spatial-v3.md）——① 三线终态：生产切换已执行+复验（9/10 + task3 重试过 = 有效 10/10 @ 229ms，生产根 v3 运行中）、task7 环境性结案（SUCCESS 118 步）、spatial transfer 成立 + 行为 10/10（v3o 距专属拟合 5-8%，单一因子集）；② 纪律/坑新增：**vision 拷贝源必须 L 无关（t712fix），不得依赖 plain 桶存在性**；**119 ssh 必带 `-o KexAlgorithms=ecdh-sha2-nistp256 -F /dev/null`（kex 协商损坏，入 memory）**；sweep 参数化已加 v3o 固定候选（transfer 对照的标准做法）；record_rollout/golden_gen/sweep 三脚本已谱系参数化（REPLAY_SUITE/REPLAY_OUT/CALIB_OUT/REPLAY_FMT/CALIB/OUT_*）；sshd 断连时先 /dev/tcp banner 探测判层、detached 进程不受影响；③ 服务器状态：**生产根 /data/apxinf/serve = v3 int8 位运行中**（supervisor_v3 按需 spawn，138-157+200_i8 全热）；serve_i8 mini sup 已退役（A/B 实验根留档重启即回）。丢弃：施工迭代过程——战报已全文记录。
+聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-10-10_dyn-gear-goal-suite-om-lazyload.md）——① 动态分档定案（选项 `input_shape` 带 -1 + `ge.dynamicDims` 档表；权重零重复；SetInputDynamicDims + gear-info 额外输入坑；hybrid 模式档外兜底；spike 在 syx_docs/dev_logs/probe_dyn/dyn_gear_probe.c + 服务器 /data/apxinf/probe_dyn/）；② 冷启动分解（ckpt 63.7 + 三段 OM 51.9s；lazy 与 gear 同轮施工）；③ goal 三谱系 10/10 @ 234ms + transfer 三连（v3o 固定候选对照法）；上行断流 workaround（gzip+480B 分块）。丢弃：spike 调试迭代、eval 监控过程——战报已全文记录。
 
 ## ② Post-compact 首句（贴到压缩后第一句）
 
-**状态**（2026-10-09 白天，见 summary/2026-10-09_prod-readiness-task7-spatial-v3.md）：三线全闭环——**生产根 v3 int8 位运行中**（复验有效 10/10 @ 229ms）、task7 环境性结案、spatial transfer + 10/10。量化/行为/泛化/生产化四面全部收官。
+**状态**（2026-10-10，见 summary/2026-10-10_dyn-gear-goal-suite-om-lazyload.md）：三线全闭环——动态分档路线实证（编译/零权重重复/真分发/零税）、冷启动 125.6s 分解定案、goal 三谱系 10/10 @ 234ms（单一因子集）。生产根 v3 位持续运行中。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **动态 L 分桶生产化**（谱系上沿开放 138-157+200 已见；lazy-bake 兜底可用但有冷烤 ~4min 等待——预置范围策略 / 动态 shape 路线调研）
-2. **OM 懒加载 + 引擎注册链入主路径**（checkpoint 61s/进程 摊销；serve 冷 spawn ~2min 主要是 3GB OM 全量加载——按段懒加载）
-3. **多 checkpoint / 新任务集泛化**（v3 校准管线全参数化已就绪：record_rollout 换 SUITE 录制 → golden → sweep → fleet 重烤一条龙）
+1. **动态分档生产化施工**（prefix/flow 图 -1 维 + 档集 138-157+200 → GeServe SetInputDynamicDims + per-gear IO → 单 serve 多 L → supervisor 每芯一只；vision 保持静态；hybrid 模式档外兜底选读）
+2. **冷启动 lazy 施工**（与 1 同轮：ckpt 选择性读取 −54s + 三段 OM 并行加载 −20s → ~50s；"引擎注册链入主路径" = eval 全链 inproc：apxinf_npu 供给 9.0.1 libs + 客户端去 torch_npu，省 spool 轮询 ~15ms/call）
+3. **多 checkpoint 泛化**（换 checkpoint 跑管线一条龙：record → golden → sweep v3o 对照 → 免烤/重烤判定 → eval；需先到位第二个 checkpoint）
 
-**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；**eval 默认生产根 /data/apxinf/serve（v3 位运行中，npu_ge.py 默认根）**；A/B 实验 = 重启 serve_i8 mini_sup_i8_v3.sh（A/B 根纪律不变：全谱系桶 + supervisor 单实例）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类规避自匹配；**119 ssh 必带 kex 修复配方**；sshd 断连先 /dev/tcp banner 判层。
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；**eval 默认生产根 /data/apxinf/serve（v3 位运行中）**；A/B 实验 = 重启 serve_i8 mini_sup_i8_v3.sh（全谱系桶 + supervisor 单实例）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类；**119 ssh 必带 kex 配方；上行断流走 gzip+480B 分块 base64 append（scp 不可用）**；sshd 断连先 /dev/tcp banner 判层。
 
-## ④ 性能优化方向清单（2026-10-09 更新）
+## ④ 性能优化方向清单（2026-10-10 更新）
 
-现状锚点：**v3 生产位 per-call 229.0ms（object 复验 345 calls）/ 235.2ms（spatial 235 calls）= 376ms 基线的 0.61-0.63×**（prefix int8 v3 + flow int8 v3 gud + vision f16）。量化侧 + 行为面 + 泛化面 + 生产化全部闭环——**剩余杠杆全在部署形态面（分桶/懒加载）**。
+现状锚点：**v3 生产位 per-call object 229.0 / spatial 235.2 / goal 234.0ms = 376ms 基线的 0.61-0.63×，三谱系 10/10**。量化/行为/泛化/生产化全闭环——**剩余杠杆全在部署形态面**。
 
 | # | 方向 | 状态/预期 | 备注 |
 |---|---|---|---|
-| A-H | 量化/行为/校准侧 | ✅ 全部闭环（历史行从略，见 roadmap + 上两份战报） | qmd per-token = 终点形态；v3 单一因子集 |
-| I1 | v3 生产切换 | ✅ **已执行 + 复验（9/10+retry 过，229ms）** | 生产根 v3 运行中；f16 回退保留 |
-| I2 | spatial 泛化 | ✅ 数值面闭环（transfer 成立）；行为面 suite 在盘待读 | 单一因子集结论入 memory |
-| I3 | 动态 L 分桶 | 開放（157+ 已见；lazy-bake 修复后无死循环） | 生产化开放项 |
+| A-H | 量化/行为/校准/生产化 | ✅ 全闭环（历史行从略，见 roadmap + 历史战报） | qmd per-token = 终点形态；单一因子集三谱系 |
+| I1-I2 | v3 生产切换 / spatial 泛化 | ✅（2026-10-09） | 生产根 v3 运行中 |
+| I3 | 动态 L 分桶 | ✅ **路线定案 = 动态分档**（spike 四绿）；生产化施工待下轮 | spike 资产 + skill 回填齐 |
+| I4 | goal 第三谱系泛化 | ✅ 双面闭环（transfer + 10/10 @ 234ms） | 单一因子集三谱系覆盖 |
+| I5 | OM 冷启动 lazy | 分解定案（125.6s = 63.7 ckpt + 51.9 OM 段 + warmup）；施工与 I5 生产化同轮 | 当前架构施工 = 镀金将替换路径 |
+| I6 | eval 全链 inproc | 前置就绪（inproc 分支 + GIL 修复）；缺 9.0.1 libs 供给 + 客户端去 torch_npu | 省 spool 轮询 ~15ms/call |
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-09_prod-readiness-task7-spatial.txt（v3 生产化就绪 + task7 环境性结案 + spatial transfer：扩桶 9/9 + vision 死循环定罪 + sshd 断连收尾）
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-10_dyn-gear-goal-suite.txt（动态分档 spike 定案 + goal 三谱系泛化 10/10 + 冷启动分解 + 上行断流 workaround）
