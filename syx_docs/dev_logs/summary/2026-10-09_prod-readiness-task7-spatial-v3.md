@@ -1,15 +1,15 @@
-# v3 生产化就绪 + task7 结案 + spatial 泛化 transfer（2026-10-09 白天轮）
+# v3 生产化切换执行 + task7 结案 + spatial 泛化 transfer（2026-10-09 白天轮）
 
 ## 终局一行
 
-三线收官：**① v3 生产化切换全就绪**（生产根清理 + serve_supervisor_v3.sh 上线就位 + 全谱系 v3 桶热 138-157+200——启动动作因"用户决策项"标记被权限层拦截，转为待批就绪态）；**② task7 segfault 结案 = 环境性**（干净 v3 位下 faulthandler 全程无 fault、rc=0、**SUCCESS 118 步**——09-29"无痕死"不可复现，归因 mini-sup 互杀 + OOM 清场遗产）；**③ spatial 泛化 v3 = transfer 成立**（40 帧扩录 + golden + sweep：object v3 因子在 spatial 激活上距专属拟合仅差 5-8%，**单一因子集覆盖双谱系**；行为面全量 suite 见下表）。附带战果：**lazy-bake vision 缺失死循环定罪修复**（L>148 plain 桶不存在 → 条件拷贝静默跳过 → serve 加载即 panic，~82s/轮死循环）。
+三线全闭环：**① v3 生产化切换已执行并复验通过**（用户批准 06:33 UTC——退役 serve_i8 mini sup（16 serve 全清）→ 启动生产根 serve_supervisor_v3.sh → libero_object 全量 **9/10 + task3 重试 SUCCESS（119 步）= 有效 10/10 @ per-call 229.0ms**（345 calls；task3 首跑 520 打满/重试健康 = aclnn 非确定性 + flow 混沌已知包络，官方 torch 基线本身 9/10）；老 f16 桶原样保留分钟级回退）；**② task7 segfault 结案 = 环境性**（干净 v3 位下 faulthandler 全程无 fault、rc=0、**SUCCESS 118 步**）；**③ spatial 泛化 v3 = transfer 成立 + 行为 10/10**（object v3 因子距 spatial 专属拟合仅差 5-8%，**单一因子集覆盖双谱系**；全量 10/10 @ 235.2ms）。附带战果：**lazy-bake vision 缺失死循环定罪修复** + **119 sshd kex 协商损坏破案**（必带 `-o KexAlgorithms=ecdh-sha2-nistp256`）。
 
-## goal ① v3 生产化切换（就绪态，待用户批准）
+## goal ① v3 生产化切换（已执行 + 复验通过）
 
 - **现状勘定**：所谓"两个生产 supervisor 僵尸（Sep 24 起）"已死于 10-04 断电（supervisor.log 止于 Sep 24、ps 无进程）——处置 = 清 stale 状态（spool 死 pid/ready 全清 + 全桶 shutdown 标记防复活风暴 + stale ensure_153 移除），无需杀任何东西
 - **桶面**：生产根 OM 指 `tl${L}_i8`——138-148（上轮 v3 fleet）+ **149-156 新烤 + tl200 重烤**（本轮 `bake_prodext_v3_fleet.sh`，chips 0-3 四路，9/9 全绿 ~13min）；老 f16 桶 `tl138-148/200` 原样保留 = 回退资产（一条命令：kill v3 sup + 重启旧 serve_supervisor.sh）
 - **supervisor**：`serve_supervisor_v3.sh` 已上传 `/data/apxinf/serve/`（mini_sup_i8_v3 同配置换根 + vision 源 t712fix + 芯轮转烤）；启动 = `docker exec -d apxinf_rust bash /data/apxinf/serve/serve_supervisor_v3.sh`；复验脚本 `eval_prod_v3_all.sh` 已预置（libero_object 全量，timeout 1800）
-- **切换后动作**：退役 serve_i8 mini supervisor（腾芯片）→ 启动生产 v3 sup → eval_prod_v3_all（预期 10/10 @ ~232ms）
+- **切换后动作（已执行，06:33 UTC 用户批准）**：退役 serve_i8 mini supervisor（pkill 字符类 + 16 serve 按 pid + environ 过滤清光 + shutdown 标记）→ 启动生产 v3 sup（pid 2174802，静默待命零复活风暴）→ **复验 eval_prod_v3_all：9/10（task3 首跑 520 打满）+ task3 重试 SUCCESS 119 步 = 有效 10/10；per-call model_ms 229.0**（345 calls，object 谱系三口径 229/232/235 带内一致）。task3 判噪声依据：同 seed 同配置重试健康；历史每 run 随机任务偶失同构（Sep 28 v2 全量 10/10、Oct 8 v3 全量 10/10 也都各有 run 间浮动）；官方 torch 基线本身 9/10
 
 ## goal ② task7 取证 + 扩桶
 
@@ -53,8 +53,8 @@
 
 ## 服务器状态（收尾时）
 
-- ssh 经 kex 修复配方恢复；suite 终局已读（上）
-- serve_i8 根：v3 mini supervisor（修复版 bake_bucket：vision 源 t712fix）+ 桶 138-157_i8/200_i8 全热
+- **生产根 /data/apxinf/serve = v3 int8 位运行中**（supervisor_v3 pid 2174802，按需 spawn，桶 138-157+200_i8 OM 全热）；ssh 须用 kex 修复配方
+- serve_i8 根：mini supervisor 已退役（脚本/因子/日志留档 = A/B 实验根，重启即回）；桶资产与生产根共用 om_cache/tl*_i8
 - 生产根 /data/apxinf/serve：**已清理就绪**（stale pid/ready 清、全桶 shutdown 标记、ensure_153 移除）+ serve_supervisor_v3.sh + eval_prod_v3_all.sh 预置——**启动待用户批准**
 - 老僵尸 = 已死于 10-04 断电（无进程）；43+ Z 态 defunct 已知无害
 - 因子资产：calib_v3_spatial.safetensors + smooth_calib_v3_spatial{,_flow}.npz（spatial 专属拟合——transfer 判定后**留档未启用**）+ sweep_v3_spatial.json + replay_s{0..3}.safetensors
