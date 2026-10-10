@@ -19,6 +19,20 @@
 
 **纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；**eval 默认生产根 /data/apxinf/serve（v3 位运行中）**；A/B 实验 = 重启 serve_i8 mini_sup_i8_v3.sh（全谱系桶 + supervisor 单实例）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类；**119 ssh 必带 kex 配方；上行断流走 gzip+480B 分块 base64 append（scp 不可用）**；sshd 断连先 /dev/tcp banner 判层。
 
+## ②b 下轮 goal 注解（是什么/为什么/怎么做——给人读的，不用搬运）
+
+**1. 动态分档生产化施工** —— 把"每个 token 长度 L 一只 OM 桶 + 每桶一只 serve 进程"换成"**单只多档 OM + 单 serve 按请求选档执行**"。
+- **为什么**：prompt+state 离散化使 L 随任务漂移（已观测 137-200），现在 20 只桶靠 lazy-bake 兜底——新 L 首次请求要冷烤 ~6min + 冷启动 2min，且 idle serve 只增不减（本轮已累积 23 只占显存）。10-10 spike 已实证 GE 动态分档在 310P 编译过、**权重零重复、档位真分发、零性能税**（每档独立静态 kernel，tiling 收益不丢）——风险已被排除，剩下纯施工。
+- **怎么做**：引擎侧 prefix/flow 图 Data 维改 `-1` + `ge.dynamicDims` 传档表（档集 = 观测谱系 138-157+200，约 22 档 ≪ 100 上限）→ GeServe 执行前调 `aclmdlSetInputDynamicDims` + 按档取输出尺寸 → supervisor 改每芯一只常驻 serve。vision 段与 L 无关不动；坑与配方全在 skill ge-offline-om 动态分档节。验收 = 全量 eval 成功率/延迟不低于现配置。
+
+**2. 冷启动 lazy 施工** —— serve 冷启动 125.6s 压到 ~50s，顺带 eval 客户端进程内直调引擎（inproc）。
+- **为什么**：分解定案 = checkpoint 全量解析 63.7s（serve 实际只消费嵌入表+time_mlp，~90% 白 parse）+ 三段 OM 串行加载 ~52s。做完 goal 1 后冷启动从"每 L 一次"变"每芯一次"，所以**与 goal 1 同轮做才不白干**。inproc 再省 spool 文件轮询 ~15ms/call，且架构上消灭 serve 进程面。
+- **怎么做**：ckpt 改按需读 tensor（门控开关，bake 路径不动）+ 三段 OM 并行加载；inproc 的 PyO3 入口和 GIL 修复都已就绪，剩余 = apxinf_npu 容器供给 9.0.1 libs + eval 客户端不 import torch_npu（npu_ge.py inproc 分支已在，失败自动回落 spool，无回归风险）。
+
+**3. 多 checkpoint 泛化** —— 换一个新 checkpoint（不同训练数据/任务的 π0.5 权重）走完整条 v3 校准管线并 eval。
+- **为什么**：三谱系 10/10 已闭环但全是**同一个** checkpoint——"引擎通用"的叙事还差权重组间这一维（对checkpoint泛化，而非对任务泛化）。
+- **怎么做**：管线已全参数化（record 换 SUITE/ckpt → golden → sweep v3o 对照 → transfer 成立免烤直评 / 不成立才 fleet 重烤）。**卡点：需要先拿到第二个 checkpoint**——没有它这项无法开工，选此 goal 前先确认 ckpt 到位。
+
 ## ④ 性能优化方向清单（2026-10-10 更新）
 
 现状锚点：**v3 生产位 per-call object 229.0 / spatial 235.2 / goal 234.0ms = 376ms 基线的 0.61-0.63×，三谱系 10/10**。量化/行为/泛化/生产化全闭环——**剩余杠杆全在部署形态面**。
