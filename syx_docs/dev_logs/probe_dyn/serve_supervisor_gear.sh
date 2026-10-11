@@ -17,7 +17,9 @@ F8=/data/apxinf/pyo3_check/smooth_calib_v3_flow_engine.safetensors
 # 档表 = 三谱系观测全集 137-157 + 200（22 档 ≪ 100 上限）
 LLIST="137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,200"
 LMAX=200
-CHIPS="6 4 7 5"
+# 芯表：验证期占空芯 0-3（4-7 被 v3 生产桶占 15-17GB，gear serve +6GB 会
+# 顶爆 24GB 设备内存）；gear 转正后与 v3 桶互换
+CHIPS="0 1 2 3"
 DYN=$OM/tl_dyn
 LOG=$ROOT/supervisor.log
 mkdir -p "$ROOT/ctrl" "$DYN"
@@ -32,25 +34,17 @@ alive() {
   return 0
 }
 
-bake_dyn() { # 全档 OM 一次烤（int8 v3 同配方；vision 静态拷贝）
+bake_dyn() { # prefix 全档 OM 一次烤（int8 v3 同配方；vision 静态拷贝；
+             # flow 不烤——HYBRID 用现存 per-L tl{L}_i8 静态池，GEB_FLOW_POOL）
   mkdir -p "$DYN"
   [ -f "$DYN/vision_real.om" ] || cp "$OM/t712fix/vision_real.om" "$DYN/vision_real.om"
   if [ ! -f "$DYN/prefix_real.om" ]; then
     echo "[supg] bake tl_dyn prefix（全档）$(date)" >> "$LOG"
     env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
-      ASCEND_RT_VISIBLE_DEVICES=6 \
+      ASCEND_RT_VISIBLE_DEVICES=1 \
       GEB_SEG=prefix GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=$P8 GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 \
       GEB_WCONST=1 GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_CKPT=$CKPT \
       GEB_SAVE=$DYN/prefix_real.om "$BIN" >> "$LOG" 2>&1
-  fi
-  if [ ! -f "$DYN/flow_real.om" ]; then
-    echo "[supg] bake tl_dyn flow（全档）$(date)" >> "$LOG"
-    env "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
-      ASCEND_RT_VISIBLE_DEVICES=6 \
-      GEB_SEG=flow GEB_FLOW_INT8=1 GEB_FLOW_PROJS=gate,up,down GEB_FLOW_SMOOTH=$F8 \
-      GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 \
-      GEB_WCONST=1 GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_CKPT=$CKPT \
-      GEB_SAVE=$DYN/flow_real.om "$BIN" >> "$LOG" 2>&1
   fi
 }
 
@@ -64,6 +58,7 @@ spawn_chip() { # spawn_chip <chip>
     "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
     ASCEND_RT_VISIBLE_DEVICES=$c \
     GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_OM_DIR=$DYN \
+    GEB_FLOW_POOL=$OM \
     GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
     GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=$CKPT \
     GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=$P8 \

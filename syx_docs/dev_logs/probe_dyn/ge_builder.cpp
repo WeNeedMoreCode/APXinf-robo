@@ -38,6 +38,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <mutex>
 
 extern "C" char **environ;
 #include <string>
@@ -230,22 +231,27 @@ int CacheIo(GebModel &m) {
     m.gear_count = 0;
     m.gear_dims.clear();
     size_t gears = 0;
-    if ((aclmdlGetInputDynamicGearCount(d, static_cast<size_t>(-1), &gears) == ACL_SUCCESS) &&
-        (gears > 0) && (gears <= 128)) {
+    const aclError gc_rc = aclmdlGetInputDynamicGearCount(d, static_cast<size_t>(-1), &gears);
+    if (gc_rc != ACL_SUCCESS) {
+        std::cerr << "[geb] gear census: GetInputDynamicGearCount err=" << static_cast<int>(gc_rc)
+                  << std::endl;
+    } else if ((gears > 0) && (gears <= 128)) {
+        // GetInputDynamicDims 在真规模 OM（263 输入/14 动态输入/22 档）上
+        // 返回 500001（spike 小图正常——CANN 侧限制，未究明）。档位表由
+        // Rust 侧构图期自算（gear_payloads）——census 只认 GearCount，dims
+        // 查询失败不降级为静态
+        m.gear_count = gears;
         std::vector<aclmdlIODims> gd(gears);
-        // dimensionality sanity: all gears report the same total dim count
-        if ((aclmdlGetInputDynamicDims(d, static_cast<size_t>(-1), gd.data(), gears) == ACL_SUCCESS) &&
-            (gd[0].dimCount > 0)) {
-            m.gear_count = gears;
+        const aclError gd_rc = aclmdlGetInputDynamicDims(d, static_cast<size_t>(-1), gd.data(), gears);
+        if (gd_rc == ACL_SUCCESS && gd[0].dimCount > 0) {
             for (size_t g = 0; g < gears; g++) {
                 m.gear_dims.emplace_back(gd[g].dims, gd[g].dims + gd[g].dimCount);
-                std::cerr << "[geb]   gear[" << g << "] dims=";
-                for (size_t k = 0; k < gd[g].dimCount; k++) {
-                    std::cerr << (k == 0U ? "" : ",") << gd[g].dims[k];
-                }
-                std::cerr << std::endl;
             }
         }
+        std::cerr << "[geb] gear census: " << gears << " gears (dims query rc="
+                  << static_cast<int>(gd_rc) << ")" << std::endl;
+    } else if (gears > 128) {
+        std::cerr << "[geb] gear census: gears=" << gears << " > 128, treated static" << std::endl;
     }
     aclmdlDestroyDesc(d);
     return 0;
@@ -379,6 +385,10 @@ extern "C" int geb_model_save(int64_t h, const char *path) {
 
 // load a persisted OM (no GE compile session needed -- pure ACL runtime)
 extern "C" int64_t geb_model_load(const char *path) {
+    // 供三段并行装载（冷启动 lazy）：g_models 增删非线程安全——装载全程
+    // 持锁（IO/aclmdlLoadFromMem 在锁内，ACL runtime 自身线程安全）
+    static std::mutex load_mu;
+    const std::lock_guard<std::mutex> lk(load_mu);
     FILE *f = fopen(path, "rb");
     if (f == nullptr) {
         std::cerr << "[geb] load: cannot open " << path << std::endl;
