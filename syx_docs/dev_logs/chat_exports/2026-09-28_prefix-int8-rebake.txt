@@ -1,0 +1,2584 @@
+ ▐▛███▛█   Claude Code v2.1.286
+▝▜██████▀  glm-5.3 · API Usage Billing
+ ▝▝   ▝▝   D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 网络恢复，且 8 天悬案已闭合。完整汇报：
+
+  服务器劫后状态（好消息为主）
+
+  项: 链路
+  状态: ping 通；SSH 起初 Host key verification failed——10-04 断电重启（uptime 4
+
+  天）后 host key 重生成 + 中文用户名路径坑闪烁，按 remote-ssh-windows skill 的
+   ASCII 路径配方（-i /c/sshkeys/id_ed25519 -o 
+  UserKnownHostsFile=...）稳定连通
+  ────────────────────────────────────────
+  项: 数据
+  状态: /data 全幸存（786G 与断线前一致：权重/13 个 i8 桶/引擎/全套脚本）
+  ────────────────────────────────────────
+  项: 容器
+  状态: apxinf_rust / apxinf_npu 未删（Exited 255 = 断电被杀），docker start
+  即恢复，引擎二进制完好
+  ────────────────────────────────────────
+  项: NPU
+  状态: 驱动正常，芯片空闲
+
+  悬置判决闭合：flow int8 行为退化定罪成立 ✅
+
+  重启回滚位 mini_sup（prefix int8 v2 + flow f16，断电前已换好的 628MB f16 flow
+  OM + 已撤 env 的脚本都在）→ 跑出 8 天前欠的那次 task0 复验：
+
+  - 回滚位：SUCCESS（232 步，47 replans），flow=82.5ms（f16
+    基线回归确认），total 234.4ms
+  - int8 位（9-30）：520 步打满 FAIL
+  - 唯一变量 = flow int8 → A/B 完整闭合，回滚正确
+
+  战报 + handoff 已更新推平（7c7cb7d）。
+
+  服务器现存状态
+
+  - mini_sup（回滚位）运行中，tl144 serve 就绪——随时可跑 eval
+  - 其余桶 serve 空闲（断电后未 respawn，ensure 即拉起）
+  - 顺手提醒：共享 supervisor 那两个 Sep 24
+    僵尸随断电清掉了，重启与否仍待你决策（handoff 有命令）
+
+  goal ① 全链终局。下轮菜单（handoff ②）：qmd x_scale 静态化探明（0.53× 剩余
+  ~25ms 唯一大杠杆）/ 校准 v3（行为面优先，flow 侧 per-step 因子）/ task7
+  segfault 取证（py-spy 已就位）。
+
+✻ Churned for 27m 13s · done 10:33 AM
+
+※ recap: APXinf NPU 移植：flow int8 已判行为退化并回滚，回滚位 task0 复验成功（232 步），判决闭合、文档推平。服务器断电后已全部恢复。下一步等你从 handoff ② 三项菜单选 goal（推荐 qmd x_scale 静态化探明）。 (disable recaps in /config)
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   317.4k/1m tokens (32%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 3k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 314.4k tokens (31.4%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 682.6k (68.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ plugin-authoring: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export                                                                       
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-09-28_prefix-int8-rebake  
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-09-28_prefix-int8-rebake.txt
+
+❯ /compact 聚焦保留：**结论与入口，不保数字**（数字全在                         
+summary/2026-09-30_flow-int8-segment-fusion-verdict.md）——① 终局事实：flow int8 
+数值绿/行为翻车已回滚（资产保留：引擎 env 开关 + 因子四件套 +                   
+烤制配方）；段间融合否决；qmd M=50 开销定罪；② 下轮入口：goal 菜单见 ②；物料 =  
+/data/apxinf/pyo3_check/（flow 因子四件套 + prefix v2 生产因子）+               
+serve_i8（回滚位）+ probe_fi8/tl144_ab 实验桶；③ 纪律：**A/B                    
+隔离根必须全谱系桶+supervisor**（单桶根过不了 L 漂移）、eval timeout ≥1800      
+且谱系桶先烤全、docker exec -d bash -c 内联形态进程随 ssh                       
+断连无声死（用脚本文件形态）。丢弃：sshd 断连风暴应对过程、A/B                  
+三连阻排查过程——战报已全文记录。                                                
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read syx_docs\dev_logs\handoff.md (40 lines)
+  ⎿  Read 
+     syx_docs\dev_logs\summary\2026-09-30_flow-int8-segment-fusion-verdict.md 
+     (52 lines)
+  ⎿  Read syx_docs\plans\npu-port-roadmap.md (183 lines)
+  ⎿  Read syx_docs\dev_logs\mini_sup_i8.sh (97 lines)
+  ⎿  Read src\apxinf_robo\npu_ge.py (336 lines)
+  ⎿  Skills restored (remote-ssh-windows, syx_skills, AscendC-ops-dev, 
+     verify_method)
+
+❯ /goal 1. **qmd x_scale 静态化探明**——0.53× 剩余 ~25ms 的唯一大杠杆（flow 设备 
+70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标）；IR 面                 
+x_scale/x_offset 输入 310P 未探明，先单算 probe                                 
+2. **校准 v3（行为面优先）**——flow 侧因子改 per-step 感知（当前 10 步 amax      
+包络可能过平滑）+ prefix 多帧；验收 = actions <8% + 全量 10/10 + **flow int8    
+重启行为梯**                                                                    
+3. **task7 segfault 取证 + 扩预置桶**——py-spy                                   
+已装（apxinf_npu）；**本轮新增同款证据：task0 也出现客户端停摆（L 漂移 ensure   
+死锁）**——task7 疑云可用同工具链复现；149-156 桶并入生产管理（⚠ 共享 supervisor 
+僵尸 Sep 24 起**须用户决策重启**）                                              
+                                                                                
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval     
+用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚位脚本**——再启 flow int8 须改回 
+GEB_FLOW_* env + int8 flow OM）；**A/B 隔离 = 等价生产根**（全谱系桶 +          
+supervisor，单桶根被 L 漂移击穿）；eval timeout ≥1800。                         
+  ⎿  Goal set: 1. qmd x_scale 静态化探明——0.53× 剩余 ~25ms 的唯一大杠杆（flow
+     设备 70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标）；IR 面
+     x_scale/x_offset 输入 310P 未探明，先单算 probe
+     2. 校准 v3（行为面优先）——flow 侧因子改 per-step 感知（当前 10 步 amax
+     包络可能过平滑）+ prefix 多帧；验收 = actions <8% + 全量 10/10 + flow int8 
+     重启行为梯
+     3. task7 segfault 取证 + 扩预置桶——py-spy
+     已装（apxinf_npu）；本轮新增同款证据：task0 也出现客户端停摆（L 漂移 ensure
+     死锁）——task7 疑云可用同工具链复现；149-156 桶并入生产管理（⚠ 共享
+     supervisor 僵尸 Sep 24 起须用户决策重启）
+
+     纪律：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；int8 eval
+     用隔离根 serve_i8 + mini_sup_i8.sh（当前为回滚位脚本——再启 flow int8 须改回
+     GEB_FLOW_* env + int8 flow OM）；A/B 隔离 = 等价生产根（全谱系桶 +
+     supervisor，单桶根被 L 漂移击穿）；eval timeout ≥1800。
+
+  Thought for 1m 11s (ctrl+o to expand)
+
+● 收到 goal——按 handoff 推荐序取 ① qmd x_scale 静态化探明（0.53× 剩余 ~25ms
+  唯一大杠杆）。开工先锚时间 + 双线取证（本地 GE 开源仓查 IR 契约 +
+  服务器状态）：
+
+● Bash(date '+%F %T')
+  ⎿  2026-10-08 10:55:30
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "date '+%…)
+  ⎿  2026-10-08 03:00:07
+     vllm-ascend Up 4 days
+     apxinf_rust Up 44 minutes
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 27s (ctrl+o to expand)
+
+● 服务器活着（容器 44 分钟前被重启过 + 出现新容器
+  v230_mrv2_dy_904——共享机有他人活动，probe 前须看芯片占用）。本地 GE
+  开源仓无此算子 → 契约源头在服务器 opp 包注册表。先找 QuantMatmulDequant 的注册
+  json + 查芯片空闲：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/kernel/c
+     onfig/ascend310p/ops_math/matmul_v2_compress_dequant.json
+     /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/kernel/c
+     … +80 lines (ctrl+o to expand)
+
+  Thought for 16s (ctrl+o to expand)
+
+● 注册表命中——契约源文件在 ops_legacy/quant_matmul_dequant.json，且发现同族候选
+  QuantBatchMatmulV3（kernel 名 int8_int8_fp16——x 侧 int8 输入，即“x
+  在算子外量化”形态）。芯片 4/5 被 serve 占着、其余空闲（AICore 全
+  0%）。先读注册契约：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  Error: glm-5.3[1M] is temporarily unavailable (timed out), so auto mode 
+     cannot determine the safety of Bash right now. Wait a moment and then try 
+     this action again. If it keeps failing, continue with other tasks that 
+     don't require this action and come back to it later. Note: reading files, 
+     searching code, and other read-only operations do not require the 
+     classifier and can still be used.
+
+  Thought for 8s (ctrl+o to expand)
+
+● 分类器暂不可用，Bash 被阻——先做本地只读功课（引擎 qmd probe
+  现有旋钮面），稍后重试远端读取：
+
+  Thought for 9s, searched for 1 pattern (ctrl+o to expand)
+
+● 旋钮面已明（x_quant_mode 目前硬编码 "pertoken"，probe 入口在
+  L7005-7101）。重试远端读注册契约：
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  6447 quant_matmul_dequant.json
+     {
+      "binList": [
+     … +248 lines (ctrl+o to expand)
+
+  Thought for 48s (ctrl+o to expand)
+
+● 重大发现（契约面）：x_scale（idx4）与 x_offset（idx5）在 310P
+  注册表里是可选输入端口，两套预编译 bin 都带——IR 面端口存在，与 goal
+  预判一致。但注册表不枚举 x_quant_mode 合法值（只有默认 "pertoken"）。两套 bin
+  差异 = weight_scale f32 vs int64(+x_scale/x_offset f16)。
+
+  下一步挖枚举值：① strings 扫 proto 库；② 顺带读同族 quant_batch_matmul_v3（x
+  int8 直入形态）契约备用：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  libascend_protobuf.so
+     libascend_protobuf.so.3.13.0.0
+     libbase_ascend_protobuf.a
+     … +16 lines (ctrl+o to expand)
+
+  Thought for 28s (ctrl+o to expand)
+
+● 枚举值浮出水面：pertoken / pertensor / perchannel / pertokenScale（后者
+  x_scale 形状 = [m]，错误消息原文给出）。目标模式锁定 perchannel（[k] 静态
+  scale，与 smooth_scale 同域）或 pertensor（标量）。
+
+  现在读 probe 现有代码段，规划 x_quant_mode 参数化 + x_scale Const 输入的接线：
+
+  Thought for 33s, read 1 file (ctrl+o to expand)
+
+● probe 结构已清（链 Q=朴素 pertoken、链 F=f16 基线、链 N=native
+  smooth）。再看链尾执行/对拍/计时段，规划新“链 X”（x_scale 静态化）的接入点：
+
+  Thought for 1m 8s, read 1 file (ctrl+o to expand)
+
+● 链尾执行/对拍/bench 全部就位。现在给 qmd probe 加“链 X”（x_scale
+  静态化：GEB_QMD_XS=perchannel|pertensor|pertokenscale + oracle 静态 scale +
+  host 静态量化参考 + bench）。四处 Edit：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 83 lines
+      7148                      sn3 = Some(s3);
+      7149                  }
+      7150              }
+      7151 +            // —— 链 X：x_scale 静态化（GEB_QMD_XS=perchannel
+           +|pertensor|pertokenscale）                                   
+      7152 +            // 注册表实证（cann-9.0.1 opp ops_legacy/quant_ma
+           +tmul_dequant.json）：                                        
+      7153 +            // x_scale idx4 / x_offset idx5 为可选输入（bin1 
+           +f32 / bin2 f16+int64                                         
+      7154 +            // weight_scale）；x_quant_mode 默认 "pertoken"，
+           +libopapi strings 枚举                                        
+      7155 +            // {pertoken, pertensor, perchannel, pertokenScal
+           +e}（后者报错原文要求                                         
+      7156 +            // x_scale 首维 = x 的 MDim）。本链 = 静态 x_scal
+           +e（oracle：当前 x 的                                         
+      7157 +            // 包络 amax/127）+ 对应 mode，探明三件事：① 310P
+           + 编译面支持哪个                                              
+      7158 +            // 静态模式；② 数值约定（dequant 是否回乘 x_scale
+           +）；③ 单算下动态                                             
+      7159 +            // amax 流水 vs 静态 scale 的执行差（qmd 小 M per
+           +-op quant 开销的                                             
+      7160 +            // 执行面对策）。GEB_QMD_XSO=1 附加 x_offset=0（ 
+           +对称量化试金石）。                                           
+      7161 +            let mut sx_seg: Option<Seg> = None;              
+      7162 +            let mut sx_meta: Option<(String, Vec<i64>, Vec<f3
+           +2>)> = None;                                                 
+      7163 +            if let Ok(xmode) = std::env::var("GEB_QMD_XS") { 
+      7164 +                let xm = xmode.to_ascii_lowercase();         
+      7165 +                let (mode, dims, vals): (&str, Vec<i64>, Vec<
+           +f32>) = match xm.as_str() {                                  
+      7166 +                    "perchannel" => {                        
+      7167 +                        let mut v = vec![0f32; k as usize];  
+      7168 +                        for kk in 0..k as usize {            
+      7169 +                            let mut mx = 0f32;               
+      7170 +                            for mm_ in 0..m as usize {       
+      7171 +                                mx = mx.max(xq_in[mm_ * k as 
+           +usize + kk].to_f32().abs());                                 
+      7172 +                            }                                
+      7173 +                            v[kk] = (mx / 127.0).max(1e-12); 
+      7174 +                        }                                    
+      7175 +                        ("perchannel", vec![k], v)           
+      7176 +                    }                                        
+      7177 +                    "pertensor" => {                         
+      7178 +                        let mut mx = 0f32;                   
+      7179 +                        for xv in &xq_in {                   
+      7180 +                            mx = mx.max(xv.to_f32().abs());  
+      7181 +                        }                                    
+      7182 +                        ("pertensor", vec![1], vec![(mx / 127
+           +.0).max(1e-12)])                                             
+      7183 +                    }                                        
+      7184 +                    "pertokenscale" => {                     
+      7185 +                        let mut v = vec![0f32; m as usize];  
+      7186 +                        for mm_ in 0..m as usize {           
+      7187 +                            let mut mx = 0f32;               
+      7188 +                            for kk in 0..k as usize {        
+      7189 +                                mx = mx.max(xq_in[mm_ * k as 
+           +usize + kk].to_f32().abs());                                 
+      7190 +                            }                                
+      7191 +                            v[mm_] = (mx / 127.0).max(1e-12);
+      7192 +                        }                                    
+      7193 +                        // 注册名驼峰（libopapi strings 原文 
+           +）                                                           
+      7194 +                        ("pertokenScale", vec![m], v)        
+      7195 +                    }                                        
+      7196 +                    other => panic!("GEB_QMD_XS: perchannel|p
+           +ertensor|pertokenscale, got {other}"),                       
+      7197 +                };                                           
+      7198 +                println!(                                    
+      7199 +                    "[qmd] X 链 mode={mode} x_scale dims={dim
+           +s:?} val[0]={:.6} |max|xs|={:.4}",                           
+      7200 +                    vals[0],                                 
+      7201 +                    vals.iter().fold(0f32, |a, v| a.max(*v)) 
+      7202 +                );                                           
+      7203 +                let mut sg = Seg::new("qmd_x");              
+      7204 +                sg.data(ctx, "x", &[m, k], &xq_in);          
+      7205 +                sg.data_i8(ctx, "wq", &[n, k], &w_q);        
+      7206 +                sg.data_f32(ctx, "ws", &[n], &scale);        
+      7207 +                sg.data_f32(ctx, "xs", &dims, &vals);        
+      7208 +                let has_off = std::env::var("GEB_QMD_XSO").is
+           +_ok();                                                       
+      7209 +                if has_off {                                 
+      7210 +                    let z = vec![0f32; dims.iter().product::<
+           +i64>() as usize];                                            
+      7211 +                    sg.data_f32(ctx, "xo", &dims, &z);       
+      7212 +                }                                            
+      7213 +                sg.g.add_op("opx", "QuantMatmulDequant").unwr
+           +ap();                                                        
+      7214 +                sg.g.set_input_desc("opx", "x", &[m, k], Dtyp
+           +e::Fp16).unwrap();                                           
+      7215 +                sg.g.set_input_desc("opx", "quantized_weight"
+           +, &[n, k], Dtype::Int8).unwrap();                            
+      7216 +                sg.g.set_input_desc("opx", "weight_scale", &[
+           +n], Dtype::Fp32).unwrap();                                   
+      7217 +                sg.g.set_input_desc("opx", "x_scale", &dims, 
+           +Dtype::Fp32).unwrap();                                       
+      7218 +                if has_off {                                 
+      7219 +                    sg.g.set_input_desc("opx", "x_offset", &d
+           +ims, Dtype::Fp32).unwrap();                                  
+      7220 +                    sg.g.link("opx", "x_offset", "xo").unwrap
+           +();                                                          
+      7221 +                }                                            
+      7222 +                sg.g.set_output_desc("opx", "y", &[m, n], Dty
+           +pe::Fp16).unwrap();                                          
+      7223 +                sg.g.set_attr_bool("opx", "transpose_weight",
+           + true).unwrap();                                             
+      7224 +                sg.g.set_attr_str("opx", "x_quant_mode", mode
+           +).unwrap();                                                  
+      7225 +                sg.g.link("opx", "x", "x").unwrap();         
+      7226 +                sg.g.link("opx", "quantized_weight", "wq").un
+           +wrap();                                                      
+      7227 +                sg.g.link("opx", "weight_scale", "ws").unwrap
+           +();                                                          
+      7228 +                sg.g.link("opx", "x_scale", "xs").unwrap();  
+      7229 +                sg.reg_out("opx", "y");                      
+      7230 +                sg.finish(&["opx"]);                         
+      7231 +                sx_meta = Some((mode.to_string(), dims, vals)
+           +);                                                           
+      7232 +                sx_seg = Some(sg);                           
+      7233 +            }                                                
+      7234              // —— 运行 + 下载
+      7235              let run_seg = |s: &mut Seg, tag: &str| -> Vec<f16
+            > {
+      7236                  let ins: Vec<&DeviceBuffer> = s.ins();
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line
+      7245              let y_q = run_seg(&mut sq, "Q");
+      7246              let y_f = run_seg(&mut sf, "F");
+      7247              let y_n = sn.as_mut().map(|sg| run_seg(sg, "N"));
+      7248 +            let y_x = sx_seg.as_mut().map(|sg| run_seg(sg, "X
+           +"));                                                         
+      7249              // N6：单算 OM save/load 复现（GEB_QMD_NSM=6）——l
+            egacy 算子
+      7250              // （ops_legacy 预编译 binary）离线 OM task 序列
+            化疑点：生产 int8
+      7251              // OM 重载后全饱和而活图干净，输入表 size/dims 全
+            同。单算 OM
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 43 lines
+      7338              println!(
+      7339                  "[qmd] host 参考切片×{rows_ref}: W8A16 max_di
+            ff={md_w8a16:.4} / W8A8 max_diff={md_w8a8:.4}（小者 = 内部激
+            活量化模式）"
+      7340              );
+      7341 +            // —— 对拍 2b：链 X vs Q/F + host 静态量化参考（x
+           +_scale 数学约定：                                            
+      7342 +            // y = scale[n]·Σ round(x/xs)·clamp·wq·xs——匹配 =
+           + 静态约定成立；                                              
+      7343 +            // 与 Q 同 = 算子忽略 x_scale 仍跑 pertoken；全炸
+           + = desc/形状拒）                                             
+      7344 +            if let (Some(yx), Some((mode, dims, vals))) = (&y
+           +_x, &sx_meta) {                                              
+      7345 +                let mut md_xq = 0f32;                        
+      7346 +                let mut md_xf = 0f32;                        
+      7347 +                for ((xv, q), f) in yx.iter().zip(y_q.iter())
+           +.zip(y_f.iter()) {                                           
+      7348 +                    md_xq = md_xq.max((xv.to_f32() - q.to_f32
+           +()).abs());                                                  
+      7349 +                    md_xf = md_xf.max((xv.to_f32() - f.to_f32
+           +()).abs());                                                  
+      7350 +                }                                            
+      7351 +                println!(                                    
+      7352 +                    "[qmd] X({mode} dims={dims:?}) vs Q: max_
+           +diff={md_xq:.4} / vs F: rel={:.3}%",                         
+      7353 +                    md_xf / nrm * 100.0                      
+      7354 +                );                                           
+      7355 +                let xs_at = |mm_: usize, kk: usize| -> f32 { 
+      7356 +                    match mode.as_str() {                    
+      7357 +                        "perchannel" => vals[kk],            
+      7358 +                        "pertensor" => vals[0],              
+      7359 +                        _ => vals[mm_], // pertokenScale     
+      7360 +                    }                                        
+      7361 +                };                                           
+      7362 +                let mut md_xr = 0f32;                        
+      7363 +                for mm_ in 0..rows_ref.min(m as usize) {     
+      7364 +                    let rb = mm_ * k as usize;               
+      7365 +                    for nn in 0..n as usize {                
+      7366 +                        let wb = nn * k as usize;            
+      7367 +                        let mut acc = 0f32;                  
+      7368 +                        for kk in 0..k as usize {            
+      7369 +                            let xs = xs_at(mm_, kk);         
+      7370 +                            acc += (x_f32[rb + kk] / xs)     
+      7371 +                                .round()                     
+      7372 +                                .clamp(-127.0, 127.0)        
+      7373 +                                * xs                         
+      7374 +                                * w_q[wb + kk] as f32;       
+      7375 +                        }                                    
+      7376 +                        let yr = acc * scale[nn];            
+      7377 +                        md_xr = md_xr.max((yx[mm_ * n as usiz
+           +e + nn].to_f32() - yr).abs());                               
+      7378 +                    }                                        
+      7379 +                }                                            
+      7380 +                println!(                                    
+      7381 +                    "[qmd] X vs host 静态参考: max_diff={md_x
+           +r:.4}（≈W8A8 量级 = 静态 x_scale 约定成立）"                 
+      7382 +                );                                           
+      7383 +            }                                                
+      7384              // —— bench：两链各 rounds×per（run+sync median）
+      7385              let bench_seg = |s: &mut Seg, tag: &str| {
+      7386                  let ins: Vec<&DeviceBuffer> = s.ins();
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 4 lines
+      7410              let tq = bench_seg(&mut sq, "Q");
+      7411              let tf = bench_seg(&mut sf, "F");
+      7412              println!("[qmd] int8/f16 = {:.2}x（{tq:.3} vs {tf
+            :.3} ms）", tf / tq);
+      7413 +            if let Some(sg) = sx_seg.as_mut() {              
+      7414 +                let tx = bench_seg(sg, "X");                 
+      7415 +                println!("[qmd] X/Q = {:.2}x（X={tx:.3} vs Q=
+           +{tq:.3} ms）", tq / tx);                                     
+      7416 +            }                                                
+      7417          }
+      7418          other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+            ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3|wmm4|wmm5|qmd, got {
+            other}"),
+      7419      }
+
+  Thought for 6s (ctrl+o to expand)
+
+● 四处 Edit 完成。查服务器构建命令的准确形态（setup.md 有记录），然后 scp +
+  构建：
+
+  Thought for 8s, searched for 2 patterns (ctrl+o to expand)
+
+● 构建命令确认。scp 同步 + 容器内增量构建（后台跑，尾带 date 校准）：
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿  (No output)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 构建后台跑着。趁机读 plan B 候选 QuantBatchMatmulV3 契约（x int8 直入形态，若
+  x_scale 静态化被拒的备选路线）+ 顺带看芯片 6/7 占用：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  inputs: [('x1', 0, 'int8', 'required'), ('x2', 1, 'int8', 'required'),
+      ('scale', 2, 'uint64', 'required'), ('offset', 3, 'float32', 'optiona
+     l'), ('bias', 4, 'int32', 'optional'), ('pertoken_scale', 5, 'float32'
+     … +24 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Plan B 契约到手（QuantBatchMatmulV3：x1/x2 全 int8 直入 + packed scale——x
+  量化在算子外的形态）。芯片 2/3 空闲（无进程），probe 用 chip 2。等构建：
+
+  Read 1 file (ctrl+o to expand)
+
+● Background command "Build ge_model_probe with chain X addition" completed
+(exit code 0)
+
+  Thought for 33s (ctrl+o to expand)
+
+● 构建通过（35s）。跑 probe 矩阵第一轮——三个候选模式 × flow 形状 M=50（chip2
+  空闲）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "for mode…)
+  ⎿  ======== XS=perchannel M=50 ========
+     [qmd] x 统计: mean=-0.007 std=0.578 |max|=1.00
+     [qmd] w 统计: mean=-0.005 std=0.577 |max|=1.00
+     … +44 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+  Thought for 1m 15s (ctrl+o to expand)
+
+● 第一轮判决信息量大但有一处关键歧义：
+
+  ┌────────────────┬────────────────────────────────────────────────────────┐
+  │      模式      │                          结果                          │
+  ├────────────────┼────────────────────────────────────────────────────────┤
+  │ perchannel     │ 编译拒（rc=-7 task_distribute）                        │
+  │ [2048]         │                                                        │
+  ├────────────────┼────────────────────────────────────────────────────────┤
+  │                │ 编译过 + 运行，但 X-vs-Q                               │
+  │ pertensor [1]  │ max_diff=0.0000、X/Q=1.02×——疑似算子忽略 x_scale 仍跑  │
+  │                │ pertoken                                               │
+  ├────────────────┼────────────────────────────────────────────────────────┤
+  │ pertokenScale  │ 编译拒                                                 │
+  │ [50]           │                                                        │
+  └────────────────┴────────────────────────────────────────────────────────┘
+
+  pertensor 的 0.0000 是歧义点：可能是“接受 attr 但静态路径无实现”（预编译 bin
+  只实现了 pertoken——simplifiedKey 里不含 mode，选中同一个 binary），也可能本
+  bin 就没这路径。需要对照实验：喂垃圾值 banana——若也编译过 = attr
+  根本没被校验，“pertensor 编译过”不构成支持证据。同时补 perchannel [1,k]
+  形状变体 + x_offset 在场变体 + 小 N=256（quant 开销占比域）计时。改 probe
+  放开枚举限制：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 13 lines, removed 2 lines
+      7162              let mut sx_meta: Option<(String, Vec<i64>, Vec<f3
+            2>)> = None;
+      7163              if let Ok(xmode) = std::env::var("GEB_QMD_XS") {
+      7164                  let xm = xmode.to_ascii_lowercase();
+      7165 +                // 值透传 GE（垃圾值也放行 = proto 校验对照实
+           +验：垃圾能编 =                                               
+      7166 +                // attr 未被校验，"编译过"不构成静态路径存在 
+           +证据）。                                                     
+      7167 +                // GEB_QMD_XSD=2：perchannel 的 desc 改 [1,k]
+           +（形状变体）。                                               
+      7168 +                let xsd2 = std::env::var("GEB_QMD_XSD").as_de
+           +ref() == Ok("2");                                            
+      7169                  let (mode, dims, vals): (&str, Vec<i64>, Vec<
+            f32>) = match xm.as_str() {
+      7170                      "perchannel" => {
+      7171                          let mut v = vec![0f32; k as usize];
+     ...
+      7176                              }
+      7177                              v[kk] = (mx / 127.0).max(1e-12);
+      7178                          }
+      7175 -                        ("perchannel", vec![k], v)           
+      7179 +                        ("perchannel", if xsd2 { vec![1, k] }
+           + else { vec![k] }, v)                                        
+      7180                      }
+      7181                      "pertensor" => {
+      7182                          let mut mx = 0f32;
+     ...
+      7197                          // 注册名驼峰（libopapi strings 原文
+            ）
+      7198                          ("pertokenScale", vec![m], v)
+      7199                      }
+      7196 -                    other => panic!("GEB_QMD_XS: perchannel|p
+           -ertensor|pertokenscale, got {other}"),                       
+      7200 +                    // 垃圾/未知值：pertensor 式标量 scale 直
+           +达 GE 校验面                                                 
+      7201 +                    other => {                               
+      7202 +                        let mut mx = 0f32;                   
+      7203 +                        for xv in &xq_in {                   
+      7204 +                            mx = mx.max(xv.to_f32().abs());  
+      7205 +                        }                                    
+      7206 +                        (Box::leak(xmode.clone().into_boxed_s
+           +tr()), vec![1], vec![(mx / 127.0).max(1e-12)])               
+      7207 +                    }                                        
+      7208                  };
+      7209                  println!(
+      7210                      "[qmd] X 链 mode={mode} x_scale dims={dim
+            s:?} val[0]={:.6} |max|xs|={:.4}",
+
+  Thought for 15s (ctrl+o to expand)
+
+● 修一个隐患：对拍 2b 的 xs_at 闭包 _ 臂会把垃圾模式（vals 长度 1）按 [m]
+  索引越界：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 6 lines, removed 4 lines
+      7364                      md_xf / nrm * 100.0
+      7365                  );
+      7366                  let xs_at = |mm_: usize, kk: usize| -> f32 {
+      7367 -                    match mode.as_str() {                    
+      7368 -                        "perchannel" => vals[kk],            
+      7369 -                        "pertensor" => vals[0],              
+      7370 -                        _ => vals[mm_], // pertokenScale     
+      7367 +                    if dims.len() == 2 || mode == "perchannel
+           +" {                                                          
+      7368 +                        vals[kk]                             
+      7369 +                    } else if dims == vec![1] {              
+      7370 +                        vals[0]                              
+      7371 +                    } else {                                 
+      7372 +                        vals[mm_.min(vals.len() - 1)] // pert
+           +okenScale [m]                                                
+      7373                      }
+      7374                  };
+      7375                  let mut md_xr = 0f32;
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿  warning: `apxinf-model` (lib) generated 13 warnings
+     error: could not compile `apxinf-model` (lib) due to 1 previous error;
+      13 warnings emitted
+     … +2 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+  Thought for 2s (ctrl+o to expand)
+
+● 编译错，取完整报错：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿      |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+     error[E0277]: can't compare `&Vec<i64>` with `Vec<{integer}>`
+     … +15 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      7366                  let xs_at = |mm_: usize, kk: usize| -> f32 {
+      7367                      if dims.len() == 2 || mode == "perchannel
+            " {
+      7368                          vals[kk]
+      7369 -                    } else if dims == vec![1] {              
+      7369 +                    } else if dims.len() == 1 && dims[0] == 1
+           + {                                                           
+      7370                          vals[0]
+      7371                      } else {
+      7372                          vals[mm_.min(vals.len() - 1)] // pert
+            okenScale [m]
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿  warning: `apxinf-model` (lib) generated 85 warnings (run `cargo fix --
+     lib -p apxinf-model` to apply 7 suggestions)
+         Finished `release` profile [optimized] target(s) in 33.55s
+     RC=0
+  ⎿  (timeout 3m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 构建过。第二轮 probe（对照实验四连）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "run(){ d…)
+  ⎿  == a banana(校验对照) ==
+     [qmd] X 链 mode=banana x_scale dims=[1] val[0]=0.007874 |max|xs|=0.007
+     9
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 我的 run() 助手有混淆变量——GEB_QMD_XSO=0 传进去后 env::var().is_ok()
+  仍为真（设了就算），b/d 全被强加了 x_offset 输入 → 全拒。第二轮作废，重跑（env
+  精确组装，不设就是不带）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  == a banana 无offset 校验对照 ==
+     [qmd] X 链 mode=banana x_scale dims=[1] val[0]=0.007874 |max|xs|=0.007
+     9
+     … +18 lines (ctrl+o to expand)
+  ⎿  (timeout 7m)
+
+  Thought for 1m 43s (ctrl+o to expand)
+
+● 第二轮干净判决：
+
+  - banana → 拒：proto 校验在位——“pertensor 能编”是真实的枚举成员
+  - perchannel [1,k] → 拒：两种 desc 形态全拒
+  - pertensor N=256 → 过但 X==Q 0.0000 + X/Q=0.97×：两个形状都 bit 级同 pertoken
+
+  结论成形：bin1（f32 ws）里 x_scale 输入被 proto 接受但 310P 预编译 kernel 
+  无视之——静态 x 路径在已选 binary 里不存在（simplifiedKey 不含 mode，attr
+  过校验后仍匹配 pertoken bin）。
+
+  但顺藤摸到一条更优路线：注册表里还有
+  WeightQuantBatchMatmulV2（ops_nn）——weight-only int8：权重字节减半、激活全程
+  f16（零量化流水、零激活量化误差）。对 M=50 带宽受限的 flow
+  段，这正对带宽模型的胃口，还绕开行为面最大的误差源。读它的契约 + 查其他 SoC
+  目录佐证“310P binary 墙”：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  == bin: ccb2921c647cd5950165
+     inputs: [('x', 0, 'float16', 'required'), ('weight', 1, 'int8', 'requi
+     red'), ('antiquant_scale', 2, 'float16', 'required'), ('antiquant_offs
+     … +28 lines (ctrl+o to expand)
+
+  Thought for 1m 9s (ctrl+o to expand)
+
+● 310P 的 ops_nn 量化家族全景浮出——WeightQuantBatchMatmulV2（w8a16）契约完备：x
+  f16 / weight int8 / antiquant_scale f16 / bias f16 可用。同族还有
+  ascend_quant_v2（独立量化算子）和 rms_norm_quant 系（norm+quant 融合）——plan B
+  弹药充足。
+
+  先给 probe 加“链 W”（w8a16）：复用链 Q 的 w_q/scale（scale f16 化直入
+  antiquant_scale），host 参考就是现成的 W8A16 参考线：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 32 lines
+      7242                  sx_meta = Some((mode.to_string(), dims, vals)
+            );
+      7243                  sx_seg = Some(sg);
+      7244              }
+      7245 +            // —— 链 W：WeightQuantBatchMatmulV2（w8a16——weig
+           +ht-only int8，                                               
+      7246 +            // x 全程 f16，零激活量化流水/零激活量化误差）。o
+           +ps_nn 注册表契约：                                           
+      7247 +            // x f16 / weight int8 / antiquant_scale f16 / bi
+           +as f16（可选）；                                             
+      7248 +            // attrs transpose_x/transpose_weight/antiquant_g
+           +roup_size(0)/                                                
+      7249 +            // dtype(-1)/inner_precise(0)。权重/scale 复用链 
+           +Q（per-out-channel                                           
+      7250 +            // [n]，f16 化直入）。探明：① 310P 编译+数值（vs 
+           +host W8A16 参考                                              
+      7251 +            // 与 F f16——期望 ≈W8A16 线：纯权重量化误差 ~1%）
+           +；② 计时 vs                                                  
+      7252 +            // Q(qmd w8a8)/F——M=50 带宽域无 quant 流水能否兑 
+           +现带宽减半。                                                 
+      7253 +            // GEB_QMD_WQ=2 → antiquant_scale desc [n,1] 变体
+           +。                                                           
+      7254 +            let mut sw_seg: Option<Seg> = None;              
+      7255 +            if let Ok(wqmode) = std::env::var("GEB_QMD_WQ") {
+      7256 +                let aq_dims: Vec<i64> = if wqmode == "2" { ve
+           +c![n, 1] } else { vec![n] };                                 
+      7257 +                let aq: Vec<f16> = scale.iter().map(|&v| f16:
+           +:from_f32(v)).collect();                                     
+      7258 +                println!("[qmd] W 链 w8a16 antiquant_scale di
+           +ms={aq_dims:?}（w/scale 复用 Q 链）");                       
+      7259 +                let mut sg = Seg::new("qmd_w");              
+      7260 +                sg.data(ctx, "x", &[m, k], &xq_in);          
+      7261 +                sg.data_i8(ctx, "wq", &[n, k], &w_q);        
+      7262 +                sg.data(ctx, "aq", &aq_dims, &aq);           
+      7263 +                sg.g.add_op("opw", "WeightQuantBatchMatmulV2"
+           +).unwrap();                                                  
+      7264 +                sg.g.set_input_desc("opw", "x", &[m, k], Dtyp
+           +e::Fp16).unwrap();                                           
+      7265 +                sg.g.set_input_desc("opw", "weight", &[n, k],
+           + Dtype::Int8).unwrap();                                      
+      7266 +                sg.g.set_input_desc("opw", "antiquant_scale",
+           + &aq_dims, Dtype::Fp16).unwrap();                            
+      7267 +                sg.g.set_output_desc("opw", "y", &[m, n], Dty
+           +pe::Fp16).unwrap();                                          
+      7268 +                sg.g.set_attr_bool("opw", "transpose_x", fals
+           +e).unwrap();                                                 
+      7269 +                sg.g.set_attr_bool("opw", "transpose_weight",
+           + true).unwrap();                                             
+      7270 +                sg.g.link("opw", "x", "x").unwrap();         
+      7271 +                sg.g.link("opw", "weight", "wq").unwrap();   
+      7272 +                sg.g.link("opw", "antiquant_scale", "aq").unw
+           +rap();                                                       
+      7273 +                sg.reg_out("opw", "y");                      
+      7274 +                sg.finish(&["opw"]);                         
+      7275 +                sw_seg = Some(sg);                           
+      7276 +            }                                                
+      7277              // —— 运行 + 下载
+      7278              let run_seg = |s: &mut Seg, tag: &str| -> Vec<f16
+            > {
+      7279                  let ins: Vec<&DeviceBuffer> = s.ins();
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line
+      7289              let y_f = run_seg(&mut sf, "F");
+      7290              let y_n = sn.as_mut().map(|sg| run_seg(sg, "N"));
+      7291              let y_x = sx_seg.as_mut().map(|sg| run_seg(sg, "X
+            "));
+      7292 +            let y_w = sw_seg.as_mut().map(|sg| run_seg(sg, "W
+           +"));                                                         
+      7293              // N6：单算 OM save/load 复现（GEB_QMD_NSM=6）——l
+            egacy 算子
+      7294              // （ops_legacy 预编译 binary）离线 OM task 序列
+            化疑点：生产 int8
+      7295              // OM 重载后全饱和而活图干净，输入表 size/dims 全
+            同。单算 OM
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 24 lines
+      7427                      "[qmd] X vs host 静态参考: max_diff={md_x
+            r:.4}（≈W8A8 量级 = 静态 x_scale 约定成立）"
+      7428                  );
+      7429              }
+      7430 +            // —— 对拍 2c：链 W（w8a16）vs F + host W8A16 参 
+           +考（纯权重量化误差）                                         
+      7431 +            if let Some(yw) = &y_w {                         
+      7432 +                let mut md_wf = 0f32;                        
+      7433 +                for (a, b) in yw.iter().zip(y_f.iter()) {    
+      7434 +                    md_wf = md_wf.max((a.to_f32() - b.to_f32(
+           +)).abs());                                                   
+      7435 +                }                                            
+      7436 +                let mut md_wr = 0f32;                        
+      7437 +                for mm_ in 0..rows_ref.min(m as usize) {     
+      7438 +                    let rb = mm_ * k as usize;               
+      7439 +                    for nn in 0..n as usize {                
+      7440 +                        let wb = nn * k as usize;            
+      7441 +                        let mut a16 = 0f32;                  
+      7442 +                        for kk in 0..k as usize {            
+      7443 +                            a16 += x_f32[rb + kk] * w_q[wb + 
+           +kk] as f32;                                                  
+      7444 +                        }                                    
+      7445 +                        let yr = a16 * scale[nn];            
+      7446 +                        md_wr = md_wr.max((yw[mm_ * n as usiz
+           +e + nn].to_f32() - yr).abs());                               
+      7447 +                    }                                        
+      7448 +                }                                            
+      7449 +                println!(                                    
+      7450 +                    "[qmd] W(w8a16) vs F: rel={:.3}% / vs hos
+           +t W8A16 参考: max_diff={md_wr:.4}（≈0 = antiquant per-channel
+           + [n] 约定成立）",                                            
+      7451 +                    md_wf / nrm * 100.0                      
+      7452 +                );                                           
+      7453 +            }                                                
+      7454              // —— bench：两链各 rounds×per（run+sync median）
+      7455              let bench_seg = |s: &mut Seg, tag: &str| {
+      7456                  let ins: Vec<&DeviceBuffer> = s.ins();
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines
+      7484                  let tx = bench_seg(sg, "X");
+      7485                  println!("[qmd] X/Q = {:.2}x（X={tx:.3} vs Q=
+            {tq:.3} ms）", tq / tx);
+      7486              }
+      7487 +            if let Some(sg) = sw_seg.as_mut() {              
+      7488 +                let tw16 = bench_seg(sg, "W");               
+      7489 +                println!(                                    
+      7490 +                    "[qmd] W/F = {:.2}x / W/Q = {:.2}x（W={tw
+           +16:.3} vs F={tf:.3} / Q={tq:.3} ms）",                       
+      7491 +                    tf / tw16,                               
+      7492 +                    tq / tw16                                
+      7493 +                );                                           
+      7494 +            }                                                
+      7495          }
+      7496          other => panic!("GEB_OPTEST: ...|v3n|tldn|lnv4c|asc*|
+            ma*|bc4|wgt|oproj|arm|attn|wmm|wmm2|wmm3|wmm4|wmm5|qmd, got {
+            other}"),
+      7497      }
+
+  Thought for 34s (ctrl+o to expand)
+
+● 链 W 四处接线完成。scp + 重建 + 五形状计时矩阵（flow 四投影形状 + prefix
+  形状）：
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 34.83s
+     RC=0
+  ⎿  (timeout 3m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  == M=50 K=2048 N=8192 (gate) ==
+     [qmd] W 链 w8a16 antiquant_scale dims=[8192]（w/scale 复用 Q 链）
+     thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:13
+     … +18 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 全形状 -7 拒。取 plog 细节（GE 的拒绝原因通常点名 shape/attr
+  检查）——先跑一次失败再翻日志：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  (No output)
+  ⎿  (timeout 3m)
+
+  Thought for 16s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  [qmd] W 链 w8a16 antiquant_scale dims=[256, 1]（w/scale 复用 Q 链）
+     thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:13
+     07:24:
+     … +10 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  (No output)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  plog-4495_20261008022816529.log
+     plog-61457_20261008032822602.log
+     plog-61619_20261008032839973.log
+     … +90 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 最新 plog 是 serve 进程的。probe 的 61619 文件再挖（不按关键词，直接看 ERROR
+  级行 + ge 日志目录）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  14
+     ===
+     plog
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  plog-61602_20261008032844149.log
+     plog-61603_20261008032844149.log
+     plog-61604_20261008032844149.log
+     FILE=/root/ascend/log/debug/plog/plog-61602_20261008032844149.log
+
+  Thought for 27s (ctrl+o to expand)
+
+● 盲试变体前先看预编译 kernel 名单（kernel
+  文件名编码了支持的布局组合——比盲试便宜）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  WeightQuantBatchMatmulV2_fp16_int8_fp16
+     WeightQuantBatchMatmulV2_fp16_int8_fp16_weight_nz
+     === simplifiedKey ===
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 27s (ctrl+o to expand)
+
+● kernel 名单：fp16_int8_fp16（weight ND）+ weight_nz（weight NZ）两套 bin
+  都在——binary 覆盖存在，拒因在 desc/attr 检查。之前 grep 把 tiling 子进程的
+  Python 异常文本滤掉了——重跑一次收全量 stderr：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  [geb] model built: 46062 bytes
+     [geb] io: n_in=3 n_out=1
+     [geb]   in[0] size=204800 dims=50,2048
+     … +37 lines (ctrl+o to expand)
+  ⎿  (timeout 3m)
+
+  Thought for 57s (ctrl+o to expand)
+
+● 关键线索：start compile Ascend C operator WeightQuantBatchMatmulV2——我们的
+  desc 组合没命中预编译 binary，落到在线 AscendC 编译且失败（rc=-7 = op check
+  拒）。与 qmd 对比：qmd 的 attrs 注册表里有具体默认值（pertoken/true），WQBMV2
+  的 dtype 注册默认是 -1（未设）——离线图路径极可能要求显式设 dtype attr。查
+  wrapper 的 attr 方法名后加旋钮：
+
+  Thought for 12s, searched for 1 pattern (ctrl+o to expand)
+
+● set_attr_int 在。给链 W 加 attr 旋钮（dtype / group_size）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)  ⎿  Added 11 lines
+      7267                  sg.g.set_output_desc("opw", "y", &[m, n], Dty
+            pe::Fp16).unwrap();
+      7268                  sg.g.set_attr_bool("opw", "transpose_x", fals
+            e).unwrap();
+      7269                  sg.g.set_attr_bool("opw", "transpose_weight",
+             true).unwrap();
+      7270 +                // GEB_QMD_WA：注册表 dtype 默认 -1（未设）——
+           +离线图疑须显式给。                                           
+      7271 +                // =1 dtype=1(DT_FLOAT16)；=2 再加 antiquant_
+           +group_size=0。                                               
+      7272 +                if let Ok(wa) = std::env::var("GEB_QMD_WA") {
+      7273 +                    if wa == "1" || wa == "2" {              
+      7274 +                        sg.g.set_attr_int("opw", "dtype", 1).
+           +unwrap();                                                    
+      7275 +                    }                                        
+      7276 +                    if wa == "2" {                           
+      7277 +                        sg.g.set_attr_int("opw", "antiquant_g
+           +roup_size", 0).unwrap();                                     
+      7278 +                    }                                        
+      7279 +                    println!("[qmd] W 链 attr 附加 wa={wa}");
+      7280 +                }                                            
+      7281                  sg.g.link("opw", "x", "x").unwrap();
+      7282                  sg.g.link("opw", "weight", "wq").unwrap();
+      7283                  sg.g.link("opw", "antiquant_scale", "aq").unw
+            rap();
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 32.82s
+     RC=0
+     == WQ=1 WA=1 ==
+     … +20 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 41s (ctrl+o to expand)
+
+● 四个变体全拒。换取证角度：编译 farm 的子进程日志（debug/device-*/ 目录是按
+  device 分的）里找 AscendC host check 的报错原文：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  device-931659_20260922132213609.log
+
+  Thought for 17s (ctrl+o to expand)
+
+● device 日志无货。转高信息实验：torch_npu eager 直接调 WQBMV2（apxinf_npu
+  容器，8.5.1）——若 eager 能跑 = 310P kernel/运行时支持，GE 离线拒因在
+  desc/绑定面；若 eager 也拒 = 注册表在但运行时不支持，判决直接闭合。先查
+  torch_npu 暴露的 op 名：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/lib/python3.11/site-packages/torch_npu
+  ⎿  (timeout 2m)
+
+  Thought for 13s (ctrl+o to expand)
+
+● torch_npu 包内没搜到 py 面名字——直接扫二进制符号表拿权威 op 名：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  npu_quant_matmul
+     weight_quant_batchmatmul
+     libnpu_profiler.so
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 双 op 名到手（npu_quant_matmul / weight_quant_batchmatmul）。写 eager
+  判决脚本（先打 schema 再按 schema 调用 + 数值对拍）：
+
+● Write(syx_docs\dev_logs\wq_eager_test.py)
+  ⎿  Wrote 50 lines to syx_docs\dev_logs\wq_eager_test.py
+       1 """WQBMV2 310P runtime eager 判决（goal: qmd x_scale 静态化探明
+       2 
+       3 GE 离线图把 WeightQuantBatchMatmulV2 拒了（rc=-7，在线 AscendC 
+       4 也死）。本脚本在 torch_npu eager（aclnn 路径，同一 kernel binary
+       5 上直接调 weight_quant_batchmatmul，判决二分：
+       6   eager 能跑   → 310P kernel/运行时支持，GE 离线拒因在 desc/绑定
+       7   eager 也拒   → 310P 运行时不支持该 op（注册表在、binary 缺）→ 
+         路线关闭
+       9 用法：docker exec -e ASCEND_RT_VISIBLE_DEVICES=2 apxinf_npu pyth
+      10 """
+     … +51 lines (ctrl+o to expand)
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\syx_docs\d…)
+  ⎿  === schemas ===
+     weight_quant_batchmatmul schema 失败: AttributeError("'_OpNamespace' '
+     npu' object has no attribute 'weight_quant_batchmatmul'")
+     … +10 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● npu_quant_matmul 在（但它是 x 预量化 w8a8 形态）；weight_quant_batchmatmul
+  符号在 .so 里却不在 npu namespace——可能注册在 atb（Ascend Transformer
+  Boost，旁边正躺着 libop_plugin_atb.so）。扫 antiquant 相关的 op 定义字符串：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  == lib/libtorch_npu.so ==
+     _npu_fused_infer_attention_score_get_max_workspace(Tensor query, Tenso
+     r key, Tensor value, *, Tensor? pse_shift=None, Tensor? atten_mask=Non
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● atb 空、但 libtorch_npu 里出现了 WQBMV2 的 check
+  消息原文（antiquant_group_size 约束 = 0 或 [32, k-1] 内 32 的倍数）——host
+  check 代码确实随 torch_npu 走。再精确定位 schema 文本：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  npu::npu_trans_quant_param
+     npu::npu_weight_quant_batchmatmul
+     npu::npu_transpose_batchmatmul
+     … +21 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 真名找到：npu::npu_weight_quant_batchmatmul（schema 全文在，无 transpose
+  attr——布局约定由张量形态推）。改脚本重测：
+
+● Update(syx_docs\dev_logs\wq_eager_test.py)
+  ⎿  Added 9 lines, removed 7 lines
+      14  M, K, N = 50, 2048, 256  # flow k/v 投影形状（最小）
+      15  
+      16  print("=== schemas ===")
+      17 -for name in ("weight_quant_batchmatmul", "npu_quant_matmul"):  
+      17 +for name in ("npu_weight_quant_batchmatmul", "npu_quant_matmul"
+         +):                                                             
+      18      try:
+      19          op = getattr(torch.ops.npu, name)
+      20          print(name, ":", op.default._schema)
+     ...
+      33  x_n, wq_n = x.to(dev), wq.to(dev)
+      34  y_ref_n = y_ref.to(dev)
+      35  
+      36 +s_n = s.to(torch.float16).to(dev)                              
+      37  variants = {
+      37 -    "scale[n]+tw=True":  dict(antiquant_scale=s.to(torch.float1
+         -6).to(dev), transpose_weight=True),                            
+      38 -    "scale[n,1]+tw=T":  dict(antiquant_scale=s.to(torch.float16
+         -).to(dev).unsqueeze(1), transpose_weight=True),                
+      39 -    "scale[n] w[k,n]":  dict(antiquant_scale=s.to(torch.float16
+         -).to(dev), transpose_weight=False),                            
+      38 +    # torch op 无 transpose attr：布局由 weight 形态推（[k,n]  
+         +连续 = 不转置                                                  
+      39 +    # 语义；[n,k] = 转置语义——vllm-ascend 实际用 [k,n] 传）    
+      40 +    "w[n,k] scale[n]":   (wq_n, s_n),                          
+      41 +    "w[n,k] scale[n,1]": (wq_n, s_n.unsqueeze(1)),             
+      42 +    "w[k,n] scale[n]":   (wq_n.t().contiguous(), s_n),         
+      43  }
+      44  
+      42 -for tag, kw in variants.items():                               
+      43 -    w_arg = wq_n if kw.get("transpose_weight", True) else wq_n.
+         -t().contiguous()                                               
+      45 +for tag, (w_arg, s_arg) in variants.items():                   
+      46      try:
+      45 -        y = torch.ops.npu.weight_quant_batchmatmul(x_n, w_arg, 
+         -**kw)                                                          
+      47 +        y = torch.ops.npu.npu_weight_quant_batchmatmul(x_n, w_a
+         +rg, s_arg)                                                     
+      48          md = (y.float() - y_ref_n.float()).abs().max().item()
+      49          rel = md / y_ref_n.float().abs().max().item()
+      50          print(f"[{tag}] OK  shape={tuple(y.shape)} dtype={y.dty
+          pe} max_diff={md:.4f} rel={rel:.4%}")
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\syx_docs\d…)
+  ⎿  === schemas ===
+     npu_weight_quant_batchmatmul : npu::npu_weight_quant_batchmatmul(Tenso
+     r x, Tensor weight, Tensor antiquant_scale, Tensor? antiquant_offset=N
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 18s (ctrl+o to expand)
+
+● eager 判决：310P 运行时支持 WQBMV2！
+  且布局契约破译——错误消息暴露了检查逻辑（"weight_k_dim" 读 shape[0]）：
+
+  - weight [k,n] 连续 + scale [n] + 不转置 → OK，rel 0.066%（f16 噪声级，w8a16
+    数学确认）
+  - [n,k] 形态被 host check 拒
+
+  GE 离线链 W 之前喂的正是 [n,k]+tw=true → 拒因实锤。改链 W 加 [k,n]
+  变体（WQ=3）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 24 lines, removed 2 lines
+      7253              // GEB_QMD_WQ=2 → antiquant_scale desc [n,1] 变体
+            。
+      7254              let mut sw_seg: Option<Seg> = None;
+      7255              if let Ok(wqmode) = std::env::var("GEB_QMD_WQ") {
+      7256 +                // WQ=3 = eager 判决契约（pyo3_check/wq_eager
+           +_test.py）：weight                                           
+      7257 +                // [k,n] 连续 + scale [n] + 不转置；[n,k]+tw=
+           +true 被 host check                                           
+      7258 +                // 拒（weight_k_dim 读 shape[0]："The k of x 
+           +and weight should                                            
+      7259 +                // be equal"）。                             
+      7260                  let aq_dims: Vec<i64> = if wqmode == "2" { ve
+            c![n, 1] } else { vec![n] };
+      7261                  let aq: Vec<f16> = scale.iter().map(|&v| f16:
+            :from_f32(v)).collect();
+      7258 -                println!("[qmd] W 链 w8a16 antiquant_scale di
+           -ms={aq_dims:?}（w/scale 复用 Q 链）");                       
+      7262 +                let (w_dims_w, tw_flag): (Vec<i64>, bool) = i
+           +f wqmode == "3" {                                            
+      7263 +                    (vec![k, n], false)                      
+      7264 +                } else {                                     
+      7265 +                    (vec![n, k], true)                       
+      7266 +                };                                           
+      7267 +                println!(                                    
+      7268 +                    "[qmd] W 链 w8a16 w={:?} tw={tw_flag} ant
+           +iquant_scale dims={aq_dims:?}",                              
+      7269 +                    w_dims_w                                 
+      7270 +                );                                           
+      7271                  let mut sg = Seg::new("qmd_w");
+      7272                  sg.data(ctx, "x", &[m, k], &xq_in);
+      7261 -                sg.data_i8(ctx, "wq", &[n, k], &w_q);        
+      7273 +                if wqmode == "3" {                           
+      7274 +                    let mut wqt = vec![0i8; (n * k) as usize]
+           +;                                                            
+      7275 +                    for nn in 0..n as usize {                
+      7276 +                        for kk in 0..k as usize {            
+      7277 +                            wqt[kk * n as usize + nn] = w_q[n
+           +n * k as usize + kk];                                        
+      7278 +                        }                                    
+      7279 +                    }                                        
+      7280 +                    sg.data_i8(ctx, "wq", &w_dims_w, &wqt);  
+      7281 +                } else {                                     
+      7282 +                    sg.data_i8(ctx, "wq", &w_dims_w, &w_q);  
+      7283 +                }                                            
+      7284                  sg.data(ctx, "aq", &aq_dims, &aq);
+      7285                  sg.g.add_op("opw", "WeightQuantBatchMatmulV2"
+            ).unwrap();
+      7286                  sg.g.set_input_desc("opw", "x", &[m, k], Dtyp
+            e::Fp16).unwrap();
+
+  Thought for 3s (ctrl+o to expand)
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 2 lines
+      7284                  sg.data(ctx, "aq", &aq_dims, &aq);
+      7285                  sg.g.add_op("opw", "WeightQuantBatchMatmulV2"
+            ).unwrap();
+      7286                  sg.g.set_input_desc("opw", "x", &[m, k], Dtyp
+            e::Fp16).unwrap();
+      7287 -                sg.g.set_input_desc("opw", "weight", &[n, k],
+           - Dtype::Int8).unwrap();                                      
+      7287 +                sg.g.set_input_desc("opw", "weight", &w_dims_
+           +w, Dtype::Int8).unwrap();                                    
+      7288                  sg.g.set_input_desc("opw", "antiquant_scale",
+             &aq_dims, Dtype::Fp16).unwrap();
+      7289                  sg.g.set_output_desc("opw", "y", &[m, n], Dty
+            pe::Fp16).unwrap();
+      7290                  sg.g.set_attr_bool("opw", "transpose_x", fals
+            e).unwrap();
+      7291 -                sg.g.set_attr_bool("opw", "transpose_weight",
+           - true).unwrap();                                             
+      7291 +                sg.g.set_attr_bool("opw", "transpose_weight",
+           + tw_flag).unwrap();                                          
+      7292                  // GEB_QMD_WA：注册表 dtype 默认 -1（未设）——
+            离线图疑须显式给。
+      7293                  // =1 dtype=1(DT_FLOAT16)；=2 再加 antiquant_
+            group_size=0。
+      7294                  if let Ok(wa) = std::env::var("GEB_QMD_WA") {
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 34.17s
+     RC=0
+     [qmd] W 链 w8a16 w=[2048, 256] tw=false antiquant_scale dims=[256]
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 41s (ctrl+o to expand)
+
+● GE 离线仍拒——拿真实报错文本（ASCEND_GLOBAL_LOG_LEVEL 提到 info 让 FE 的 check
+  消息打到 stdout）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  (No output)
+  ⎿  (timeout 5m)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /root/ascend/log/run/plog/plog-77603_20261008034400380.log
+     447 /root/ascend/log/run/plog/plog-77603_20261008034400380.log
+     102:[WARNING] TDT(77603,ge_model_probe):2026-10-08-03:44:05.448.395 [i
+     … +54 lines (ctrl+o to expand)
+
+  Thought for 1m 1s (ctrl+o to expand)
+
+● plog 只有 CheckSupported 计时（884ms = WQBMV2 在线 AscendC
+  检查跑了但被判不支持），无 ERROR 文本。新嫌疑：容器/CANN 版本差——eager
+  成功是在 apxinf_npu（8.5.1），GE 离线拒是在 apxinf_rust（9.0.1）。对比两版 opp
+  的 WQBMV2 注册覆盖：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/ascend-toolkit
+     /usr/local/Ascend/cann
+     /usr/local/Ascend/cann-8.5.1
+     … +15 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 22s (ctrl+o to expand)
+
+● 8.5.1 与 9.0.1 的注册/bin 名完全一致——binary 两边都有，eager 能命中，GE
+  离线没命中。找 AscendC 编译 farm 的日志落点（它把 CheckSupported
+  拒因写进自己日志）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  plog
+     device-2
+     device-5
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  device-77603_20261008034409056.log
+     device-75944_20261008034246047.log
+     device-69348_20261008033515011.log
+     … +77 lines (ctrl+o to expand)
+
+  Thought for 43s (ctrl+o to expand)
+
+● 解码 simplifiedKey 无果而返前，先找 opp 里的 TBE python impl（legacy TBE
+  算子的 check 函数在 python 里，能读出确切期望）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/impl/ops
+     _legacy/dynamic/weight_quant_batchmatmul.py
+     /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/impl/ops
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● impl python 命中（还有 AscendC 源码头文件）。读 check 函数：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  259 /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/impl
+     /ops_nn/dynamic/weight_quant_batch_matmul_v2.py
+     60:    x_fmt = x.get("format")
+     … +38 lines (ctrl+o to expand)
+
+  Thought for 14s (ctrl+o to expand)
+
+● 这个 py 是薄 wrapper——真检查在 check_op_cap 的 .so 里，但我可以直接用 python 
+  调它（喂我们的 desc，拿确切拒因）。先读 wrapper 头部看调用协议：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  #!/usr/bin/env python
+     # -*- coding: UTF-8 -*-
+     """
+     … +126 lines (ctrl+o to expand)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 实锤方向成形：WQBMV2 是新代 AscendC 动态算子——desc 不中 staticKey
+  缓存就在线编译，而 rust 容器的 CANN 若缺编译器组件（compiler/ 目录），AscendC
+  在线编译必死。对比两容器的 CANN 组件清单：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "echo '==…)
+  ⎿  == rust 9.0.1 ==
+     aarch64-linux
+     arm64-linux
+     … +47 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 两容器都有 compiler/——目录级工具链都在。直接在 rust 容器复现 check_op_cap
+  调用拿报错原文（先定位 asc_op_compile_base 包）：
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/python/site-packages/asc_op_compile_base
+     LICENSE
+     acl
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  def _build_args(x_in__, weight_in__, antiquant_scale_in__, antiquant_o
+     ffset_in__, quant_scale_in__, quant_offset_in__, bias_in__, y_out_, tr
+     anspose_x, transpose_weight, antiquant_group_size, dtype, inner_precis
+     … +67 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● wrapper 协议已明。写复现脚本直接调 op_select_format（能力检查）+
+  完整编译入口，让真实拒因冒出来：
+
+● Write(syx_docs\dev_logs\wq_cap_check.py)
+  ⎿  Wrote 47 lines to syx_docs\dev_logs\wq_cap_check.py
+       1 """WQBMV2 GE 离线拒因复现：直接调 CANN 的 check_op_cap / compile
+       2 
+       3 rust 容器（9.0.1）GE 图构建时 WQBMV2 走到 "start compile Ascend 
+       4 后死——本脚本绕过 GE，直接用 opp 的 wrapper python 复现同一个检查
+         /编译，
+         在哪）。
+       6 
+         hon3 wq_cap_check.py
+       8 """
+      10 import sys
+     … +47 lines (ctrl+o to expand)
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\syx_docs\d…)
+  ⎿  === op_select_format（能力检查，GE build 第一关）===
+     [w[k,n] tw=False] RAISE FileNotFoundError: [Errno 2] No such file or d
+     irectory: '/usr/local/Ascend/cann-9.0.1/python/site-packages/asc_op_co
+     … +27 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 需要 ori_shape 键（tbe dsl 描述符全字段）。补齐重试：
+
+● Update(syx_docs\dev_logs\wq_cap_check.py)
+  ⎿  Added 9 lines, removed 1 line
+      18  
+      19  
+      20  def desc(shape, dtype, fmt="ND"):
+      21 -    return {"shape": shape, "format": fmt, "dtype": dtype, "mod
+         -e": "all"}                                                     
+      21 +    return {                                                   
+      22 +        "shape": shape,                                        
+      23 +        "ori_shape": shape,                                    
+      24 +        "format": fmt,                                         
+      25 +        "ori_format": fmt,                                     
+      26 +        "dtype": dtype,                                        
+      27 +        "mode": "all",                                         
+      28 +        "range": [(1, s) for s in shape],                      
+      29 +    }                                                          
+      30  
+      31  
+      32  x = desc((M, K), "float16")
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\syx_docs\d…)
+  ⎿  === op_select_format（能力检查，GE build 第一关）===
+     [w[k,n] tw=False] RAISE FileNotFoundError: [Errno 2] No such file or d
+     irectory: '/usr/local/Ascend/cann-9.0.1/python/site-packages/asc_op_co
+     … +39 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 35s (ctrl+o to expand)
+
+● 复现链推进到 AscendC 编译内部（template_tiling.decode_tiling context 为
+  None）——但这可能是我的独立调用缺 tbe context，未必是 GE 真路径的死法。直接开
+  ASCEND_SLOG_PRINT_TO_STDOUT 重跑真实 GE 构建，拿 farm 的真实报错：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  [ERROR] GE(84397,ge_model_probe):2026-10-08-03:51:57.214.502 [graph_ma
+     nager.cc:2134]84397 BuildGraph: ErrorNo: 1343225857(Parameter invalid!
+     )[Call][StartForRunGraph] failed! graph_id:2.
+     … +42 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 构建在 StartForRunGraph 报 "Parameter invalid!"（tiling 阶段），farm
+  子进程吞了细节。用 GIL
+  战役的旧钥匙：MIN_COMPILE_RESOURCE_USAGE_CTRL=op_compile 关 farm
+  走内联，让报错直接现形：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  (No output)
+  ⎿  (timeout 5m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  build: AclError { code: -7, op: "geb_model_build" }
+     note: run with `RUST_BACKTRACE=1` environment variable to display a ba
+     cktrace
+     … +118 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● 中段还有 FE 的判决行——精确捞：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  [INFO] GE(86848,ge_model_probe):2026-10-08-03:53:32.332.899 [ge_call_w
+     rapper.h:111]86848 ~FuncPerfScope:[GEPERFTRACE] The time cost of OpTil
+     ingManager::LoadSo is [74060] micro seconds.
+     … +90 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 39s (ctrl+o to expand)
+
+● 真凶现形：Do op tiling failed, no valid template is found——AscendC
+  kernel-template tiling 注册表里没有匹配我们 desc 的模板（不是 attr、不是
+  binary 缺失）。8.5.1 eager 过是因为它的 tiling 模板集不同/命中了。读 AscendC
+  源码目录里的 tiling 头文件，看模板的匹配条件：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/impl/ops
+     _nn/ascendc/weight_quant_batch_matmul_v2/:
+     anti_quant.h
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 源码全在（含 kernel_tiling_key.h 模板条件表 + arch35 子目录）。查 310P
+  的模板门控：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  ===模板注册===
+     16:#ifndef WEIGHT_QUANT_BATCH_MATMUL_V2_INKERNEL_TILING_KEY_H
+     17:#define WEIGHT_QUANT_BATCH_MATMUL_V2_INKERNEL_TILING_KEY_H
+     19:#include "ascendc/host_api/tiling/template_argument.h"
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  181:#if defined(__CCE_AICORE__)
+     182:#if (defined(__CCE_AICORE__) && __CCE_AICORE__ == 220) || (defined
+     (__NPU_ARCH__) && __NPU_ARCH__ == 3003)
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 看预编译 binary 的 tiling json——它列明该 binary 覆盖的 tiling key 与格式组合：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  binFileName = WeightQuantBatchMatmulV2_fp16_int8_fp16_high_performance
+     binFileSuffix = .o
+     blockDim = -1
+     … +37 lines (ctrl+o to expand)
+
+  Thought for 43s (ctrl+o to expand)
+
+● 预编译 binary 的 supportInfo 与我们 desc 完全一致（weight int8 ND）——binary
+  没问题，死在 python farm 的 tiling 阶段。对比两版 CANN 的 tiling 库面（若
+  9.0.1 的 310P tiling 库缺件 = 版本回归实锤）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe/impl/ops
+     _nn/ascendc/weight_quant_batch_matmul_v2/arch35/weight_quant_batch_mat
+     mul_v2_arch35_tiling_key.h
+     … +13 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+  Thought for 21s (ctrl+o to expand)
+
+● 模式浮出：ops_legacy = 老式 TBE（离线可烤，qmd 实证）；ops_nn/dynamic = 
+  新代模板机制（arch35 子目录 = 新芯片向，310P 离线 tiling 无模板）。而刚才 find
+  里出现过 ops_legacy/weight_quant_batchmatmul.py——V1 老式 w8a16 算子可能就在
+  legacy 里！查它的注册表：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  ascend_anti_quant_v2.json
+     dequant_per_channel.json
+     dequantize.json
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 1m 15s (ctrl+o to expand)
+
+● ops_legacy 面全景：w8a16 老式 V1 不存在于 310P legacy 注册；legacy 只有
+  qmd（现行 w8a8）+ 独立量化/反量化算子 + norm+quant 
+  融合算子。快速验证“模板墙”是否覆盖整个 ops_nn/dynamic 类（查 QBMV3 的 impl
+  归类）：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  ada_layer_norm_quant.py
+     ada_layer_norm_quant_apt.py
+     add_layer_norm_quant.py
+     … +64 lines (ctrl+o to expand)
+
+  Thought for 31s (ctrl+o to expand)
+
+● 整个 ops_nn 量化家族（50+ 算子，含 add_rms_norm_dynamic_quant、dynamic_quant、
+  quant_batch_matmul_v3）全在模板类。这决定最后一轮关键 probe：若 ops_nn/dynamic
+  在 310P 离线全类被墙 → 量化探明终局；若 dynamic_quant 能建 →
+  “norm+动态量化融合 + int8 直乘”分解路线打开（vllm-ascend 同款）。读
+  dynamic_quant_v2 契约并接线：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  dynamic_quant_v2.json bins: 1
+      in: [('x', 0, 'float16', 'ND', 'required'), ('smooth_scales', 1, 'flo
+     at16', 'ND', 'optional'), ('group_index', 2, 'int32', 'ND', 'optional'
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● 契约到手（DynamicQuantV2 还带 smooth_scales 可选输入——smoothquant
+  折入量化算子！）。查多输出图绑定的现有 API 形态，然后加 build-only 冒烟链 Z：
+
+  Thought for 38s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● finish 即 build（构链即触发）。加 build-only 链 Z（attrs 全走默认——GE 会填）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 18 lines
+      7307                  sg.finish(&["opw"]);
+      7308                  sw_seg = Some(sg);
+      7309              }
+      7310 +            // —— 链 Z：ops_nn/dynamic 类别墙判决（GEB_QMD_Z=
+           +<OpName>，build-only）                                       
+      7311 +            // WQBMV2 实测 "Do op tiling failed, no valid tem
+           +plate"（ascendc                                              
+      7312 +            // arch35 模板族——310P 无模板项，plog 取证）。本 
+           +链冒烟同类                                                   
+      7313 +            // DynamicQuantV2（vllm-ascend w8a8 分解主力：per
+           +-token 量化独立                                              
+      7314 +            // 化 + smooth_scales 可选输入，输出 y int8 + sca
+           +le/offset f32）：                                            
+      7315 +            // 过/拒直接判决整个 ops_nn/dynamic 家族在 310P G
+           +E 离线的存废。                                               
+      7316 +            // attrs 不设（注册表无默认 → GE 填 is_default_va
+           +lue）。                                                      
+      7317 +            if let Ok(zop) = std::env::var("GEB_QMD_Z") {    
+      7318 +                let mut zg = Seg::new("qmd_z");              
+      7319 +                zg.data(ctx, "x", &[m, k], &xq_in);          
+      7320 +                zg.g.add_op("opz", &zop).unwrap();           
+      7321 +                zg.g.set_input_desc("opz", "x", &[m, k], Dtyp
+           +e::Fp16).unwrap();                                           
+      7322 +                zg.g.set_output_desc("opz", "y", &[m, k], Dty
+           +pe::Int8).unwrap();                                          
+      7323 +                zg.g.link("opz", "x", "x").unwrap();         
+      7324 +                zg.reg_out("opz", "y");                      
+      7325 +                zg.finish(&["opz"]);                         
+      7326 +                println!("[qmd] Z 链 {zop} BUILD OK（ops_nn/d
+           +ynamic 类别墙未拦）");                                       
+      7327 +            }                                                
+      7328              // —— 运行 + 下载
+      7329              let run_seg = |s: &mut Seg, tag: &str| -> Vec<f16
+            > {
+      7330                  let ins: Vec<&DeviceBuffer> = s.ins();
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 33.51s
+     RC=0
+     == Z=DynamicQuantV2 ==
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+  Thought for 43s (ctrl+o to expand)
+
+● 类别墙被打破：DynamicQuantV2 BUILD OK——ops_nn/dynamic 不是全类被墙，是 WQBMV2
+  特有（arch35 模板无 310P 项）。分解路线复活：DynamicQuantV2（带 smooth_scales
+  输入）+ int8 直乘算子 + norm+quant 融合算子（add_rms_norm_dynamic_quant——amax
+  搭 norm 的便车，5/7 投影的量化开销近零）。
+
+  补齐路线图的最后三块拼图（QBMV3 / TransQuantParamV2 / AddRmsNormDynamicQuant
+  的 build 冒烟）。先读三者的格式契约：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  == quant_batch_matmul_v3.json bins: 4
+      in: [('x1', 0, 'int8', 'ND', 'required'), ('x2', 1, 'int8', 'FRACTAL_
+     NZ', 'required'), ('scale', 2, 'uint64', 'ND', 'required'), ('offset',
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 24s (ctrl+o to expand)
+
+● add_rms_norm_dynamic_quant 310P 无注册（norm+quant 融合不可用——但静态版
+  add_rms_norm_quant 在）。QBMV3 契约完整（x1 int8 ND + x2 int8 NZ + scale
+  uint64 + pertoken_scale 可选；dtype attr 有默认值 1）。看 Seg 的 data
+  助手实现，补 u64 版本做 build 冒烟：
+
+  Thought for 14s, searched for 4 patterns, read 1 file (ctrl+o to expand)
+
+● Dtype 枚举缺 Uint64。查 C++ 侧 dtype 字符串解析表：
+
+  Searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+● Bash(grep -rn "uint64\|DT_UINT64"
+      "D:\compass\APXinf\apxinf\crates\apxinf-ascend\src\ge_builder.cpp"
+      2>/dev/null | head -5; ls "D:\compass\APXinf\apxinf\crates\apxin…)
+  ⎿  Error: Exit code 2
+     /usr/bin/bash: eval: line 1: unexpected EOF while looking for matching `"'
+
+  Thought for 20s, searched for 2 patterns (ctrl+o to expand)
+
+● uint64 不在 FFI dtype 表——但绕法更优：造真实生产拓扑的三算子链（DynamicQuantV2
+  → TransQuantParamV2（f32→u64 打包）→ QuantBatchMatmulV3），scale 走 op-to-op
+  不需要 u64 Data。查 wire/reg_out 签名：
+
+  Thought for 9s, searched for 1 pattern (ctrl+o to expand)
+
+● 需要 Uint64 dtype 变体（TransQuantParamV2 输出 desc）。读 C++
+  解析段落后两侧各补一行：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-ascend\ascendc\ge_builder\ge_builder.cpp)
+  ⎿  Added 4 lines, removed 1 line
+      110          dt = ge::DT_INT8;
+      111      } else if (v == "bool") {
+      112          dt = ge::DT_BOOL;
+      113 +    } else if (v == "uint64") {                               
+      114 +        // QuantBatchMatmulV3 的 packed scale 输入（TransQuant
+          +ParamV2 产物）                                                
+      115 +        dt = ge::DT_UINT64;                                   
+      116      } else {
+      114 -        std::cerr << "[geb] unknown dtype '" << v << "' (fp16/
+          -fp32/int32/int64/int8/bool)" << std::endl;                    
+      117 +        std::cerr << "[geb] unknown dtype '" << v << "' (fp16/
+          +fp32/int32/int64/int8/bool/uint64)" << std::endl;             
+      118          return false;
+      119      }
+      120      return true;
+
+● Update(apxinf\crates\apxinf-ascend\src\ge_builder.rs)
+  ⎿  Added 3 lines
+      47      Int32,
+      48      Int64,
+      49      Int8,
+      50 +    /// QuantBatchMatmulV3 packed scale（TransQuantParamV2 产物
+         + uint64）                                                      
+      51 +    Uint64,                                                    
+      52  }
+      53  
+      54  impl Dtype {
+     ...
+      59              Dtype::Int32 => "int32",
+      60              Dtype::Int64 => "int64",
+      61              Dtype::Int8 => "int8",
+      62 +            Dtype::Uint64 => "uint64",                         
+      63          })
+      64          .expect("dtype str")
+      65      }
+
+  Thought for 17s (ctrl+o to expand)
+
+● 链 Z2（三算子生产拓扑）接进 probe：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 36 lines
+      7325                  zg.finish(&["opz"]);
+      7326                  println!("[qmd] Z 链 {zop} BUILD OK（ops_nn/d
+            ynamic 类别墙未拦）");
+      7327              }
+      7328 +            // —— 链 Z2：分解式 w8a8 生产拓扑 build 冒烟（GEB
+           +_QMD_Z2=1）——                                                
+      7329 +            // DynamicQuantV2(x f16 → x_q int8) → QuantBatchM
+           +atmulV3(x_q,                                                 
+      7330 +            // w_q int8, packed_scale) → y f16；packed scale 
+           +由                                                           
+      7331 +            // TransQuantParamV2(f32 [n] → u64) 图内生成（u64
+           + 走 op-to-op，                                               
+      7332 +            // 免 u64 Data——FFI dtype 表已加 uint64）。全 ops
+           +_nn/dynamic：                                                
+      7333 +            // 过/拒 = 分解路线存废（WQBMV2 已被 arch35 模板 
+           +墙挡）。                                                     
+      7334 +            if std::env::var("GEB_QMD_Z2").is_ok() {         
+      7335 +                let mut zg = Seg::new("qmd_z2");             
+      7336 +                zg.data(ctx, "x", &[m, k], &xq_in);          
+      7337 +                zg.data_i8(ctx, "wq", &[n, k], &w_q);        
+      7338 +                let wsf = vec![0.005f32; n as usize]; // 任意
+           +正 scale 占位（build 冒烟）                                  
+      7339 +                zg.data_f32(ctx, "ws", &[n], &wsf);          
+      7340 +                zg.g.add_op("dq", "DynamicQuantV2").unwrap();
+      7341 +                zg.g.set_input_desc("dq", "x", &[m, k], Dtype
+           +::Fp16).unwrap();                                            
+      7342 +                zg.g.set_output_desc("dq", "y", &[m, k], Dtyp
+           +e::Int8).unwrap();                                           
+      7343 +                zg.wire("dq", "x", "x");                     
+      7344 +                zg.reg_out("dq", "y");                       
+      7345 +                zg.g.add_op("tqp", "TransQuantParamV2").unwra
+           +p();                                                         
+      7346 +                zg.g.set_input_desc("tqp", "scale", &[n], Dty
+           +pe::Fp32).unwrap();                                          
+      7347 +                zg.g.set_output_desc("tqp", "y", &[n], Dtype:
+           +:Uint64).unwrap();                                           
+      7348 +                zg.wire("tqp", "scale", "ws");               
+      7349 +                zg.reg_out("tqp", "y");                      
+      7350 +                zg.g.add_op("qb3", "QuantBatchMatmulV3").unwr
+           +ap();                                                        
+      7351 +                zg.g.set_input_desc("qb3", "x1", &[m, k], Dty
+           +pe::Int8).unwrap();                                          
+      7352 +                zg.g.set_input_desc("qb3", "x2", &[n, k], Dty
+           +pe::Int8).unwrap();                                          
+      7353 +                zg.g.set_input_desc("qb3", "scale", &[n], Dty
+           +pe::Uint64).unwrap();                                        
+      7354 +                zg.g.set_output_desc("qb3", "y", &[m, n], Dty
+           +pe::Fp16).unwrap();                                          
+      7355 +                zg.g.set_attr_bool("qb3", "transpose_x1", fal
+           +se).unwrap();                                                
+      7356 +                zg.g.set_attr_bool("qb3", "transpose_x2", tru
+           +e).unwrap();                                                 
+      7357 +                zg.wire("qb3", "x1", "dq");                  
+      7358 +                zg.wire("qb3", "x2", "wq");                  
+      7359 +                zg.wire("qb3", "scale", "tqp");              
+      7360 +                zg.reg_out("qb3", "y");                      
+      7361 +                zg.finish(&["qb3"]);                         
+      7362 +                println!("[qmd] Z2 链 DQ+TQP+QBMV3 BUILD OK（
+           +分解路线存续）");                                            
+      7363 +            }                                                
+      7364              // —— 运行 + 下载
+      7365              let run_seg = |s: &mut Seg, tag: &str| -> Vec<f16
+            > {
+      7366                  let ins: Vec<&DeviceBuffer> = s.ins();
+
+  Thought for 5s (ctrl+o to expand)
+
+● 三个文件同步 + 重建（ge_builder.cpp 改动会连带 C++ shim 重编）：
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿  warning: `apxinf-model` (lib) generated 85 warnings (run `cargo fix --
+     lib -p apxinf-model` to apply 7 suggestions)
+         Finished `release` profile [optimized] target(s) in 36.74s
+     RC=0
+  ⎿  (timeout 5m)
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  [INFO] GE(100466,ge_model_probe):2026-10-08-04:08:23.042.500 [dnnengin
+     e_manager.cc:225]100466 LogCheckSupportCost:The time cost of AIcoreEng
+     ine::CheckSupported is [847220] micro seconds.
+     … +20 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 8s (ctrl+o to expand)
+
+● panic 位置变了（不是 build -7）。取完整 panic 消息：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:73
+     47:71:
+     called `Result::unwrap()` on an `Err` value: AclError { code: -3, op:
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 15s, read 1 file (ctrl+o to expand)
+
+● 7347 = tqp 的 u64 输出 desc。可能是 shape 冲突（打包输出或非 [n]）——去掉该
+  desc 让 GE 推断：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 2 lines, removed 1 line
+      7344                  zg.reg_out("dq", "y");
+      7345                  zg.g.add_op("tqp", "TransQuantParamV2").unwra
+            p();
+      7346                  zg.g.set_input_desc("tqp", "scale", &[n], Dty
+            pe::Fp32).unwrap();
+      7347 -                zg.g.set_output_desc("tqp", "y", &[n], Dtype:
+           -:Uint64).unwrap();                                           
+      7347 +                // 输出 desc 不设（u64 打包 shape 由算子推断—
+           +—显式 [n] 会                                                 
+      7348 +                // rc=-3 冲突）                              
+      7349                  zg.wire("tqp", "scale", "ws");
+      7350                  zg.reg_out("tqp", "y");
+      7351                  zg.g.add_op("qb3", "QuantBatchMatmulV3").unwr
+            ap();
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 33.63s
+     RC=0
+     thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:73
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 12s, read 1 file (ctrl+o to expand)
+
+● 疑点：C++ shim 可能没重编（增量构建没侦测 cpp 变化）。查 build.rs 的重编逻辑：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  1://! Link the Ascend CL runtime (libascendcl.so).
+     22:    println!("cargo:rerun-if-env-changed=ASCEND_TOOLKIT_HOME");
+
+  Thought for 12s (ctrl+o to expand)
+
+● C++ shim 是手动 cmake 构建的（cargo 不管）。找 .so 位置并手动重编：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  Error: Exit code 1
+     /data/apxinf/ascendc/ge_builder/build/libge_builder.so
+     /data/apxinf/apxinf_engine/crates/apxinf-ascend/ascendc/ge_builder/libge_bu
+     ilder.so
+
+  Thought for 4s (ctrl+o to expand)
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  Error: Exit code 1
+     [ 50%] Built target ge_builder
+     [100%] Built target geb_main
+     RC=0
+     'libge_builder.so' -> '/data/apxinf/apxinf_engine/crates/apxinf-ascend/asce
+     ndc/ge_builder/libge_builder.so'
+     0
+
+  Thought for 7s (ctrl+o to expand)
+
+● 发现双源副本坑：cmake build 在 /data/apxinf/ascendc/ge_builder/（自己的源），
+  我改的是引擎目录里的副本。把改动同步到 cmake 源再编：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "docker e…)
+  ⎿  /data/apxinf/ascendc/ge_builder/ge_builder.cpp
+     /data/apxinf/ascendc/ge_builder/ge_builder_main.cpp
+     [ 75%] Linking CXX executable geb_main
+     … +4 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 4s (ctrl+o to expand)
+
+● shim 已带 uint64（strings 命中 2）。重跑 Z2 冒烟：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:13
+     07:24:
+     build: AclError { code: -7, op: "geb_model_build" }
+     … +5 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 7s (ctrl+o to expand)
+
+● desc 过了，死在建图。看这次是哪个算子 tiling 拒：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  [INFO] DVPP(105803,ge_model_probe):2026-10-08-04:12:38.530.282 [dvpp_e
+     ngine.cc:35][ENGINE][Initialize:35][tid:105803]dvpp engine is not supp
+     orted
+     … +19 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 26s (ctrl+o to expand)
+
+● GetInputDesc 是我们 dump 的探测性噪音。抓真正的 build ErrorNo 行：
+
+● Bash(ssh -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      root@192.168.13.119 "P=/data/…)
+  ⎿  [ERROR] GE(106894,ge_model_probe):2026-10-08-04:13:32.810.067 [gnode.c
+     c:688]106894 GetOutputDesc: ErrorNo: 4294967295(failed)[Get][TensorDes
+     c] of node[Node_Output] failed.
+     … +33 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 不是模板墙——是 attr 缺失：QuantBmmInferShape: "GetOpAttr out_dtype 
+  failed!"——QBMV3 的 infer 函数要求显式 dtype attr（注册表里 bin 的 dtype=1
+  是烤入值不是图级默认）。补上：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines
+      7355                  zg.g.set_output_desc("qb3", "y", &[m, n], Dty
+            pe::Fp16).unwrap();
+      7356                  zg.g.set_attr_bool("qb3", "transpose_x1", fal
+            se).unwrap();
+      7357                  zg.g.set_attr_bool("qb3", "transpose_x2", tru
+            e).unwrap();
+      7358 +                // infer 函数硬要求（OP_PROTO QuantBmmInferSh
+           +ape 报                                                       
+      7359 +                // "GetOpAttr out_dtype failed!"）；1 = DT_FL
+           +OAT16                                                        
+      7360 +                zg.g.set_attr_int("qb3", "dtype", 1).unwrap()
+           +;                                                            
+      7361                  zg.wire("qb3", "x1", "dq");
+      7362                  zg.wire("qb3", "x2", "wq");
+      7363                  zg.wire("qb3", "scale", "tqp");
+
+● Bash(scp -i /c/sshkeys/id_ed25519 -o UserKnownHostsFile=/c/sshkeys/known_hosts
+      -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
+      "D:\compass\APXinf\apxinf\cra…)
+  ⎿      Finished `release` profile [optimized] target(s) in 33.83s
+     RC=0
+     [qmd] Z2 链 DQ+TQP+QBMV3 BUILD OK（分解路线存续）
+     … +12 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Thought for 44s (ctrl+o to expand)
+
+● Z2 链 BUILD OK——分解路线存续！ goal ① 探明判决完整闭环。收尾链开工（战报 →
+  memory → skill → handoff/roadmap → 两仓提交）。先看 skill 结构决定回填位置：
+
+  Thought for 12s, searched for 2 patterns, listed 1 directory (ctrl+o to expand)
+
+● 陷阱表到 #39。追加本轮三条 + 一节量化家族速查：
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 4 lines
+      114  | 37 | geb_model_build 返回 **rc=-8** | **rc=-8 = aclmdlLoadFr
+           omMem 失败**（不是编译上限）——"model built: N bytes" 已打印、
+           装载阶段挂：最常见是烤桶时芯片被占（大 OM 3.7GB 装不下）；曾两
+           次被误读为"编译规模上限"（2026-09-22 定案：depth18 全深度编译+
+           落盘在干净芯片全通） | 烤桶前确认目标芯片空闲（npu-smi）；rc=-
+           8 时 grep 日志 "model built"（编译是否成功）与 "aclmdlLoadFrom
+           Mem failed"（装载失败实锤）；换干净芯片重试即可 |
+      115  | 38 | f32 desc 的 ReduceSumD/ReduceSum 输出 ≈ 65504 附近（≈ h
+           ost 的 8%）；opp 注册表 json 明明有 d=1（fp32）simplifiedKey |
+            **310P tbe 归约算子的 f32 是假支持**——FE 混精度路径把 f32 图
+           回退成 f16 kernel（内部 f16 累加），行和 >65504 饱和；Cast 的 
+           f32 倒是真语义（f16→f32 直出逐位）。与 #arm32 的 AddRmsNorm 假
+            f32 同族 | 方差/大数和的 fp32 语义改走 **MatMulV2（f16 in/out
+           ）**：cube 引擎内部 fp32 累加（实测 0.05% = f16 量化级）。预缩
+           放防单元素平方溢出 f16：xs=x·s（s=1/32）→ sq=xs² → ssum=mm(sq,
+            ones [1,w] Const) → rsqrt(ssum)·(s·√w) 折回 |
+      116  | 39 | TileD 做"每元素连续重复"方向广播（rank-1 [rows]+multipl
+           es=[w]，或 [1,rows]+multiples=[1,w] flat 形态）：编译运行全正
+           常，但输出**散点腐蚀 ~8%**（两种 rank 锚定逐位同错——同一 kerne
+           l）；dim0 整行复制方向（[1,w]+multiples=[rows,1]）生产验证干净
+            | 310P f16 的连续平铺 kernel 自身缺陷（编译/执行零报错，纯数
+           值坑） | 行广播（per-row 标量铺满 [rows,w]）用 **dim0 复制 + 
+           转置桥**：[rows,1]→Reshape [1,rows]→TileD multiples=[w,1]→[w,r
+           ows]→TransposeD(perm=[1,0])→[rows,w]（实测 0.08% 干净，2026-09
+           -22 n32v t11/t13/t14 定罪） |
+      117 +| 40 | 新代量化算子（`ops_nn/dynamic` 类，如 **WeightQuantBatc
+          +hMatmulV2**）编译 rc=-7，slog 见 `[OP] OpName:[X] DoTilingImpl
+          + ... Do op tiling failed, no valid template is found`（ASCEND_
+          +SLOG_PRINT_TO_STDOUT=1 可见） | **AscendC kernel-template 机制
+          +按 SoC 注册模板**——该算子的模板族（源码目录 `impl/ops_nn/ascen
+          +dc/<op>/arch35/`）无 310P 项，310P 只有老式 TBE 路径的算子能离
+          +线建。**逐算子看脸，不是类别墙**：同在 ops_nn/dynamic 的 Dynam
+          +icQuantV2 / TransQuantParamV2 / QuantBatchMatmulV3 在 310P 全 
+          +部可建 | 建图前先查注册表+模板：`config/ascend310p/<目录>/<op>
+          +.json` 是否存在 → 失败时开 slog 按本条症状定性。判 kernel/运行
+          +时是否支持可用 torch_npu eager 对照（apxinf_npu 容器直调 `torc
+          +h.ops.npu.npu_weight_quant_batchmatmul` 等，WQBMV2 eager 在 31
+          +0P 通、数值正确——死只是死在离线 tiling） |                    
+      118 +| 41 | QuantBatchMatmulV3 编译 rc=-7，slog 见 `[OP_PROTO][Quan
+          +tBmmInferShape] "GetOpAttr out_dtype failed!"` → infershape pa
+          +ss 停 | 该算子 infer 函数**硬要求显式 `dtype` attr**（输出 dty
+          +pe，1=DT_FLOAT16）；注册表 json 里的 attrs 值（dtype: 1）是预 
+          +编译 bin 烤入值，**不是图级默认**——图上必须 SetAttr | `set_att
+          +r_int("dtype", 1)`；同族经验：新代算子的 attrs 无默认时（注册 
+          +表 value=None 或只含 bin 值），按报错逐个补显式 attr |        
+      119 +| 42 | TransQuantParamV2（f32 scale → uint64 packed）`set_outp
+          +ut_desc` rc=-3；或 QuantBatchMatmulV3 的 u64 scale 输入没 dtyp
+          +e 可用 | ① u64 打包输出的 shape 由算子推断——**显式 [n] desc 会
+          +冲突**，省略 output desc 走推断；② ge_builder FFI dtype 表原生
+          +无 uint64（fp16/fp32/int32/int64/int8/bool）——已补 `"uint64"→g
+          +e::DT_UINT64`（2026-10-08），u64 张量建议走 op-to-op 连线不设 
+          +u64 Data | packed scale 链：TransQuantParamV2(f32 [n]) --y--> 
+          +QuantBatchMatmulV3.scale；u64 desc 只在 QBMV3 输入侧声明 |    
+      120 +| 43 | 改了引擎目录 `crates/apxinf-ascend/ascendc/ge_builder/g
+          +e_builder.cpp` 后 `cargo build`/cmake make 均显示 up-to-date，
+          +新 dtype/接口不生效 | **ge_builder C++ shim 是独立 cmake 工程 
+          +、双源副本**：构建源在 `/data/apxinf/ascendc/ge_builder/`（bui
+          +ld/ 子目录 make），引擎目录里的 .cpp/.so 只是 staged 副本——car
+          +go 完全不编它 | 改 cpp 后：cp 到 /data/apxinf/ascendc/ge_build
+          +er/ → build/ 里 make → strings 验证（如 `grep -c uint64`）→ cp
+          + .so 回引擎目录；曾因此误判 uint64 不支持 |                   
+      121  
+      122  ## 环境与自检
+      123  
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(sed -n '118,132p'
+      "D:\compass\APXinf\.claude\skills\ge-offline-om\SKILL.md")
+  ⎿  | 41 | QuantBatchMatmulV3 编译 rc=-7，slog 见 `[OP_PROTO][QuantBmmInfe
+     rShape] "GetOpAttr out_dtype failed!"` → infershape pass 停 | 该算子 i
+     nfer 函数**硬要求显式 `dtype` attr**（输出 dtype，1=DT_FLOAT16）；注册
+     … +20 lines (ctrl+o to expand)
+
+● Update(.claude\skills\ge-offline-om\SKILL.md)
+  ⎿  Added 16 lines
+      119  | 42 | TransQuantParamV2（f32 scale → uint64 packed）`set_outp
+           ut_desc` rc=-3；或 QuantBatchMatmulV3 的 u64 scale 输入没 dtyp
+           e 可用 | ① u64 打包输出的 shape 由算子推断——**显式 [n] desc 会
+           冲突**，省略 output desc 走推断；② ge_builder FFI dtype 表原生
+           无 uint64（fp16/fp32/int32/int64/int8/bool）——已补 `"uint64"→g
+           e::DT_UINT64`（2026-10-08），u64 张量建议走 op-to-op 连线不设 
+           u64 Data | packed scale 链：TransQuantParamV2(f32 [n]) --y--> 
+           QuantBatchMatmulV3.scale；u64 desc 只在 QBMV3 输入侧声明 |
+      120  | 43 | 改了引擎目录 `crates/apxinf-ascend/ascendc/ge_builder/g
+           e_builder.cpp` 后 `cargo build`/cmake make 均显示 up-to-date，
+           新 dtype/接口不生效 | **ge_builder C++ shim 是独立 cmake 工程
+           、双源副本**：构建源在 `/data/apxinf/ascendc/ge_builder/`（bui
+           ld/ 子目录 make），引擎目录里的 .cpp/.so 只是 staged 副本——car
+           go 完全不编它 | 改 cpp 后：cp 到 /data/apxinf/ascendc/ge_build
+           er/ → build/ 里 make → strings 验证（如 `grep -c uint64`）→ cp
+            .so 回引擎目录；曾因此误判 uint64 不支持 |
+      121  
+      122 +## 310P 离线量化算子速查（2026-10-08 实测）                   
+      123 +                                                              
+      124 +opp 分两个家族，**离线可用性截然不同**：`ops_legacy`（老式 TBE
+          +，预编译 binary + 原生 tiling）离线稳；`ops_nn/dynamic`（新代 
+          +AscendC 模板机制）**逐算子看脸**——模板注册表有无 310P 项决定成
+          +败（陷阱 #40）。w8a16/w8a8 全景：                             
+      125 +                                                              
+      126 +| 算子 | 家族 | 310P 离线 | 备注 |                            
+      127 +|---|---|---|---|                                             
+      128 +| QuantMatmulDequant | ops_legacy | ✅ | 现行 w8a8（x f16 原样
+          +进、算子内 per-token 动态量化 + smooth_scale 输入）。**x_scale
+          +/x_offset 可选输入存在但被 kernel 忽略**——pertensor attr 编译 
+          +过却 bit 级同 pertoken；perchannel/pertokenScale 直接拒。静态 
+          +x 路径在 310P 无实现 |                                        
+      129 +| WeightQuantBatchMatmulV2 | ops_nn/dynamic | ❌ 模板墙 | w8a1
+          +6（x 全程 f16，数值最优：eager rel 0.066%）；9.0.1 离线 tiling
+          + "no valid template"（arch35 模板族无 310P），8.5.1 eager 可跑
+          +——kernel 本体在，离线机制挡死 |                               
+      130 +| DynamicQuantV2 | ops_nn/dynamic | ✅ | per-token 量化独立化 
+          +（x f16 → y int8 + scale/offset f32），**带 smooth_scales 可选
+          +输入**；vllm-ascend w8a8 分解主力 |                           
+      131 +| TransQuantParamV2 | ops_nn/dynamic | ✅ | f32 scale (+offset
+          +) → uint64 packed scale（QBMV3 配套；陷阱 #42） |             
+      132 +| QuantBatchMatmulV3 | ops_nn/dynamic | ✅ | x1 int8 ND + x2 i
+          +nt8 **FRACTAL_NZ** + scale u64 + pertoken_scale f32 可选 → y f
+          +16；**dtype attr 必须显式**（陷阱 #41）。与 DQ 组成分解式 w8a8
+          +（实测三算子链 build 通过） |                                 
+      133 +| AscendQuantV2 | ops_nn/dynamic | ✅（scale 为必选输入=静态量
+          +化形态） | x f16 + scale f16 → y int8；round/sqrt/dst_type/axi
+          +s attrs |                                                     
+      134 +| add_rms_norm_dynamic_quant（norm+量化融合） | ops_nn/dynamic
+          + | ❌ 310P 无注册 | 静态版 add_rms_norm_quant / layer_norm_qua
+          +nt / pre_rms_norm_quant 在 legacy 有注册（语义未验） |        
+      135 +                                                              
+      136 +取证链（判一个新算子离线可用性）：`config/ascend310p/<家族>/<o
+          +p>.json` 存在性 → 失败时 `ASCEND_SLOG_PRINT_TO_STDOUT=1` 看是 
+          +attr 缺（#41 类）还是模板墙（#40 类）→ kernel 层存活性用 torch
+          +_npu eager 对照（apxinf_npu 容器，`torch.ops.npu.<name>`，sche
+          +ma 可从 `libop_plugin.so` strings 挖）。                      
+      137 +                                                              
+      138  ## 环境与自检
+      139  
+      140  GE 内存编译走 **TeFusion 算子编译器**，它依赖 python 子进程栈
+           ：
+  ⎿  1 skill available
+
+  Thought for 3s (ctrl+o to expand)
+
+● Skill 回填完成。写战报：
+
+● Write(syx_docs\dev_logs\summary\2026-10-08_qmd-xscale-static-verdict.md)
+  ⎿  Wrote 42 lines to
+     syx_docs\dev_logs\summary\2026-10-08_qmd-xscale-static-verdict.md
+       1 # goal ① qmd x_scale 静态化探明（2026-10-08）
+       3 ## 终局一行
+       5 **原始问题判决：静态 x_scale 在 310P 无实现**——QuantMatmulDequan
+         编译 kernel 只实现 pertoken（pertensor attr 编译过、执行 bit 级
+         。**探明的意外收获是完整路线图**：w8a16（WeightQuantBatchMatmulV
+          AscendC 模板族无 310P 项）；**分解式 w8a8（DynamicQuantV2 → Tra
+         过**——0.53× 剩余缺口的量化侧唯一存续路线（数值面 = 现行 w8a8 同
+       6 
+       8 
+      10 |---|---|---|---|
+     … +88 lines (ctrl+o to expand)  ⎿  1 skill available
+
+  Thought for 3s (ctrl+o to expand)
+
+● Memory 记录（ops 家族分类学 = 跨 session 的高价值非显然事实）：
+
+  Read 1 file, wrote 1 memory (ctrl+o to expand)
+
+● Bash(printf '%s\n' '- [310P
+      离线算子可用性看家族](ascend-ops-offline-taxonomy.md) — ops_legacy
+      稳、ops_nn/dynamic 逐算子看脸（WQBMV2 w8a16 被模板墙挡死、eager
+      却活）；判别链 = 注册表 json → slog 报错定性…)
+  ⎿  (No output)
+
+  Thought for 9s, wrote 1 memory (ctrl+o to expand)
+
+● handoff 更新（精瘦纪律：结论 + 入口 + 可抄菜单）：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 8 lines, removed 8 lines
+       1 -# Handoff（2026-09-30 flow int8 行为翻车回滚 + 段间融合否决 →  
+         -下一轮压缩用）                                                 
+       1 +# Handoff（2026-10-08 qmd x_scale 静态化探明收官 → 下一轮压缩用
+         +）                                                             
+       2  
+       3  ## 状态一句话
+       4  
+       5 -**goal ①（flow int8 / 段间融合）取证收官（2026-09-30，全数字见 
+         -summary/2026-09-30_flow-int8-segment-fusion-verdict.md）**：flo
+         -w int8（gate,up,down 子集）数值面全绿（对拍零翻转 / golden step
+         -0 0.1%、actions 10.0% / serve flow 81→75.6ms、sum 225.1 = 0.598
+         -×）但**行为面 task0/task1 连续 520 打满 → 生产回滚 flow f16**（
+         -全桶已换 + mini_sup 已撤 env；回滚位 = Sep 28 验收的 prefix int
+         -8 v2 + flow f16 配置）；**段间融合（10 步单 OM）取证否决**（flo
+         -w sync=70.6ms 纯设备时间主导，enq 仅 3ms，unroll 上界 ~3ms）；*
+         -*qmd 小 M 收益被 per-op quant 开销吃掉**（-5.4ms vs 带宽模型 -3
+         -0ms，单算+全图双取证）。历史里程碑见 ④ 与各战报。下轮 = ② 菜单 
+         -。                                                             
+       5 +**goal ①（qmd x_scale 静态化探明）收官（2026-10-08，全数字见 su
+         +mmary/2026-10-08_qmd-xscale-static-verdict.md）**：静态 x_scale
+         + 在 310P 无实现（qmd 唯一 bin 只实现 pertoken，x_scale 输入被 b
+         +it 级忽略）；**探明产出完整路线图**——w8a16（WQBMV2，eager rel 0
+         +.066% 数值最优）被 310P 模板墙挡死；**分解式 w8a8（DynamicQuant
+         +V2+TransQuantParamV2+QuantBatchMatmulV3）三算子链离线 build 通 
+         +过 = 量化侧唯一存续路线**（数值面=现行 w8a8 同数学，行为面依赖 
+         +校准 v3）；0.53× 在量化侧无可达路径（上界 ~215ms/0.57×），结构 
+         +下限证据链补全。上轮（flow int8 行为回滚 + 复验闭合）见 summary
+         +/2026-09-30_flow-int8-segment-fusion-verdict.md。下轮 = ② 菜单 
+         +。                                                             
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-09-30
+         -_flow-int8-segment-fusion-verdict.md）——① 终局事实：flow int8  
+         -数值绿/行为翻车已回滚（资产保留：引擎 env 开关 + 因子四件套 +  
+         -烤制配方）；段间融合否决；qmd M=50 开销定罪；② 下轮入口：goal  
+         -菜单见 ②；物料 = /data/apxinf/pyo3_check/（flow 因子四件套 + pr
+         -efix v2 生产因子）+ serve_i8（回滚位）+ probe_fi8/tl144_ab 实验
+         -桶；③ 纪律：**A/B 隔离根必须全谱系桶+supervisor**（单桶根过不了
+         - L 漂移）、eval timeout ≥1800 且谱系桶先烤全、docker exec -d ba
+         -sh -c 内联形态进程随 ssh 断连无声死（用脚本文件形态）。丢弃：ss
+         -hd 断连风暴应对过程、A/B 三连阻排查过程——战报已全文记录。      
+       9 +聚焦保留：**结论与入口，不保数字**（数字全在 summary/2026-10-08
+         +_qmd-xscale-static-verdict.md）——① 终局事实：静态 x_scale 死（ 
+         +三模式取证）；w8a16 死于模板墙但 kernel 活（eager 证据）；分解 
+         +式 w8a8 build 通过 + 全部契约坑已探明（QBMV3 dtype attr 必显式 
+         +、u64 packed scale op-to-op、ge_builder 已补 uint64）；ops 家族
+         +分类学入 memory + ge-offline-om skill 速查表；② 下轮入口：goal 
+         +菜单见 ②；probe 资产 = GEB_QMD_XS/WQ/WA/Z/Z2 五旋钮（全 env 门 
+         +控）+ pyo3_check/{wq_eager_test,wq_cap_check}.py；取证钥匙 = AS
+         +CEND_SLOG_PRINT_TO_STDOUT=1；③ 纪律：改 ge_builder.cpp 须同步 c
+         +make 源（/data/apxinf/ascendc/ge_builder/，双源副本坑 skill #43
+         +）；env 助手别传 =0 当未设；A/B 隔离 = 等价生产根；eval timeout
+         + ≥1800。丢弃：probe 迭代过程细节——战报已全文记录。             
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -**状态**（2026-10-08 补验闭合，见 summary/2026-09-30_flow-int8-
+         -segment-fusion-verdict.md）：① flow int8 数值全绿 + perf 75.6ms
+         -（-5.4）但 task0/1 连续打满 → **已回滚且复验闭合**（回滚位 task
+         -0 **SUCCESS 232 步** @ 2026-10-08——与 int8 位 520 打满构成完整 
+         -A/B，flow int8 行为退化定罪成立；服务器 10-04 断电重启 /data 全
+         -幸存，环境已恢复：容器重启 + mini_sup 回滚位运行中）；② 段间融 
+         -合取证否决（sync 70.6 设备主导）；③ qmd 小 M 开销定罪（单算 pro
+         -be GEB_QMD_M/K + 全图双取证）。两仓已推平（引擎 50024cb / 外层 
+         -e80ea93+）。                                                   
+      13 +**状态**（2026-10-08，见 summary/2026-10-08_qmd-xscale-static-v
+         +erdict.md）：① qmd 静态 x_scale 310P 无实现（bin 忽略输入）；② 
+         +w8a16 数值最优但离线模板墙死；③ **分解式 w8a8（DQ+TQP+QBMV3）bu
+         +ild 通过**——待数值对拍 + 单算 bench + 全图 A/B + 引擎接线；0.53
+         +× 量化侧无路径（终点估 ~215ms/0.57×，前提行为面修复）。两仓已推
+         +平（引擎含 probe 链 X/W/Z/Z2 + ge_builder uint64；skill 陷阱 #4
+         +0-43 + 速查表回填）。                                          
+      14  
+      15  **下轮 goal 建议（抄一项即可）**：
+      16 -1. **qmd x_scale 静态化探明**——0.53× 剩余 ~25ms 的唯一大杠杆（f
+         -low 设备 70.6ms 的 quant 流水若砍半 → flow ~50ms、sum ~200 达标
+         -）；IR 面 x_scale/x_offset 输入 310P 未探明，先单算 probe      
+      17 -2. **校准 v3（行为面优先）**——flow 侧因子改 per-step 感知（当前
+         - 10 步 amax 包络可能过平滑）+ prefix 多帧；验收 = actions <8% +
+         - 全量 10/10 + **flow int8 重启行为梯**                         
+      18 -3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装（apxinf_npu 
+         -）；**本轮新增同款证据：task0 也出现客户端停摆（L 漂移 ensure  
+         -死锁）**——task7 疑云可用同工具链复现；149-156 桶并入生产管理（⚠
+         - 共享 supervisor 僵尸 Sep 24 起**须用户决策重启**）            
+      16 +1. **分解式 w8a8 落地**——Z2 数值对拍（packed scale 语义解码）→ 
+         +DQ@M=50 单算 bench → 引擎接线（GEB_FLOW_INT8_DECOMP）→ 全图 A/B
+         + → golden → 行为梯（与校准 v3 合流点）                         
+      17 +2. **校准 v3（行为面优先）**——flow 侧 per-step 感知因子 + prefi
+         +x 多帧；验收 = actions <8% + 全量 10/10 + flow int8 行为梯（分 
+         +解式的行为面同此依赖）                                         
+      18 +3. **task7 segfault 取证 + 扩预置桶**——py-spy 已装；149-156 桶 
+         +并入生产管理（⚠ 共享 supervisor 僵尸须用户决策）               
+      19  
+      20 -**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约 
+         -定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚 
+         -位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）
+         -；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor，单桶根被 L 
+         -漂移击穿）；eval timeout ≥1800。                               
+      20 +**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约 
+         +定；int8 eval 用隔离根 serve_i8 + mini_sup_i8.sh（**当前为回滚 
+         +位脚本**——再启 flow int8 须改回 GEB_FLOW_* env + int8 flow OM）
+         +；**A/B 隔离 = 等价生产根**（全谱系桶 + supervisor）；eval time
+         +out ≥1800；**新量化算子先过 skill 速查表**（310P 离线可用性看家
+         +族）。                                                         
+      21  
+      22  ## ④ 性能优化方向清单（2026-09-23 收集，按优先级）
+      23  
+
+  Thought for 2s (ctrl+o to expand)
+
+● roadmap 补判决条目：
+
+● Update(syx_docs\plans\npu-port-roadmap.md)
+  ⎿  Added 1 line
+      156  - **✅ prefix int8 生产化（2026-09-28——见 summary/2026-09-28_p
+           refix-int8-rebake.md）**：7 投影 ×18 层全换 `QuantMatmulDequan
+           t`（native `smooth_scale` = **1/s 乘法约定** f16 [k]；Gemma (1
+           +g) 回图方案——纯引擎域 s_eff 因 L00 近零 fold 通道爆 f16）；**
+           验收梯 4/4**：量化对拍 int8_weights_v1.npz ALL_OK（878 翻转/24
+            亿全 ±1 LSB）/ golden L0 1.6-1.8%（18 层线性累积，actions 13.
+           3%）/ task0 1.0 / **全量 10/10**（flow 欧拉对量化漂移鲁棒——立
+           项行为风险销案）；**prefix 105→87ms**（Const 烤入免 ND→NZ 每执
+           行税——Data 版 129.5 反慢的教训），直调 sum **228ms = 0.607×**
+           。三 bug 取证：GE fusion 对 legacy 算子大图的**离线导出融合损
+           坏**（活图干净/重载饱和，手烤必带 fusion_off env）、转换脚本 i
+           nvert 静默丢失（s² 放大 1300×）、bias int32 输入 310P 编译不可
+           用（rc=-7，砍 op 替代）。基建：serve_i8 隔离 eval 根 + tl{140-
+           148,200}_i8 桶。剩：校准 v2/per-group（L0 误差杠杆）、flow 侧 
+           int8（0.53× 缺口主体）
+      157  - **✅ 校准 v2 + libero_spatial 泛化 + M2 gate（2026-09-28~29—
+           —同战报）**：v2 = 逐层真激活 dump（18 层×4 站点，pre-hook 绕 f
+           orward_hook 哑环境）→ **L0 误差减半 0.9%、actions 13.3→10.1%**
+           ，生产桶全量 v2 化 + task0 复验 1/1；per-group 判不可行（算子 
+           weight_scale per-row 契约）。**spatial 9/9 全 success**（泛化
+           验收达成；task7 客户端 segfault 缺测非失败）——四坑连环取证：PY
+           THONPATH 追加式 / **mini-sup 多实例互杀**（单实例纪律入 memory
+           ）/ NPU OOM 清场 / ledger scope 逐任务合并；**spatial 谱系 149
+           -156 超预置 138-148（扩桶需求坐实）**。M2 eager gate 闭环（e76
+           8fb2：两处残差 branch·gate）。**遗留**：task7 segfault 取证、
+           生产 supervisor 僵尸（Sep 24 起）待用户决策重启
+      158  - **⚙ flow int8 数值绿/行为翻车回滚 + 段间融合否决（2026-09-30
+           ——见 summary/2026-09-30_flow-int8-segment-fusion-verdict.md）*
+           *：flow OM int8（gate,up,down 子集，`GEB_FLOW_INT8/GEB_FLOW_SM
+           OOTH`，action 层无 (1+g) fold → s_eff=s_npz 直取）走完数值梯（
+           对拍 **126 矩阵零翻转** / golden step0 0.1%、actions 10.0% / s
+           erve flow 81→**75.6ms**、sum **225.1=0.598×**）但 **task0/task
+           1 连续 520 打满 → 生产回滚 flow f16**（资产保留：env 开关+因子
+           四件套+配方；A/B 隔离被 L 漂移击穿——单桶根不可用，与回滚合并执
+           行）。**段间融合（10 步单 OM）取证否决**：serve 分解 sync=70.6
+           ms 纯设备主导（enq 3.0ms），unroll 上界 ~3ms。**qmd 小 M 定罪*
+           *：per-op quant 开销吃掉带宽减半（-5.4 实测 vs -30 模型；单算 
+           GEB_QMD_M/K + 全图双取证）。剩余 ~25ms 缺口唯一大杠杆 = **qmd 
+           x_scale 静态化（未探明）**；行为面修复 = 校准 v3 flow 侧 per-s
+           tep 因子
+      159 +- **✅ qmd x_scale 静态化探明收官（2026-10-08——见 summary/2026
+          +-10-08_qmd-xscale-static-verdict.md）**：**静态 x_scale 在 310
+          +P 无实现**（x_scale/x_offset IR 端口存在但唯一 bin 只实现 pert
+          +oken——pertensor attr 过校验后执行 bit 级同 pertoken，perchanne
+          +l/pertokenScale 编译拒）。**路线图探明**：w8a16 WQBMV2 eager  
+          +数值最优（rel 0.066%）但 310P 离线 tiling 模板墙死（arch35 Asc
+          +endC 模板族无 310P 项；ops_nn/dynamic 家族逐算子看脸——skill 速
+          +查表 + memory）；**分解式 w8a8（DynamicQuantV2+TransQuantParam
+          +V2+QuantBatchMatmulV3）三算子链离线 build 通过**（QBMV3 须显式
+          + dtype=1、u64 packed scale op-to-op、ge_builder 补 uint64 + 双
+          +源副本坑）= 量化侧唯一存续路线（perf 上界 ~215ms/0.57×，行为面
+          +依赖校准 v3）。**0.53× 在量化侧无可达路径**——结构下限证据链补 
+          +全。probe 资产：GEB_QMD_XS/WQ/WA/Z/Z2 + eager/cap 脚本        
+      160  - [ ] `Backend` trait 最小集：matmul（aclnnMatmul）、rms_norm
+           、silu、add/mul/scale、embedding、rope
+      161  - [ ] sdpa（aclnnFusionAttention，310P3 覆盖验证）+ KV cache
+      162  - [ ] PI0.5 FP16 executor：CUDA 融合 kernel 先拆基础算子跑通，
+           再热点融合
+
+  Thought for 3s (ctrl+o to expand)
+
+● 两仓提交。先子模块：
+
+● Bash(cd /d/compass/APXinf/apxinf && git status --short && git log --oneline
+      -1)
+  ⎿   M crates/apxinf-ascend/ascendc/ge_builder/ge_builder.cpp
+      M crates/apxinf-ascend/src/ge_builder.rs
+      M crates/apxinf-model/src/pi05/ascend_ge.rs
+     … +2 lines (ctrl+o to expand)
+
+● Bash(git add crates/apxinf-ascend/ascendc/ge_builder/ge_builder.cpp
+      crates/apxinf-ascend/src/ge_builder.rs
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -m…)
+  ⎿  warning: in the working copy of 'crates/apxinf-ascend/ascendc/ge_build
+     er/ge_builder.cpp', LF will be replaced by CRLF the next time Git touc
+     hes it
+     … +9 lines (ctrl+o to expand)
+
+● Bash(git push origin ascend-port 2>&1 | tail -3)
+  ⎿  remote: Permission to infinigence/ApxInf.git denied to WeNeedMoreCode.
+     fatal: unable to access 'https://github.com/infinigence/ApxInf.git/':
+     The requested URL returned error: 403
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(git remote -v && git push fork ascend-port 2>&1 | tail -3)
+  ⎿  fork       git@github.com:WeNeedMoreCode/ApxInf.git (fetch)
+     fork       git@github.com:WeNeedMoreCode/ApxInf.git (push)
+     origin     https://github.com/infinigence/ApxInf.git (fetch)
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 子模块推平（50024cb..60bb6a1）。外仓收口：
+
+● Bash(cd /d/compass/APXinf && git status --short)
+  ⎿   M .claude/skills/ge-offline-om/SKILL.md
+      M apxinf
+      M syx_docs/dev_logs/handoff.md
+     … +7 lines (ctrl+o to expand)
+
+● Bash(git add apxinf .claude/skills/ge-offline-om/SKILL.md
+      syx_docs/dev_logs/handoff.md syx_docs/plans/npu-port-roadmap.md
+      syx_docs/dev_logs/summary/2026-10-08_qmd-xs…)
+  ⎿  warning: in the working copy of '.claude/skills/ge-offline-om/SKILL.md
+     ', LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     … +16 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 两仓推平（fork/ascend-port 60bb6a1 / main f928792）。收尾时间戳：
+
+● Bash(date '+%F %T')
+  ⎿  2026-10-08 12:15:23
+
+● goal ① qmd x_scale 静态化探明 收官（10:55–12:15，约 80 分钟）。汇报：
+
+  判决：静态 x_scale 在 310P 无实现 ✗
+
+  路线: qmd 静态 x_scale（原始问题）
+  判决: ✗
+  证据: 注册表里 x_scale/x_offset 端口存在（idx4/5），但 pertensor 编译过却执行 
+  bit 级同 pertoken（N=8192/256 双形状 max_diff=0.0000，x_scale
+  被忽略）；perchannel/pertokenScale 直接编译拒——310P 唯一预编译 bin 只实现
+  pertoken
+  ────────────────────────────────────────
+  路线: w8a16 WQBMV2（数值最优替补）
+  判决: ✗ 离线死
+  证据: torch_npu eager 实测 rel 0.066%（零激活量化误差）——kernel 本体在 310P
+  活着；但 GE 离线 tiling 报 no valid template（AscendC arch35 模板族无 310P
+  项），引擎内不可用
+  ────────────────────────────────────────
+  路线: 分解式 w8a8：DQ+TQP+QBMV3
+  判决: ✓ 唯一存续
+  证据: 三算子生产拓扑（DynamicQuantV2 → TransQuantParamV2 →
+  QuantBatchMatmulV3）离线 build 通过——全部契约坑已探明（QBMV3 须显式
+  dtype、u64 packed scale 走 op-to-op、ge_builder 补 uint64）
+
+  战略结论：0.53×（200ms）在量化侧无可达路径——分解式上界
+  ~215ms（0.57×，还依赖校准 v3 修行为面），结构下限证据链本轮补全。
+
+  过程战果
+
+  - ops 家族分类学（310P 离线可用性第一判据）：ops_legacy 稳、ops_nn/dynamic
+    逐算子看脸——已入 memory + ge-offline-om skill（陷阱 #40-43 + 速查表）
+  - 取证钥匙：ASCEND_SLOG_PRINT_TO_STDOUT=1 让 FE/tiling
+    报错现形（本轮破案决定性）；eager 对照法判 kernel 存活性
+  - 踩坑两枚已回填：ge_builder 双源副本（cmake 源在
+    /data/apxinf/ascendc/，改引擎目录副本不生效）；env 传 =0 仍是“已设”
+  - probe 资产全部保留（env 门控、零生产路径改动）：链 X/W/Z/Z2 五旋钮 +
+    eager/cap 脚本
+
+  两仓已推平（引擎 60bb6a1 / 外层 f928792）。下轮菜单（handoff ②）：① 分解式 
+  w8a8 落地（packed scale 语义解码 → 数值对拍 → 全图 A/B，与校准 v3 合流）/ ②
+  校准 v3 行为面 / ③ task7 segfault 取证。
+
+✔ Goal achieved (1h · 1 turn · 116.5k tokens) (ctrl+o to expand)
+
+✻ Sautéed for 1h 21m 29s · done 12:15 PM
+
+※ recap: NPU 移植性能优化：qmd x_scale 静态化探明已收官，判决是 310P 无静态路径，但分解式 w8a8 三算子链 build 通过，两仓已推平。下一步等你点单：分解式落地、校准 v3 或 task7 取证。 (disable recaps in /config)
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   248.5k/1m tokens (25%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 3k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 245.5k tokens (24.5%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 751.5k (75.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ 
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 0 tokens
+     ├ CLAUDE.md: 0 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 0 tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ ge-offline-om: ~110 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~170 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ plugin-authoring: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens

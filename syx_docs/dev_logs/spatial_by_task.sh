@@ -9,7 +9,7 @@ for T in 1 2 3 4 5 6 7 8 9; do
   MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=7 \
   PYTHONPATH=/data/apxinf/robo_src:/data/apxinf/engine_py/apxinf:$PYTHONPATH \
   APXINF_GE_SERVE_ROOT=/data/apxinf/serve_f16iso \
-  timeout 900 python3 -m apxinf_robo.cli eval-libero \
+  timeout 1200 python3 -m apxinf_robo.cli eval-libero \
     --backend in-process --engine npu-ge --precision fp16 \
     --suite libero_spatial --tasks "$T" --trials-per-task 1 --seed 7 \
     --replan-steps 5 \
