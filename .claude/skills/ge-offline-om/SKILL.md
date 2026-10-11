@@ -70,7 +70,13 @@ opts["input_format"] = "ND";
 - **坑：动态 OM 的输入数 +1**（`ascend_mbatch_shape_data` gear-info 输入，实测 4 字节）——dataset 必须覆盖**全部**输入 buffer，缺了报 500002。
 - **根 Data shape = 最大档**：`GetInputSizeByIndex` 返回的 buffer 覆盖最大档，小档执行只填前 p 行；输出同理（`aclmdlGetCurOutputDims` 返回当前档实际 shape）。
 - **性能**：档内核 = 静态 kernel，实测 dyn 6.04ms ≈ static 5.57ms（差值在 SetDims+sync 口径内）= 分档机制零税。
-- **档外兜底**：hybrid 模式（`ge.dynamicNodeType=1` + `ge.compileHybridMode=1`）同图编两份——档位图 + 真·动态 shape 图，运行时档不匹配自动降级走动态图（GE docs/zh/design/features/dynamic_gear.md）。
+- **CANN 9.0.1 runtime 的 `aclmdlSetInputDynamicDims` 四连坑**（2026-10-11 真图取证 + spike v3 最小复现）：
+  1. **输入集必须纯动态**——任何静态维 Data（哪怕未消费）混入动态输入集 → 档位匹配失败 145012。静态内容一律 Const 化（Const 走 Case 参数不占 Data 位；legacy 算子的 f16 Const 输入照常可用——此前"Const 墙"是 dynamicDims 选项串 bug 的误判）。运行期内容的静态 shape 输入（如 styles）无法 Const → 该图不可 gear 化，只能 per-L 静态池（进程内多句柄按请求换，HYBRID 拓扑）。
+  2. **SetDims payload = 全部动态输入的完整 dims**（静态尾维含入，拼接序=输入注册序；选项串与 payload 是两种格式！）——`ge.dynamicDims` 选项只要纯 -1 位的值，混入静态尾维直接编译 rc=-7。
+  3. **payload 总维数 ≤ ACL_MAX_DIM_CNT(128)**——定值动态输入（每档恒值的绕道）在大图上会撑爆（18 层×9 输入 + 基础 24 = 186 维），超限被截断 → 145012。
+  4. **多动态输入必须一次调用带全维**（index=0 + 拼接全部；逐输入分开调用也 145012）。
+- **运行侧配套**：档位执行走 `geb_run_gear`（C++ 侧自动补 gear-info 输入 buffer + SetDims）；H2D 用按长度口（`copy_h2d_async_sized`）——等长断言的拷贝口在实际行 < max buffer 时炸。
+- **档外兜底**：hybrid 模式（`ge.dynamicNodeType=1` + `ge.compileHybridMode=1`）同图编两份——档位图 + 真·动态 shape 图，运行时档不匹配自动降级走动态图（GE docs/zh/design/features/dynamic_gear.md；未实测）。
 
 
 ## Data 节点的两个必设项
