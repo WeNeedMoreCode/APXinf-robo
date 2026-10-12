@@ -1,6 +1,6 @@
 # 2026-10-12 战报（续二）——gear 转正判决执行 + ckpt 选择性读取（serve-min）落地
 
-终局一行：**① gear 转正执行完毕**——三谱系全量复验 **30/30 真跑**（object 10/10 / spatial 10/10[首跑 9 + t4 回退面补全后 retry 过] / goal 10/10），eval 默认根切 serve_gear、v3 object 桶（tl137-148 十二只）退役、supervisor 单实例；**② serve-min 落地**——ckpt 选择性读取数学段 **62.0→17.0s（−45s/芯）**、全舰队部署、bit 级对拍闭环（actions max_diff=0.0）；**③ inproc 未做**（前置摸清留下轮）；**④ 多 ckpt 卡点维持**（仍仅一只 π0.5 checkpoint）。
+终局一行：**① gear 转正执行完毕**——三谱系全量复验 **30/30 真跑**（object 10/10 / spatial 10/10[首跑 9 + t4 回退面补全后 retry 过] / goal 10/10），eval 默认根切 serve_gear、v3 object 桶（tl137-148 十二只）退役、supervisor 单实例；**② serve-min 落地**——ckpt 选择性读取数学段 **62.0→17.0s（−45s/芯）**、全舰队部署、bit 级对拍闭环（actions max_diff=0.0）；**③ inproc 完整闭环**（同日续三）——apxinf_npu 内 9.0.1 直调 GeServeModel，bit 对拍 0.0 + 行为 t0 success + per-call 239.5ms；**④ 多 ckpt 卡点维持**（仍仅一只 π0.5 checkpoint）。
 
 ## ① gear 转正判决（goal 1）
 
@@ -64,11 +64,33 @@ bit 级对拍法：L=144 同配置双桶（SERVE_MIN vs 全量），`send_gear_r
 - 服务器部署：weights.rs/ascend_ge.rs/ge_model_probe.rs 全量同步 + release 二进制 13:03/13:22/13:57 三轮迭代
 - supervisor（serve_gear_supervisor.sh）spawn env 带 GEB_CKPT_SERVE_MIN=1（bake_dyn 段不带——烤图必须全量）
 
-## ③ inproc（goal 2b，未做，前置摸清）
+## ③ inproc（goal 2b，同日续三：完整闭环）
 
-- npu_ge.py 已有 inproc 分支但 **gear 模式回落 spool**（L397）——支持 gear 需 PyO3 GeServeModel 构造带 GEB_DYN_LLIST/GEB_FLOW_POOL
-- 前置三件：apxinf_npu 供给 9.0.1 libs（容器现 8.5.1）、apxinf_py cp311 maturin build（容器 python 3.11）、客户端去 torch_npu（容器有 cpu torch 2.9 ✓）
-- 预期收益 ~15ms/call（spool 轮询消除）
+**eval 全链 in-process 落地并验证**：apxinf_npu 容器内 python 3.11 进程直接 PyO3 调 GeServeModel（gear 26 档 + flow 池），免 spool 轮询。
+
+### 施工链（五步，全部取证排障）
+
+| 步 | 内容 | 踩坑 |
+|---|---|---|
+| 1 | 9.0.1 runtime 供给：cann-9.0.1 全量拷贝到共享盘 `/data/apxinf/cann901_full`（9.2GB；局部拷贝不够——opp/aicpu 配置都要） | libge 符号错→LD_PRELOAD 四件（libgraph/ge_common/ge_runner/ge_compiler）钉死；TDT aicpu 配置炸→ASCEND_AICPU_PATH/HOME/OPP 全套 env（照抄 rust 容器 env 集） |
+| 2 | cp311 build：apxinf_npu 内 cargo + PYO3_PYTHON=python3.11 | **共享 target 的 pyo3 build-script 缓存绑了 3.12**（rust 容器污染）→ .so NEEDED libpython3.12 → import 段错误；PYO3_PYTHON 显式 + 重编修复 |
+| 3 | 客户端 gear inproc 分支：`_GearInprocClient`（懒建 GeServeModel.open(tl_dyn, 200) + 回退 llist 仍走 spool 静态桶混合路由） | PyO3 infer 的 per-L 桶等长校验挡 gear → env GEB_DYN_LLIST 存在时放行 L ≤ max（引擎 b3f705a） |
+| 4 | 去 torch_npu：`APXINF_LEROBOT_DEVICE=cpu`（lerobot patch 三处门控：torch_npu import / .to("npu") / FRACTAL_NZ cast）+ NpuTorchPi05Policy cpu 分支 | **torch_npu+9.0.1 共存判决：不可行**（eager 编译 forkserver 崩 + GE 单算 builder 崩，双证）；cpu 预处理数值差 ulp 级（fp16 引擎噪声主导） |
+| 5 | aclInit 100002 容忍（context.rs） | inproc 宿主里 aclgrphBuildInitialize 隐式 aclInit 先于 backend 显式调用 → repeat 错误误判致命；ACL 语义里 repeat = benign |
+
+### 验收（三层）
+
+- **bit 级对拍**：inproc vs gear serve spool（同 seed payload）actions **max_diff = 0.0**（逐字节一致）
+- **行为面**：eval-libero object t0 in-process **success（147 步 / 30 replans / rc=0）**
+- **延迟**：per-call model_ms **239.5ms**（30 replans 均值；spool 客户端口径 237-250ms——轮询消除收益 ~10ms/call 量级）
+- 冷启动：inproc open 145.5s（GE init + 全量 ckpt from_map + OM/池 + warmup；serve_min 接入 PyO3 open 留下轮优化点）
+
+### 资产
+
+- 引擎 `b3f705a`（ascend-port，已 push）：aclInit 容忍 + gear L 校验放行
+- `/data/apxinf/cann901_full`（9.0.1 完整副本）+ `/data/apxinf/cann901_eval_inproc.sh`（eval inproc wrapper：env 全套范本）+ `cann901_full_smoke.sh`（单帧 smoke 范本）
+- 服务器 npu_torch.py（cpu 分支）/ npu_ge.py（_GearInprocClient）已同步回本地仓（src/apxinf_robo + probe_dyn 副本）
+- **lerobot patch 的共享盘文件被 env 门控修改**（/data/apxinf/lerobot/.../modeling_pi05.py 三处）——缺省行为不变（npu），cpu 模式需 APXINF_LEROBOT_DEVICE=cpu
 
 ## ④ 多 checkpoint（goal 3，卡点维持）
 

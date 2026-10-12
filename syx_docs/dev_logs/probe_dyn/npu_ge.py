@@ -313,6 +313,49 @@ class _FallbackBucketClient:
         raise RuntimeError(f"静态回退桶 tl{self.L} 请求超时 ×2（看 {self.dir}/stdout.log）")
 
 
+class _GearInprocClient:
+    """Gear inproc：进程内 PyO3 GeServeModel（26 档单 OM + flow 池），L 由
+    payload 驱动选档。前置：9.0.1 CANN env（cann901_full wrapper 五件 env +
+    LD_PRELOAD）+ APXINF_LEROBOT_DEVICE=cpu（torch_npu 与 9.0.1 互斥）。
+    static_fallback_llist 的 L 仍走 spool 静态桶（t4 行为保底）。"""
+
+    def __init__(self):
+        from apxinf_py import GeServeModel  # 9.0.1 链接（env 由宿主进程供给）
+        ckpt = os.environ.get("APXINF_GE_CKPT", "/data/apxinf/weights/pi05_libero_finetuned")
+        om_dir = os.environ.get("APXINF_GE_OM_DIR", "/data/apxinf/om_cache/tl_dyn")
+        self.m = GeServeModel.open(om_dir, 200, ckpt, True)
+        self.fallback_root = os.environ.get(
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+        )
+        fb_file = _SERVE_ROOT / "static_fallback_llist"
+        try:
+            self.fallback = {
+                int(x)
+                for x in fb_file.read_text().split(",")
+                if x.strip().isdigit()
+            }
+        except FileNotFoundError:
+            self.fallback = set()
+        self._fb: dict = {}
+
+    def request(self, patches, ids, noise):
+        ell = int(np.asarray(ids).shape[0])
+        if ell in self.fallback:
+            print(f"[gear-inproc] L={ell} (static-fallback)")
+            c = self._fb.get(ell)
+            if c is None:
+                c = _FallbackBucketClient(ell, self.fallback_root)
+                self._fb[ell] = c
+            return c.request(patches, ids, noise)
+        print(f"[gear-inproc] L={ell}")
+        acts, ms = self.m.infer(
+            np.ascontiguousarray(patches, dtype=np.float32),
+            np.ascontiguousarray(ids, dtype=np.uint32),
+            np.ascontiguousarray(noise, dtype=np.float32),
+        )
+        return acts, ms
+
+
 class _GearClient:
     """Gear 模式路由：全部 L 共享 N 只芯级 serve（单只多档 OM），逐请求
     轮询分芯。serve 侧按 L 选档（SetInputDynamicDims），客户端零分桶。
@@ -416,7 +459,10 @@ class GeServePi05Policy:
         """
         if self._gear_mode:
             if self._gear is None:
-                self._gear = _GearClient()
+                if _TRANSPORT == "inproc":
+                    self._gear = _GearInprocClient()
+                else:
+                    self._gear = _GearClient()
             return self._gear
         client = self._buckets.get(length)
         if client is None:

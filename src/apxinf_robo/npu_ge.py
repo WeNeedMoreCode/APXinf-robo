@@ -46,7 +46,7 @@ HOR = 50     # chunk size (checkpoint config)
 ADIM = 32    # padded action dim; deployable slice is 7
 GD = 7       # LIBERO deployable action width
 
-_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve"))
+_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve_gear"))
 _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT", "1800"))
 _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "180"))
 # 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust）或
@@ -167,6 +167,234 @@ class _BucketClient:
         )
 
 
+class _ChipClient:
+    """Gear 模式的单芯 serve 客户端（spool 目录 chip<N>）。
+
+    与 _BucketClient 同协议；差异：L 不在构造期钉死——每请求从 ids 长度
+    取（serve 侧按 payload 头选档，档表外 L 引擎 panic 拒绝）。ready 握手
+    走 ctrl/ensure_chip<N>（supervisor alive 则 touch ready）。
+    """
+
+    def __init__(self, chip_dir: Path, *, ready_timeout: float = _READY_TIMEOUT):
+        self.chip = chip_dir.name
+        self.dir = chip_dir
+        self.seq = 0
+        self.ready_timeout = ready_timeout
+        ctrl_dir = chip_dir.parent / "ctrl"
+        ctrl_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_ready()
+
+    def _ensure_ready(self) -> None:
+        ready = self.dir / "ready"
+        for attempt in range(2):
+            mark = time.time()
+            (_SERVE_ROOT / "ctrl" / f"ensure_{self.chip}").write_text("")
+            deadline = mark + self.ready_timeout / 2
+            while True:
+                try:
+                    if ready.stat().st_mtime >= mark - 1.0:
+                        return
+                except FileNotFoundError:
+                    pass
+                if time.time() > deadline:
+                    break
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"gear serve {self.chip} 未就绪（等 {self.ready_timeout:.0f}s ×2）——"
+            f"检查 {self.dir}/stdout.log 与 gear supervisor 日志"
+        )
+
+    def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        ell = int(np.asarray(ids).shape[0])
+        for retry in range(2):
+            self.seq += 1
+            body = struct.pack("<II", REQ_MAGIC, ell)
+            body += np.ascontiguousarray(patches, dtype=np.float32).tobytes()
+            body += np.ascontiguousarray(ids, dtype=np.uint32).tobytes()
+            body += np.ascontiguousarray(noise, dtype=np.float32).tobytes()
+            tmp = self.dir / f".req_{self.seq:06d}.tmp"
+            req = self.dir / f"req_{self.seq:06d}.bin"
+            tmp.write_bytes(body)
+            os.replace(tmp, req)
+            resp = self.dir / f"resp_{self.seq:06d}.bin"
+            t0 = time.time()
+            while not resp.exists():
+                if time.time() - t0 > _REQ_TIMEOUT:
+                    break
+                time.sleep(0.002)
+            else:
+                raw = resp.read_bytes()
+                req.unlink(missing_ok=True)
+                resp.unlink(missing_ok=True)
+                magic, status = struct.unpack_from("<II", raw, 0)
+                if magic != RESP_MAGIC or status != 0:
+                    raise RuntimeError(
+                        f"gear serve {self.chip} 响应异常 magic={magic:#x} status={status}"
+                    )
+                tv, tp, tf = struct.unpack_from("<fff", raw, 8)
+                acts = (
+                    np.frombuffer(raw, dtype=np.float32, count=HOR * GD, offset=20)
+                    .reshape(HOR, GD)
+                    .copy()
+                )
+                return acts, (tv, tp, tf)
+        raise RuntimeError(
+            f"gear serve {self.chip} 请求超时 ×2（看 {self.dir}/stdout.log）"
+        )
+
+
+class _FallbackBucketClient:
+    """静态桶回退：指定 L 走生产根 per-L 桶（tl{L}，v3 supervisor 保活）。
+    gear 分支 kernel 与静态 OM 非逐位同（~1% 漂移）——个别边际任务在
+    gear 路径行为翻转时，按 L 回退静态桶恢复生产数值（2026-10-12 spatial
+    t4 二连败先例）。显式 root 参数（_BucketClient 读全局 _SERVE_ROOT）。"""
+
+    def __init__(self, length: int, root: str, *, ready_timeout: float = _READY_TIMEOUT):
+        self.L = length
+        self.root = Path(root)
+        self.dir = self.root / f"tl{length}"
+        self.seq = 0
+        self.ready_timeout = ready_timeout
+        (self.root / "ctrl").mkdir(parents=True, exist_ok=True)
+        self._ensure_ready()
+
+    def _ensure_ready(self) -> None:
+        ready = self.dir / "ready"
+        for attempt in range(2):
+            mark = time.time()
+            (self.root / "ctrl" / f"ensure_{self.L}").write_text("")
+            deadline = mark + self.ready_timeout / 2
+            while True:
+                try:
+                    if ready.stat().st_mtime >= mark - 1.0:
+                        return
+                except FileNotFoundError:
+                    pass
+                if time.time() > deadline:
+                    break
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"静态回退桶 tl{self.L}（{self.root}）未就绪——检查 v3 supervisor"
+        )
+
+    def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        for retry in range(2):
+            self.seq += 1
+            body = struct.pack("<II", REQ_MAGIC, self.L)
+            body += np.ascontiguousarray(patches, dtype=np.float32).tobytes()
+            body += np.ascontiguousarray(ids, dtype=np.uint32).tobytes()
+            body += np.ascontiguousarray(noise, dtype=np.float32).tobytes()
+            tmp = self.dir / f".req_{self.seq:06d}.tmp"
+            req = self.dir / f"req_{self.seq:06d}.bin"
+            tmp.write_bytes(body)
+            os.replace(tmp, req)
+            resp = self.dir / f"resp_{self.seq:06d}.bin"
+            t0 = time.time()
+            while not resp.exists():
+                if time.time() - t0 > _REQ_TIMEOUT:
+                    break
+                time.sleep(0.002)
+            else:
+                raw = resp.read_bytes()
+                req.unlink(missing_ok=True)
+                resp.unlink(missing_ok=True)
+                magic, status = struct.unpack_from("<II", raw, 0)
+                if magic != RESP_MAGIC or status != 0:
+                    raise RuntimeError(
+                        f"静态回退桶 tl{self.L} 响应异常 magic={magic:#x} status={status}"
+                    )
+                tv, tp, tf = struct.unpack_from("<fff", raw, 8)
+                acts = (
+                    np.frombuffer(raw, dtype=np.float32, count=HOR * GD, offset=20)
+                    .reshape(HOR, GD)
+                    .copy()
+                )
+                return acts, (tv, tp, tf)
+        raise RuntimeError(f"静态回退桶 tl{self.L} 请求超时 ×2（看 {self.dir}/stdout.log）")
+
+
+class _GearInprocClient:
+    """Gear inproc：进程内 PyO3 GeServeModel（26 档单 OM + flow 池），L 由
+    payload 驱动选档。前置：9.0.1 CANN env（cann901_full wrapper 五件 env +
+    LD_PRELOAD）+ APXINF_LEROBOT_DEVICE=cpu（torch_npu 与 9.0.1 互斥）。
+    static_fallback_llist 的 L 仍走 spool 静态桶（t4 行为保底）。"""
+
+    def __init__(self):
+        from apxinf_py import GeServeModel  # 9.0.1 链接（env 由宿主进程供给）
+        ckpt = os.environ.get("APXINF_GE_CKPT", "/data/apxinf/weights/pi05_libero_finetuned")
+        om_dir = os.environ.get("APXINF_GE_OM_DIR", "/data/apxinf/om_cache/tl_dyn")
+        self.m = GeServeModel.open(om_dir, 200, ckpt, True)
+        self.fallback_root = os.environ.get(
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+        )
+        fb_file = _SERVE_ROOT / "static_fallback_llist"
+        try:
+            self.fallback = {
+                int(x)
+                for x in fb_file.read_text().split(",")
+                if x.strip().isdigit()
+            }
+        except FileNotFoundError:
+            self.fallback = set()
+        self._fb: dict = {}
+
+    def request(self, patches, ids, noise):
+        ell = int(np.asarray(ids).shape[0])
+        if ell in self.fallback:
+            print(f"[gear-inproc] L={ell} (static-fallback)")
+            c = self._fb.get(ell)
+            if c is None:
+                c = _FallbackBucketClient(ell, self.fallback_root)
+                self._fb[ell] = c
+            return c.request(patches, ids, noise)
+        print(f"[gear-inproc] L={ell}")
+        acts, ms = self.m.infer(
+            np.ascontiguousarray(patches, dtype=np.float32),
+            np.ascontiguousarray(ids, dtype=np.uint32),
+            np.ascontiguousarray(noise, dtype=np.float32),
+        )
+        return acts, ms
+
+
+class _GearClient:
+    """Gear 模式路由：全部 L 共享 N 只芯级 serve（单只多档 OM），逐请求
+    轮询分芯。serve 侧按 L 选档（SetInputDynamicDims），客户端零分桶。
+    static_fallback_llist（serve 根下，逗号 L 表）列出的 L 回退生产根静态桶。"""
+
+    def __init__(self):
+        dirs = sorted(d for d in _SERVE_ROOT.glob("chip*") if d.is_dir())
+        if not dirs:
+            raise RuntimeError(f"gear 模式：{_SERVE_ROOT} 下无 chip* serve 目录")
+        self.clients = [_ChipClient(d) for d in dirs]
+        self.rr = 0
+        self.fallback_root = os.environ.get(
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+        )
+        fb_file = _SERVE_ROOT / "static_fallback_llist"
+        try:
+            self.fallback = {
+                int(x)
+                for x in fb_file.read_text().split(",")
+                if x.strip().isdigit()
+            }
+        except FileNotFoundError:
+            self.fallback = set()
+        self._fb_client: dict = {}
+
+    def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        ell = int(np.asarray(ids).shape[0])
+        print(f"[gear] L={ell}{' (static-fallback)' if ell in self.fallback else ''}")
+        if ell in self.fallback:
+            c = self._fb_client.get(ell)
+            if c is None:
+                c = _FallbackBucketClient(ell, self.fallback_root)
+                self._fb_client[ell] = c
+            return c.request(patches, ids, noise)
+        c = self.clients[self.rr % len(self.clients)]
+        self.rr += 1
+        return c.request(patches, ids, noise)
+
+
 class GeServePi05Policy:
     """PI0.5 on the Ascend GE static-OM engine, shaped like an ApxInf policy.
 
@@ -208,6 +436,10 @@ class GeServePi05Policy:
         self._torch = self._torch_pol._torch
         self._model_dir = str(model_dir)
         self._buckets: Dict[int, Any] = {}
+        # gear 模式（serve 根带 gear_mode 标记）：全部 L 共享芯级 serve，
+        # 单一懒建客户端轮询（inproc 暂不支持 gear——回落 spool）
+        self._gear: Optional[Any] = None
+        self._gear_mode = (_SERVE_ROOT / "gear_mode").exists()
 
         self.metadata: Dict[str, Any] = dict(self._torch_pol.metadata)
         self.metadata.update({"engine": "npu-ge", "precision": "fp16"})
@@ -221,7 +453,17 @@ class GeServePi05Policy:
         to the spool bucket on import/availability failure so eval keeps
         running in the torch_npu container, where the 9.0.1-linked extension
         cannot coexist with the 8.5.1 torch_npu runtime.
+
+        gear 模式（serve 根带 gear_mode 标记）：忽略 length——单只多档
+        serve 全 L 覆盖，_GearClient 轮询分芯。
         """
+        if self._gear_mode:
+            if self._gear is None:
+                if _TRANSPORT == "inproc":
+                    self._gear = _GearInprocClient()
+                else:
+                    self._gear = _GearClient()
+            return self._gear
         client = self._buckets.get(length)
         if client is None:
             client = self._make_client(length)

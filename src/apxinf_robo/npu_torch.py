@@ -87,9 +87,11 @@ class NpuTorchPi05Policy:
         if tokenizer_dir is None:
             tokenizer_dir = kwargs.pop("tokenizer_path", None)
         import torch
-        import torch_npu  # noqa: F401  (registers the npu backend)
+        self._cpu_host = str(device) == "cpu"
+        if not self._cpu_host:
+            import torch_npu  # noqa: F401  (registers the npu backend)
 
-        torch_npu.npu.set_compile_mode(jit_compile=False)
+            torch_npu.npu.set_compile_mode(jit_compile=False)
 
         if precision not in SUPPORTED_PRECISIONS:
             raise ValueError(
@@ -100,7 +102,9 @@ class NpuTorchPi05Policy:
             raise ValueError(
                 f"npu-torch engine implements the pi05 family; got model_type {model_type!r}"
             )
-        if "npu" not in str(device):
+        if self._cpu_host:
+            pass  # inproc 预处理宿主：cpu torch（与 apxinf_py 的 9.0.1 互斥规避）
+        elif "npu" not in str(device):
             # The CLIs default --device cuda:0; this engine has exactly one home.
             print(f"npu-torch: mapping device {device!r} -> 'npu'")
             device = "npu"
@@ -142,7 +146,7 @@ class NpuTorchPi05Policy:
             self.policy.config,
             str(model_dir),
             preprocessor_overrides={
-                "device_processor": {"device": "npu"},
+                "device_processor": {"device": device},
                 "tokenizer_processor": {"tokenizer_name": str(tokenizer_dir)},
             },
         )
