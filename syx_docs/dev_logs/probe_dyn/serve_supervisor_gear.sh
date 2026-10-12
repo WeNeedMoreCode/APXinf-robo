@@ -14,8 +14,9 @@ BIN=/data/apxinf/apxinf_engine/target/release/examples/ge_model_probe
 CKPT=/data/apxinf/weights/pi05_libero_finetuned
 P8=/data/apxinf/pyo3_check/smooth_calib_v3_engine.safetensors
 F8=/data/apxinf/pyo3_check/smooth_calib_v3_flow_engine.safetensors
-# 档表 = 三谱系观测全集 137-157 + 200（22 档 ≪ 100 上限）
-LLIST="137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,200"
+# 档表 = 三谱系观测全集 133-157 + 200（26 档 ≪ 100 上限；133-136 为
+# goal 谱系下沿实测漂移档——L=136 曾把 22 档表外请求打崩 serve，2026-10-12）
+LLIST="133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,200"
 LMAX=200
 # 芯表：验证期占空芯 0-3（4-7 被 v3 生产桶占 15-17GB，gear serve +6GB 会
 # 顶爆 24GB 设备内存）；gear 转正后与 v3 桶互换
@@ -70,9 +71,12 @@ spawn_chip() { # spawn_chip <chip>
 
 declare -A LAST_RESPAWN
 bake_dyn
+# 错峰 spawn（40s/芯）：4 芯齐发在 GE init/ckpt 解析/设备分配三处并发
+# 竞争会静默崩（2026-10-12 26 档重启风暴取证；单服手动起稳定）
 for c in $CHIPS; do
   alive "$ROOT/chip$c/pid" || spawn_chip "$c"
   LAST_RESPAWN[$c]=$(date +%s)
+  sleep 40
 done
 
 while true; do

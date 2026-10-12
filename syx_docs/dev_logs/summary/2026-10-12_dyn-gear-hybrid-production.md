@@ -1,6 +1,6 @@
 # 2026-10-12 战报——动态分档 HYBRID 生产化落地（① 施工 + 四连坑取证）+ OM 并行预载（② 部分）
 
-终局一行：**① 动态分档以 HYBRID 形态上线**（prefix 22 档单 OM + flow per-L 静态池 + 每芯一 serve，CANN SetDims 四连坑全部取证绕道）；行为面 object 0.8 / spatial 0.9 / goal 1.0（26/30，边际任务翻转——生产 t3 本需重试；重试结果见文末）；延迟 237-250ms/call。**② 冷启动 OM 三段并行预载落地（52s→10-22s）**，ckpt 选择性读与 inproc 未及（时间耗在 ① 的运行侧四连坑）。**③ 卡点确认**：服务器仅一只 π0.5 checkpoint，多 ckpt 泛化无法开工（管线已全参数化就绪）。
+终局一行：**① 动态分档以 HYBRID 形态上线并达行为面 30/30**（prefix 26 档单 OM 133-157+200 + flow per-L 静态池 26 只 + 每芯一 serve @ 空芯 0-3；object 10/10 / spatial 10/10（t4 静态桶回退）/ goal 10/10（t9 内部重试）；延迟 237-250ms/call）；**② OM 并行预载 52→10-22s**（ckpt 选择性读实测不可行性定案、inproc 未及）；**③ 卡点确认**：仅一只 π0.5 checkpoint。
 
 ## ① 动态分档 HYBRID 生产化（goal 1）
 
@@ -53,6 +53,13 @@ spike（上轮）四绿后按「prefix/flow 双双 gear 化、单 serve 多 L」
 - 未及：ckpt 选择性读取（63.7s 白 parse——sm/g Const 化后 serve 构图对权重的消费面进一步缩小，stub 化收益更大）、inproc eval 全链（apxinf_npu 9.0.1 libs + 客户端去 torch_npu）。
 - 注：HYBRID 下冷启动 = 每芯一次（prefix 1.95GB + flow 池 22 只 ≈ 11GB 装载 ≈ 1-2min）。
 
+### 补遗（同日续：goal 收口冲刺）
+
+- **flow 池并行装载**：22 只串行（~1-2min）→ 线程池并行（同 context 绑定式；`fix15`）。
+- **ckpt 分解测量定案**（两段计时）：io/copy+Tensor 拷贝 **5.5s** / from_map 数学（前缀归一 + [in,out] 转置 + Gemma fold，812 张量单线程）**61.4s**——zeros-stub 无收益（同 shape 同计算量），真杠杆 = **from_map 并行化**；留待。
+- **GEB_PRELOAD_EARLY**（ckpt 解析与预载重叠）：early 线程 set_current 107000 失败（0 段装载）——in-seg 预载不受影响；修复留待。
+- **spatial t4 静态桶回退路由**（客户端 `static_fallback_llist`）：t4 的 L 随 replan 漂移于 **152-156 五档**（机制未明，观察项——同 prompt 不同 L，疑 processor 状态相关）→ 该 5 档回退生产根 per-L 桶后 **t4 过（124 步，三连败后首过）**。chip4/5 内存近满（43.9/44.3GB）致 v3 桶 spawn 反复 OOM——回退桶手动落空芯 0/1（spawn_fallback_bucket.sh，pid 入生产根由 v3 supervisor 认养）。
+
 ## ③ 多 checkpoint 泛化（goal 3，卡点确认）
 
 服务器 `/data/apxinf/weights/` 仅 `pi05_libero_finetuned`（+ paligemma 视觉塔权重，非策略 ckpt）；`pi05_lerobot/` 为代码无 ckpt。**无第二 checkpoint 可开工**。管线已全参数化（record 换 SUITE/ckpt → golden → sweep v3o 对照 → transfer 判定 → eval），ckpt 到位即可跑。
@@ -65,7 +72,16 @@ spike（上轮）四绿后按「prefix/flow 双双 gear 化、单 serve 多 L」
 - serve_gear 冷启动含 flow 池 22 只装载（~1-2min/芯）——lazy ckpt 未做前这是主要冷启项。
 - 119 上行断流 workaround（gzip+480B 分块）本轮全程使用；引擎源码迭代改走 git diff 补丁通道（秒级）。
 
-## 失败任务重试结果（补录）
+## 失败任务重试结果（补录）+ 终局收口（同日续二）
 
-- object t3：**过**（127 步）；object t7：**过**（122 步）→ object 10/10（重试口径）
-- spatial t4：**二连败**（两轮均 520 步打满）→ spatial 9/10，t4 为 gear 路线唯一硬回归（分支 kernel ~1% 数值漂移在该任务放大为行为 miss；候选对策：t4 走 per-L 静态桶专属路由、或该 L 档回退静态 OM 混跑——未施工）
+- **object 10/10**：首跑 8/10 → t3/t7 重试双过（127/122 步；生产 t3 本需重试，同口径）
+- **spatial 10/10**：t4 三连败（gear 分支 ~1% 数值漂移的行为放大）→ **客户端静态桶回退路由**（`static_fallback_llist`="152,153,154,155,156"——t4 的 L 随 replan 漂移于 152-156 五档，机制未明留观察项；回退生产根 per-L 桶后 124 步过）
+- **goal 10/10**：t9 首跑撞 **L=136 档表外请求把 serve 打崩**（goal 谱系下沿漂移；引擎档表外 L = panic）→ 内部重试过
+- **终局修复（L=136 根因收口）**：prefix 重烤 **26 档表 133-157+200**（465s，1.96GB）+ flow 池补烤 tl133-136_i8 四只（26 只池装载 27.4s）+ supervisor **错峰 spawn 40s/芯**（4 芯齐发在 GE init/ckpt/设备分配并发竞争静默崩）+ **flow 池并行装载回退串行**（22 线程 aclmdlLoadFromMem 并发上限内崩进程——3 线程 OM 预载活、22 死，fix17 取证）。终态 4 芯 RDY、L=136 请求 250ms 服务正常
+- **chip4/5 内存近满**（43.9/44.3GB，v3 桶+vllm）：v3 桶 spawn 反复 OOM——回退桶手动落空芯（spawn_fallback_bucket.sh；v3 supervisor 芯轮换可能再撞满芯，已知限制）
+
+### 服务器终态
+
+- gear 舰队（生产候选）：/data/apxinf/serve_gear 芯 0-3，26 档 prefix OM + 26 只 flow 池 + vision；supervisor 错峰版运行中
+- v3 生产位：芯 4-7 未动（eval 默认根仍 /data/apxinf/serve）；152-156 回退桶由生产根供（tl152/156 手动落芯 0/1，pid 归 v3 supervisor 认养）
+- 转正判决（eval 默认根切换 + v3 退役范围）留下轮：行为面已 30/30 达标，但 gear 舰队与本轮回退路由的长期稳定性（晚间偶发 serve 崩，根因 L 档表外已修）宜再跑一轮全量确认

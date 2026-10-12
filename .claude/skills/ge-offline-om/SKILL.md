@@ -75,7 +75,7 @@ opts["input_format"] = "ND";
   2. **SetDims payload = 全部动态输入的完整 dims**（静态尾维含入，拼接序=输入注册序；选项串与 payload 是两种格式！）——`ge.dynamicDims` 选项只要纯 -1 位的值，混入静态尾维直接编译 rc=-7。
   3. **payload 总维数 ≤ ACL_MAX_DIM_CNT(128)**——定值动态输入（每档恒值的绕道）在大图上会撑爆（18 层×9 输入 + 基础 24 = 186 维），超限被截断 → 145012。
   4. **多动态输入必须一次调用带全维**（index=0 + 拼接全部；逐输入分开调用也 145012）。
-- **运行侧配套**：档位执行走 `geb_run_gear`（C++ 侧自动补 gear-info 输入 buffer + SetDims）；H2D 用按长度口（`copy_h2d_async_sized`）——等长断言的拷贝口在实际行 < max buffer 时炸。
+- **运行侧配套**：档位执行走 `geb_run_gear`（C++ 侧自动补 gear-info 输入 buffer + SetDims）；H2D 用按长度口（`copy_h2d_async_sized`）——等长断言的拷贝口在实际行 < max buffer 时炸；**aclmdlLoadFromMem 并发上限 <22 线程**（3 线程 OM 预载活、22 线程池装载崩进程，2026-10-12 取证）——多 OM 批量装载走串行或有界并行；**档表外 L 请求会 panic 打崩 serve**——档表必须覆盖谱系全部实测 L（含下沿漂移：goal 谱系见 136）。
 - **档外兜底**：hybrid 模式（`ge.dynamicNodeType=1` + `ge.compileHybridMode=1`）同图编两份——档位图 + 真·动态 shape 图，运行时档不匹配自动降级走动态图（GE docs/zh/design/features/dynamic_gear.md；未实测）。
 
 

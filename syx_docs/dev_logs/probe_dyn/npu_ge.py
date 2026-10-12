@@ -243,9 +243,80 @@ class _ChipClient:
         )
 
 
+class _FallbackBucketClient:
+    """静态桶回退：指定 L 走生产根 per-L 桶（tl{L}，v3 supervisor 保活）。
+    gear 分支 kernel 与静态 OM 非逐位同（~1% 漂移）——个别边际任务在
+    gear 路径行为翻转时，按 L 回退静态桶恢复生产数值（2026-10-12 spatial
+    t4 二连败先例）。显式 root 参数（_BucketClient 读全局 _SERVE_ROOT）。"""
+
+    def __init__(self, length: int, root: str, *, ready_timeout: float = _READY_TIMEOUT):
+        self.L = length
+        self.root = Path(root)
+        self.dir = self.root / f"tl{length}"
+        self.seq = 0
+        self.ready_timeout = ready_timeout
+        (self.root / "ctrl").mkdir(parents=True, exist_ok=True)
+        self._ensure_ready()
+
+    def _ensure_ready(self) -> None:
+        ready = self.dir / "ready"
+        for attempt in range(2):
+            mark = time.time()
+            (self.root / "ctrl" / f"ensure_{self.L}").write_text("")
+            deadline = mark + self.ready_timeout / 2
+            while True:
+                try:
+                    if ready.stat().st_mtime >= mark - 1.0:
+                        return
+                except FileNotFoundError:
+                    pass
+                if time.time() > deadline:
+                    break
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"静态回退桶 tl{self.L}（{self.root}）未就绪——检查 v3 supervisor"
+        )
+
+    def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        for retry in range(2):
+            self.seq += 1
+            body = struct.pack("<II", REQ_MAGIC, self.L)
+            body += np.ascontiguousarray(patches, dtype=np.float32).tobytes()
+            body += np.ascontiguousarray(ids, dtype=np.uint32).tobytes()
+            body += np.ascontiguousarray(noise, dtype=np.float32).tobytes()
+            tmp = self.dir / f".req_{self.seq:06d}.tmp"
+            req = self.dir / f"req_{self.seq:06d}.bin"
+            tmp.write_bytes(body)
+            os.replace(tmp, req)
+            resp = self.dir / f"resp_{self.seq:06d}.bin"
+            t0 = time.time()
+            while not resp.exists():
+                if time.time() - t0 > _REQ_TIMEOUT:
+                    break
+                time.sleep(0.002)
+            else:
+                raw = resp.read_bytes()
+                req.unlink(missing_ok=True)
+                resp.unlink(missing_ok=True)
+                magic, status = struct.unpack_from("<II", raw, 0)
+                if magic != RESP_MAGIC or status != 0:
+                    raise RuntimeError(
+                        f"静态回退桶 tl{self.L} 响应异常 magic={magic:#x} status={status}"
+                    )
+                tv, tp, tf = struct.unpack_from("<fff", raw, 8)
+                acts = (
+                    np.frombuffer(raw, dtype=np.float32, count=HOR * GD, offset=20)
+                    .reshape(HOR, GD)
+                    .copy()
+                )
+                return acts, (tv, tp, tf)
+        raise RuntimeError(f"静态回退桶 tl{self.L} 请求超时 ×2（看 {self.dir}/stdout.log）")
+
+
 class _GearClient:
     """Gear 模式路由：全部 L 共享 N 只芯级 serve（单只多档 OM），逐请求
-    轮询分芯。serve 侧按 L 选档（SetInputDynamicDims），客户端零分桶。"""
+    轮询分芯。serve 侧按 L 选档（SetInputDynamicDims），客户端零分桶。
+    static_fallback_llist（serve 根下，逗号 L 表）列出的 L 回退生产根静态桶。"""
 
     def __init__(self):
         dirs = sorted(d for d in _SERVE_ROOT.glob("chip*") if d.is_dir())
@@ -253,8 +324,29 @@ class _GearClient:
             raise RuntimeError(f"gear 模式：{_SERVE_ROOT} 下无 chip* serve 目录")
         self.clients = [_ChipClient(d) for d in dirs]
         self.rr = 0
+        self.fallback_root = os.environ.get(
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+        )
+        fb_file = _SERVE_ROOT / "static_fallback_llist"
+        try:
+            self.fallback = {
+                int(x)
+                for x in fb_file.read_text().split(",")
+                if x.strip().isdigit()
+            }
+        except FileNotFoundError:
+            self.fallback = set()
+        self._fb_client: dict = {}
 
     def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
+        ell = int(np.asarray(ids).shape[0])
+        print(f"[gear] L={ell}{' (static-fallback)' if ell in self.fallback else ''}")
+        if ell in self.fallback:
+            c = self._fb_client.get(ell)
+            if c is None:
+                c = _FallbackBucketClient(ell, self.fallback_root)
+                self._fb_client[ell] = c
+            return c.request(patches, ids, noise)
         c = self.clients[self.rr % len(self.clients)]
         self.rr += 1
         return c.request(patches, ids, noise)
