@@ -76,6 +76,7 @@ opts["input_format"] = "ND";
   3. **payload 总维数 ≤ ACL_MAX_DIM_CNT(128)**——定值动态输入（每档恒值的绕道）在大图上会撑爆（18 层×9 输入 + 基础 24 = 186 维），超限被截断 → 145012。
   4. **多动态输入必须一次调用带全维**（index=0 + 拼接全部；逐输入分开调用也 145012）。
 - **运行侧配套**：档位执行走 `geb_run_gear`（C++ 侧自动补 gear-info 输入 buffer + SetDims）；H2D 用按长度口（`copy_h2d_async_sized`）——等长断言的拷贝口在实际行 < max buffer 时炸；**aclmdlLoadFromMem 并发上限 <22 线程**（3 线程 OM 预载活、22 线程池装载崩进程，2026-10-12 取证）——多 OM 批量装载走串行或有界并行；**档表外 L 请求会 panic 打崩 serve**——档表必须覆盖谱系全部实测 L（含下沿漂移：goal 谱系见 136）。
+- **ckpt 选择性加载的占位安全线**（2026-10-12 serve-min 落地）：serve 装预烤 OM 时，构图期 `s.data()`/`row_bcast()` 注册的 **Data 输入源（bias/LN/pos 表/嵌入表/条件投影）必须真值**（binds 物化进执行），`s.wt()` 的 mm 权重在 WCONST 下 Const 烤入 OM **可占位**；`lay.map(|_| 常量)` 类与权重内容无关。漏一处 Data 源 = 数值静默错（三层泄漏取证：vision 源/projector bias/action bias，1.63→0.0 收敛）；验证 = 确定性 payload 双桶逐字节比 + x0/styles checksum 定位分岔层。
 - **档外兜底**：hybrid 模式（`ge.dynamicNodeType=1` + `ge.compileHybridMode=1`）同图编两份——档位图 + 真·动态 shape 图，运行时档不匹配自动降级走动态图（GE docs/zh/design/features/dynamic_gear.md；未实测）。
 
 

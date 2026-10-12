@@ -55,7 +55,9 @@ spawn_chip() { # spawn_chip <chip>
   rm -f "$spool"/pid "$spool"/req_*.bin "$spool"/resp_*.bin "$spool"/.resp_*.tmp \
         "$spool"/.req_*.tmp "$spool/ready" "$spool/shutdown"
   echo "[supg] spawn chip$c gear serve $(date)" >> "$LOG"
-  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 \
+  # GEB_CKPT_SERVE_MIN=1：ckpt 选择性读取（styles 链+嵌入表真值，其余
+  # synthetic 占位——serve 装预烤 OM 不消费占位；bake 路径 probe 侧拒绝）
+  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 GEB_CKPT_SERVE_MIN=1 \
     "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
     ASCEND_RT_VISIBLE_DEVICES=$c \
     GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_OM_DIR=$DYN \

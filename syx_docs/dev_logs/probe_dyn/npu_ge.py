@@ -46,7 +46,7 @@ HOR = 50     # chunk size (checkpoint config)
 ADIM = 32    # padded action dim; deployable slice is 7
 GD = 7       # LIBERO deployable action width
 
-_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve"))
+_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve_gear"))
 _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT", "1800"))
 _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "180"))
 # 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust）或
