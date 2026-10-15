@@ -1,6 +1,6 @@
 ---
 name: ge-offline-om
-description: 昇腾 GE 静态 OM（离线模型）构建实战知识库——不依赖 torch/atc，用 GE graph API（OperatorFactory/SetInputs）构图、aclgrphBuildModel 内存编译、aclmdlExecute 执行。每当你要构建静态 OM/离线模型、用 C++ 直接构图、排查 aclgrphBuildInitialize 或 aclgrphBuildModel 报错、TeFusion/py_decouple 初始化失败、OM 编译成功却是空模型、执行成功但输出全零、或想消除逐算子调度的启动税（ACLGraph per-task tax / 零调度税部署）时，使用本 skill。
+description: 昇腾 GE 静态 OM（离线模型）构建实战知识库——不依赖 torch/atc，用 GE graph API（OperatorFactory/SetInputs）构图、aclgrphBuildModel 内存编译、aclmdlExecute 执行。每当你要构建静态 OM/离线模型、用 C++ 直接构图、排查 aclgrphBuildInitialize 或 aclgrphBuildModel 报错、TeFusion/py_decouple 初始化失败、OM 编译成功却是空模型、执行成功但输出全零、或想消除逐算子调度的启动税（ACLGraph per-task tax / 零调度税部署）时，使用本 skill。改了图（算子代换/融合/布局/常量折叠/量化）需要验证数值等价或行为无回归、做对拍/parity/golden 校验、数值绿但行为翻车要定位根因时，也用本 skill 的「改图验证工作流（对拍梯）」。
 ---
 
 # GE 静态 OM 构建实战知识库
@@ -12,6 +12,7 @@ description: 昇腾 GE 静态 OM（离线模型）构建实战知识库——不
 | 场景 | 读取 |
 |------|------|
 | 第一次构建 OM（环境→构图→编译→执行全流程） | 全文按序读 |
+| **改了图要验证等价性（算子代换/融合/布局/常量折叠/量化）** | [改图验证工作流（对拍梯）](#改图验证工作流对拍梯) |
 | 遇到报错/异常产物（init 失败、空模型、全零、infershape 拒绝） | [陷阱表](#陷阱表) |
 | 环境诊断（TeFusion / py_decouple / 容器） | [环境与自检](#环境与自检) |
 | 定位手段（plog / OM 落盘 / strace / IO dump） | [取证工具箱](#取证工具箱) |
@@ -100,7 +101,36 @@ op.SetAttr("index", i);          // ② 模型输入顺序
 - `aclmdlExecuteAsync(model_id, in, out, stream)` + `aclrtSynchronizeStream(stream)`；同步版 `aclmdlExecute` 可作排障二分变体（两种语义都正常时应优先怀疑数据/dtype 而非调度）。
 - 读回必须在 stream sync 之后（同步 memcpy 不等待异步 kernel 是老坑）。
 
-## 陷阱表（症状 → 根因 → 修法）
+## 改图验证工作流（对拍梯）
+
+任何图变换（算子代换/融合/布局重写/Const 折叠/量化/重构）后按此梯验证。**下层绿不等于上层绿，必须爬到行为面**——每层的已知假阴性来源都实测踩过：
+
+| 层 | 手段 | 判据 | 该层的假阴性/陷阱（实测案） |
+|---|---|---|---|
+| L0 单算/组件 | `GEB_OPTEST` 单算族 + depth2 小图（最小化验证优先） | 容差 0.02 内或逐位 | 小图过≠大图过：#28 切片物化只在真图形状触发；#39 TileD 散点腐蚀只在特定广播方向触发 |
+| L1 eager 参考 | 同输入走 eager aclnn 组合链 | 按段 rel% | ① 参考侧竞态 #19/#20（先 sync 再 d2h；闭包末尾强制 sync）；② **eager 镜像同 bug = 全绿假阴性**——ada gate 缺失案：组件 parity 全绿、行为 0/10，因为 eager 参考与图犯同一个错。参考系与被测同源时，对拍绿不能证明正确 |
+| L2 独立 golden | torch 真权重链录制的 safetensors（分层中间量） | 分段 rel%：vision 0.1% 级、prefix fp16 累加序线性累积（深度曲线平滑=非 bug） | golden 语义本身要对：empty camera 案 golden 9/10 语义只喂 2 真实视图，我们当三等公民 → 314% 假"精度问题"。先验 golden 语义再信数字 |
+| L3 bit 级 | 确定性 payload（固定 seed noise）双桶执行 + **逐层 checksum** 定位分岔层 | 逐字节同 | 跨进程 bit 对拍三纪律（见下）；图输出槽判读按值不按槽 #33 |
+| L4 行为面 | task spot → 全量 eval（容器内、timeout ≥1800、新 jsonl） | success rate | **数值绿≠行为绿**：flow int8 对拍 126 矩阵零翻转、golden actions 10%，行为连续 520 打满——校准因子对激活分布错配经 flow 10 步欧拉放大。行为敏感任务（如 spatial t4）留作回归哨兵 |
+
+### 分岔定位三板斧（L2/L3 出现偏差时）
+
+1. **逐层 checksum**：x0/styles/段首中间张量落盘比 md5——serve-min 三层泄漏（vision 源→projector bias→action bias）即此法收敛 1.63%→0.0
+2. **段级 bisect**：`GEB_OPTEST` 子图矩阵逐算子逐组合收窄（GEB_SUB 编译冒烟矩阵同源）
+3. **独立参考源码对读**：偏差仍不收敛时读 golden 生成器源码找语义差——empty camera 案的破局点（image_keys[:2] 一行定罪）
+
+### 行为翻车时的根因排序（经验先验）
+
+数值分布错配（量化因子/激活 outlier）> 语义缺失（gate/mask/空视图）> fp16 精度累积（累加序，平滑次线性）。先做输出分布刑侦（std/corr/bias、动作 std 是否≈噪声 1.0）再谈精度——「原理性 fp16 天花板」类结论两次被推翻（ada gate、empty camera），都是语义 bug 伪装成精度问题。
+
+### 跨进程 bit 对拍三纪律（GE 数值代际现象）
+
+GE serve 数值按进程 spawn 时间分代际（同代逐位一致、跨代 ~0.3%，九格排除后判 GE 运行时固有）：
+1. 对照组与实验组**同芯同时代**（同一次 spawn 窗口）
+2. spool resp **发完即拷贝**（serve 会清理旧 resp 文件）
+3. 测前**清场并验证单实例**（多 serve 抢同一 spool 会互相抢答；按 `/proc/PID/environ` 的 GEB_E2E_SERVE 匹配收尸）
+
+
 
 | # | 症状 | 根因 | 修法 |
 |---|------|------|------|
