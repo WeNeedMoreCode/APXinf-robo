@@ -419,14 +419,14 @@ class InProcessBackend:
         # Step-wise official semantics for npu-torch (see run_episode): expose
         # the queue-based single-action path on the backend.
         self._step_policy = self._policy
-        if args.engine == "npu-torch":
-            # Compile the TorchAir graphs before the first rollout: without this
-            # the first replan pays ~100s of compilation and per-call averages
-            # over the episode fold it into every call (observed mean 1384ms
-            # vs the true steady-state ~381ms).
-            warmup = getattr(self._policy, "warmup", None)
-            if callable(warmup):
-                warmup()
+        # Compile one-off host cost before the first rollout, for any engine
+        # that exposes warmup: npu-torch's TorchAir graphs (~100s) and
+        # npu-ge's preprocessing-host eager ops (~3.9s, 2026-10-15) both get
+        # folded into every call's per-episode average otherwise (observed
+        # 1384ms / 433ms means vs ~381ms / ~280ms steady state).
+        warmup = getattr(self._policy, "warmup", None)
+        if callable(warmup):
+            warmup()
 
     def infer(
         self, base, wrist, state, prompt, noise=None

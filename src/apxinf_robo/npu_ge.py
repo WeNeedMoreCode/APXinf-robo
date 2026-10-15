@@ -548,6 +548,13 @@ class GeServePi05Policy:
         if acts.ndim == 3:  # [B, H, D] with B == 1
             acts = acts[0]
         total_ms = (time.perf_counter() - started) * 1000.0
+        if os.environ.get("APXINF_GE_PERCALL"):
+            # 逐调用计时（诊断 server_processor 归因用；见 2026-10-15 I9 取证）
+            print(
+                f"[ge-percall] L={length} total={total_ms:.1f} "
+                f"model={model_ms:.1f} gap={total_ms - model_ms:.1f}",
+                flush=True,
+            )
         return {
             "actions": acts,
             "normalized_actions": nact,
@@ -560,6 +567,33 @@ class GeServePi05Policy:
         }
 
     __call__ = infer
+
+    def warmup(self) -> None:
+        """Compile host-side eager NPU ops once, off the episode latency ledger.
+
+        The first real call otherwise pays ~3.9s of one-off host cost (eager
+        torch_npu op compilation for the preprocessing chain's to(npu) /
+        resize / mul ops plus the gear client's ready handshake), which a
+        per-call episode average folds into every call: observed 433ms mean
+        vs ~280ms steady state (root cause 2026-10-15; the earlier "186ms
+        tokenize" attribution was this outlier amortized -- the tokenizer
+        itself costs 0.43ms/call). Mirrors ``NpuTorchPi05Policy.warmup``
+        semantics but sends no engine request: only ``_frame_inputs`` (all
+        host eager ops), the postprocess unnormalize, and -- gear mode only
+        -- bucket-client construction, so static-bucket mode never triggers
+        a cold bucket bake for the warmup prompt's short L.
+        """
+        pol = self._torch_pol
+        obs = {key: np.zeros((256, 256, 3), np.uint8) for key in pol.image_keys}
+        if pol.state_key is not None and pol._model_state_dim is not None:
+            obs[pol.state_key] = np.zeros(pol._model_state_dim, np.float32)
+        obs[pol.prompt_key] = "warmup"
+        _patches, ids = self._frame_inputs(obs)
+        if self._gear_mode:
+            self._bucket(int(ids.shape[0]))  # ready handshake off the ledger
+        torch = self._torch
+        normalized = torch.zeros((1, HOR, GD), dtype=torch.float32).to(pol.device)
+        _ = pol.postprocess(normalized).detach().cpu().numpy()
 
     def reset(self) -> None:
         """Episode boundary; this policy is stateless (fresh noise per replan)."""

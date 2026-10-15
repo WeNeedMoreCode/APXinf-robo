@@ -47,7 +47,7 @@ RINIT=$(docker inspect -f '{{.State.Pid}}' apxinf_rust 2>/dev/null)
 if [ -n "$RINIT" ]; then
   orph=$(ps -eo pid,ppid,stat --no-headers | awk -v p=$RINIT '$2==p && $3 !~ /Z/' | wc -l)
   zomb=$(ps -eo pid,ppid,stat --no-headers | awk -v p=$RINIT '$2==p && $3 ~ /Z/' | wc -l)
-  echo "-- apxinf_rust container: alive_orphans=$orph zombies=$zomb (init=$RINIT)"
+  echo "-- apxinf_rust container: init_children_alive=$orph (gear serves 等,非孤儿) zombies=$zomb (init=$RINIT)"
 fi
 cur=$(wc -l < $BASE/supervisor.log 2>/dev/null)
 prev=$(cat $STATE 2>/dev/null)
