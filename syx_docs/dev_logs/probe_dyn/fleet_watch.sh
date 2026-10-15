@@ -1,9 +1,13 @@
 #!/bin/bash
-# fleet_watch.sh — gear 舰队 + 回退桶健康快照（运维留观，可反复跑/cron）
-# 输出: 4 芯 pid+ready mtime / 回退桶 tl151-157 / 双 supervisor / 内存水位 /
-#       apxinf_rust 容器孤儿 serve 计数 / supervisor.log 增量（对比上次运行）
+# fleet_watch.sh — gear 舰队健康快照（运维留观，可反复跑/cron）
+# 2026-10-15 拓扑收缩后：gear = 单芯（GEAR_CHIPS 可覆写，默认 4）；
+# 回退桶 tl151-157 已退役（static_fallback_llist 摘除）——列表文件回来时
+# 自动恢复逐桶检查（补回退预案的观测面）。
+# 输出: 芯级 pid+ready mtime / 回退桶(若在役) / supervisor / 内存水位 /
+#       apxinf_rust 容器子进程计数 / supervisor.log 增量（对比上次运行）
 BASE=/data/apxinf/serve_gear
 STATE=/tmp/fleet_watch.state
+GEAR_CHIPS=${GEAR_CHIPS:-"4"}
 echo "==== fleet_watch $(date -u '+%F %T') ===="
 # 存活判定 = environ 指纹（/proc/PID/environ 的 GEB_E2E_SERVE 精确匹配）：
 # pid 文件法有两个已知坑——pid 回收假阳（2026-10-14 取证：444797 系死后
@@ -16,20 +20,24 @@ ps -eo pid,stat,args --no-headers | awk '$2 !~ /Z/ && /ge_model_prob[e]/ {print 
   r=$(strings /proc/$p/environ 2>/dev/null | grep "^GEB_E2E_SERVE=" | cut -d= -f2)
   [ -n "$r" ] && echo "$r $p"
 done > "$SVLIST"
-echo "-- gear fleet (environ 指纹) --"
-for c in 0 1 2 3; do
+echo "-- gear fleet (environ 指纹, chips=$GEAR_CHIPS) --"
+for c in $GEAR_CHIPS; do
   n=$(grep -c "^$BASE/chip$c " "$SVLIST")
   [ "$n" -ge 2 ] && st="ALIVE(${n}p)" || st="DEAD(${n}p)"
   echo "chip$c $st pidfile=$(cat $BASE/chip$c/pid 2>/dev/null) ready=$(stat -c %y $BASE/chip$c/ready 2>/dev/null | cut -d. -f1)"
 done
-echo "-- fallback tl151-157 (environ 指纹) --"
-n=0
-for L in 151 152 153 154 155 156 157; do
-  m=$(grep -c "^/data/apxinf/serve/tl$L " "$SVLIST")
-  [ "$m" -ge 2 ] && { st="ALIVE(${m}p)"; n=$((n+1)); } || st="DEAD(${m}p)"
-  echo "tl$L $st"
-done
-echo "fallback_alive=$n/7"
+if [ -f "$BASE/static_fallback_llist" ]; then
+  echo "-- fallback tl151-157 (environ 指纹; 在役) --"
+  n=0
+  for L in 151 152 153 154 155 156 157; do
+    m=$(grep -c "^/data/apxinf/serve/tl$L " "$SVLIST")
+    [ "$m" -ge 2 ] && { st="ALIVE(${m}p)"; n=$((n+1)); } || st="DEAD(${m}p)"
+    echo "tl$L $st"
+  done
+  echo "fallback_alive=$n/7"
+else
+  echo "-- fallback: RETIRED（static_fallback_llist 不在役；spatial t4 验证 2026-10-15）--"
+fi
 rm -f "$SVLIST"
 echo "-- supervisors --"
 ps -eo pid,etime,args | grep "supervis[o]r"

@@ -7,7 +7,8 @@
 # 纪律: results-jsonl 按天戳（%m%d）——同日重跑同任务会被 resume 语义跳过
 cd /data/apxinf
 BASE=/data/apxinf/serve_gear
-CHIP=${CHIP:-2}
+# 2026-10-15 拓扑收缩：单 gear serve 在 chip 4（空芯，与同事 vLLM 的 0-3/6-7 分开）
+CHIP=${CHIP:-4}
 STAMP=$(date +%m%d)
 ARGS=("$@")
 [ $# -eq 0 ] && ARGS=(object:0 spatial:4 goal:9)
