@@ -44,6 +44,7 @@
 | I7 | 多 checkpoint 泛化 | 管线就绪；卡点 = 第二 ckpt | |
 | I8 | 舰队换新二进制 | ✅ **执行完成**（2026-10-14，spot 3/3） | 孤儿清理 + pid 假阳修复一并落地 |
 | **I9** | **客户端 tokenize 前缀缓存 + state 直查表** | ⏸ **已记录未立项**（2026-10-15） | **推理路径最后一个大项**：prompt 前缀 episode 内不变 + state 离散化 bin→tokenid 映射纯确定性可预计算表 → tokenize 186→<5ms、**inference 433→~250ms**；顺路 = prefix 嵌入前缀行缓存（2.5ms）+ L 漂移（144/145）同源修掉；验证 = token 序列逐位对拍（对拍梯 L3）。引擎侧静态化已榨干（styles/euler/rope/因子四大战役全闭环，2026-10-15 op census 实测无重复计算大项）；prefix 双向 attention 无 KV 前缀缓存数学基础（结构死路，勿惦记） |
+| **I10** | **vision 段 int8**（SigLIP 27 层 mm） | ⏸ **已记录未立项**（2026-10-15） | **量化域最后一块地**：census 定位 MatMulV2 30.8ms 主体 = vision f16 mm，M=768 大段与 prefix 同款算力瓶颈（prefix 已证 2.41×/−18ms）→ 预期 **−18ms（246.9→~229）**。工程量 = prefix int8 战役重打一遍：SigLIP 激活 dump（LayerNorm 非 RMSNorm，Gemma outlier 经验不直接搬）+ **空视图 -1 pad 输入的分布包络**（校准错配=行为翻车教训）+ α sweep + 权重谱预检（vision 谱未测过，先看 rel_rms 再立项）+ 行为验收全量。排序在 I9 之后（收益/工程量比差一个量级）；打完此块 mm 域量化到头（flow attention 小 M 已判不值、其余热点非 mm 层） |
 | — | op 热点 census | ✅ 2026-10-15（summary/2026-10-15_op-hotspot-census.md） | 设备侧 228ms：qmd 37% / ABF 融合 14%（pass 实证）/ mm 13%；空隙 0；复测工具 prof_hotspot_1015.sh |
 | — | TransData 14ms（vision 激活 ND→NZ） | 观察项 | 编译器格式规划税，6%，ROI 低 |
 | — | 数值代际现象 | 观察项（现役 = 10-14 代） | 行为面多代际全过 |
