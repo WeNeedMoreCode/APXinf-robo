@@ -1,0 +1,33 @@
+From 94c7310f1487251f0413b70c3f1dc0a4a9fe2730 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E7=B4=A0=E7=8E=84?= <suxuan@gitcode.com>
+Date: Thu, 15 Oct 2026 22:14:00 +0800
+Subject: [PATCH] T4R pool: serve request loop accepts any L under
+ GEB_PREFIX_POOL
+
+The single-bucket L==GEB_TOKENS assert only applies to true static mode;
+pool mode carries any L via handle swap.
+
+Co-Authored-By: Claude Code <no-reply@anthropic.com>
+---
+ crates/apxinf-model/src/pi05/ascend_ge.rs | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/crates/apxinf-model/src/pi05/ascend_ge.rs b/crates/apxinf-model/src/pi05/ascend_ge.rs
+index 6462252..076b7af 100644
+--- a/crates/apxinf-model/src/pi05/ascend_ge.rs
++++ b/crates/apxinf-model/src/pi05/ascend_ge.rs
+@@ -2683,8 +2683,9 @@ pub fn serve_loop(be: &AscendBackend, st: &mut E2eStage, dir: &str, tokens: usiz
+         assert_eq!(magic, 0x4751_4531, "serve 请求 magic 不符");
+         let l = u32::from_le_bytes([raw[4], raw[5], raw[6], raw[7]]) as usize;
+         // 静态模式 = 单 L 桶（L 须钉死）；gear 模式按请求 L 验长 + 选档
+-        //（档表外 L 由 gear_idx panic 拒绝——supervisor 档表 = 谱系全集）
+-        if pipe.pm.s.gear_payloads.is_empty() {
++        //（档表外 L 由 gear_idx panic 拒绝——supervisor 档表 = 谱系全集）；
++        // prefix 池模式（GEB_PREFIX_POOL）任意 L 由池换柄承载
++        if pipe.pm.s.gear_payloads.is_empty() && pipe.pm.pool_root.is_none() {
+             assert_eq!(
+                 l, tokens,
+                 "serve 请求 L={l} ≠ 本进程桶 GEB_TOKENS={tokens}（Python 侧挑桶错）"
+-- 
+2.55.0.windows.2
+

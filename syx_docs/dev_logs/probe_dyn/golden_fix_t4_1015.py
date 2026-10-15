@@ -124,7 +124,7 @@ with torch.no_grad():
         if s == 0:
             golden["step0_x1"] = (x + dt * v_t).float().reshape(-1, 32).cpu().numpy()
         x = x + dt * v_t
-golden["actions"] = x[:, :7].float().cpu().numpy()
+golden["actions"] = x.reshape(-1, x.shape[-1])[:, :7].float().cpu().numpy()
 
 save_file(golden, OUT)
 print(f"[fix] saved: {OUT} L={L} Pv={Pv} actions={golden['actions'].shape} "

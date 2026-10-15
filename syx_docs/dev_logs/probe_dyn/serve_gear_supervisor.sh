@@ -59,10 +59,18 @@ spawn_chip() { # spawn_chip <chip>
   echo "[supg] spawn chip$c gear serve $(date)" >> "$LOG"
   # GEB_CKPT_SERVE_MIN=1：ckpt 选择性读取（styles 链+嵌入表真值，其余
   # synthetic 占位——serve 装预烤 OM 不消费占位；bake 路径 probe 侧拒绝）
-  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 GEB_CKPT_SERVE_MIN=1 \
+  # GEB_PREFIX_POOL（T4R 2026-10-15）：prefix 段 per-L 静态 OM 池换柄执行
+  # （动态图结构数值分歧根因修复）；GEB_OM_DIR 指向 tl200_i8（= max 档静态
+  # prefix，warmup/预载句柄用；vision 同目录）——llist 仍传（flow 池+客户端
+  # 校验），但 prefix 组装侧被 POOL env 压回静态。
+  # ⚠ 池模式必须全量 ckpt（无 GEB_CKPT_SERVE_MIN）：静态桶 OM 是 260 Data
+  # 输入（权重 Data 化，老静态舰队同款），serve_min 占位权重只够 170 个
+  # bind——n_in 170!=260 直接 rc=-2（2026-10-15 实证）
+  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 \
     "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_inplace.json" \
     ASCEND_RT_VISIBLE_DEVICES=$c \
-    GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_OM_DIR=$DYN \
+    GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_LLIST=$LLIST GEB_OM_DIR=$OM/tl200_i8 \
+    GEB_PREFIX_POOL=$OM \
     GEB_FLOW_POOL=$OM \
     GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
     GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=$CKPT \

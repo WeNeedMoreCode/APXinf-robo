@@ -7,6 +7,6 @@ if [ -n "$1" ] && [ -f "$1" ]; then
   git apply --check "$1" && git apply "$1" && echo "[build] patch applied: $1" \
     || { echo "[build] PATCH FAILED: $1"; exit 2; }
 fi
-cargo build --release --example ge_model_probe 2>&1 | tail -5
+cargo build --release -p apxinf-model --example ge_model_probe --features ascend 2>&1 | tail -5
 echo "BUILD_RC=$? $(date -u '+%F %T')"
 ls -la target/release/examples/ge_model_probe
