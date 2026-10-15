@@ -70,7 +70,17 @@ val_spatial_t4_pool.jsonl（seed 7，与 gear 3/5、static 5/5 同口径）：
 **回退桶真退役定案**：数值证据（4.3% 静态漂移 + 行为 5/5）+ 运维面（单进程
 单芯、无 supervisor 档表依赖）双达标。
 
-## 五、遗留
+## 五、性能对账（t4 ×5 复验同场实测，GEB_SERVE_TIMING）
+
+- **prefix 段：p50 = 87.9ms**（55 采样，min 86.1；max 2671ms = 新 L 首调用
+  lazy 装载一次性成本，摊销后无感）——对照 **dyn 时代同段 102ms =
+  −14.1ms/replan 实测兑现**（预测带 13-16ms 正中）
+- flow 段稳态 74.3ms（sync 71.2 主导）与 dyn 时代持平（flow 本就同池）
+- **生产路径互差：池执行的就是静态 OM——dyn-vs-static prefix 互差 = 0.0%
+  （构造性 <0.3%）**；dyn OM 的 13.1% 互差随其退役归档（根因判决保留），
+  行为面 t4 ×5 = 5/5
+
+## 六、遗留
 
 - 133-136 档当晚已补烤（/tmp/bake_static.sh，chip5，fg4 同配方=260 接口）——
   下轮跑 goal 谱系前 fleet_watch + spot 验证
@@ -78,4 +88,3 @@ val_spatial_t4_pool.jsonl（seed 7，与 gear 3/5、static 5/5 同口径）：
   观察 spot 三谱系）
 - dyn prefix OM（tl_dyn 1.89GB）保留在 om_cache 作回滚路径，未删；
   tl_dyn_g154（E1 实验桶）2GB 同留档
-- 性能红利（~13-16ms/调用）未单独计时验证——下轮 spot_eval 看 model_ms
