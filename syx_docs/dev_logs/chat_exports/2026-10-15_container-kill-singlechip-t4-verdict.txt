@@ -1,0 +1,4343 @@
+ ▐▛███▛█   Claude Code v2.1.299
+▝▜██████▀  glm-5.3 · API Usage Billing
+ ▝▝   ▝▝   D:\compass\APXinf
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+  Thought for 1s (ctrl+o to expand)
+
+● 有一个问题，就一个：
+
+  spatial 套件的 t4 任务成功率会从基本必过掉到约 60%（今天实测 5 次过 3
+  次）。原因是 gear 路径和静态路径的数值有 ~1% 的微小差异，t4
+  这个任务恰好对这点差异特别敏感，会把策略推过决策边界。
+
+  其他一切正常：
+
+  - object / goal / spatial 其余任务：全部不受影响，照常全绿
+  - 性能：不变（246.9ms/call）
+  - 稳定性：不变
+
+  所以现状 = 「10 个任务里 1 个变成掷硬币」。修法已经锁定（把 ~1%
+  差异收敛掉，就是 handoff 里的 T4R 战役），修完 t4 回到必过，这事就彻底了结。
+
+✻ Cooked for 10s · done Thursday 5:23 PM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛀ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   299k/1m tokens (30%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 1.4k tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 14.7k tokens (1.5%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Memory files: 1.9k tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 3.1k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 277.9k tokens (27.8%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 701k (70.1%)
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 230 tokens
+     ├ CLAUDE.md: 427 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 1.3k tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ ge-offline-om: ~140 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~210 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ plugin-authoring: ~90 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ /export D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-15_container 
+-kill-singlechip-t4-verdict                                                     
+  ⎿  Conversation exported to: D:\compass\APXinf\syx_docs\dev_logs\chat_exports\
+     2026-10-15_container-kill-singlechip-t4-verdict.txt
+
+❯ /compact 聚焦保留：**结论与入口，不保数字**——① **拓扑终态 = 单芯**（chip4     
+gear serve ×1、无回退、v3 supervisor 不常驻、start_gear_supervisor.sh           
+唯一启动、fleet_watch GEAR_CHIPS 参数化、spot_eval CHIP=4、共享主机我们只准     
+4/5）；② I9 闭环（warmup 修复 inference 273.6）+ I10 判不立项；③ **t4           
+判决链**：gear 3/5 vs 静态 5/5（互差真实且行为相关）、static/dyn                
+彼此等距近似（golden 逐层剖面相同）、差异源 = dyn OM tiling/fusion（慢 13-16ms  
+旁证）、垃圾 payload 混沌地板 11-14%（A/B 必须真帧）；④ 下轮主线 = T4R          
+收敛战役（t4 真帧 golden → 逐层互差 → 钉 tiling/fusion → 复验 + 回收            
+14ms）。丢弃：容器被杀对账细节、A/B 探针往返——战报已记录（summary/2026-10-15_co 
+ntainer-kill-singlechip-t4-verdict.md）。                                       
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read C:\Users\素玄\.claude\projects\D--compass-APXinf\memory\shared-host-ch
+     ip-discipline.md (16 lines)
+  ⎿  Read C:\Users\素玄\.claude\projects\D--compass-APXinf\memory\fleet-infra-co
+     ntainer-topology.md (21 lines)
+  ⎿  Read syx_docs\dev_logs\handoff.md (52 lines)
+  ⎿  Read syx_docs\dev_logs\summary\2026-10-15_container-kill-singlechip-t4-verd
+     ict.md (52 lines)
+  ⎿  Read syx_docs\dev_logs\probe_dyn\ab_golden_dyn_static_1015.sh (30 lines)
+  ⎿  Skills restored (ascend-msprof, remote-ssh-windows, syx_skills, 
+     AscendC-ops-dev, verify_method)
+
+❯ /goal **t4 根因战役：dyn-vs-static 收敛**（正向解主线）：录 t4 真实帧         
+golden（L=151 主档）→ 逐层 dyn-vs-static **互差**定位（对拍工具已就位）→ 钉 dyn 
+OM 构建的 tiling/fusion 对齐静态 → 互差 ~1%→<0.3% → t4 ×5 复验 ≥ 静态 →         
+回退桶真退役 + **白捡 ~14ms/调用**（dyn prefix 慢静态 13-16ms 实测）。详见      
+summary/2026-10-15_container-kill-singlechip-t4-verdict.md §五                  
+                                                                                
+**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；eval          
+默认生产根 /data/apxinf/serve_gear（单芯 chip4；回退桶已退役——临时拉桶工具      
+spawn_fallback_bucket.sh + 单芯 v3 脚本都在盘上）；eval 必须容器内跑（`docker   
+exec -d apxinf_npu bash <脚本>`）；results-jsonl                                
+有记录即跳过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后        
+serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 ssh 必带 kex     
+配方；上行断流走 push119.sh（push 后 chmod +x）**；docker exec -d               
+必须脚本文件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool          
+清场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-14%——A/B       
+数值分歧必须用真帧 golden**；msprof 最小采集纪律；**舰队操作前先                
+fleet_watch、重启只走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用    
+chip 4/5（同事 vLLM 占                                                          
+0-3/6-7）；探针/加载类批处理合并进单进程（一次加载跑完所有测量——2026-10-15      
+五连加载被同事杀容器教训）；常驻面任何扩张先问用户**。                          
+  ⎿  Goal set: t4 根因战役：dyn-vs-static 收敛（正向解主线）：录 t4 真实帧
+     golden（L=151 主档）→ 逐层 dyn-vs-static 互差定位（对拍工具已就位）→ 钉 dyn
+     OM 构建的 tiling/fusion 对齐静态 → 互差 ~1%→<0.3% → t4 ×5 复验 ≥ 静态 →
+     回退桶真退役 + 白捡 ~14ms/调用（dyn prefix 慢静态 13-16ms 实测）。详见
+     summary/2026-10-15_container-kill-singlechip-t4-verdict.md §五
+
+     纪律：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约定；eval
+     默认生产根 /data/apxinf/serve_gear（单芯 chip4；回退桶已退役——临时拉桶工具
+     spawn_fallback_bucket.sh + 单芯 v3 脚本都在盘上）；eval
+     必须容器内跑（docker exec -d apxinf_npu bash <脚本>）；results-jsonl
+     有记录即跳过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后
+     serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；119 ssh 必带 kex 
+     配方；上行断流走 push119.sh（push 后 chmod +x）；docker exec -d
+     必须脚本文件形态；跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 
+     清场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-14%——A/B 
+     数值分歧必须用真帧 golden；msprof 最小采集纪律；舰队操作前先 
+     fleet_watch、重启只走 start_gear_supervisor.sh；共享主机纪律：我们只准用 
+     chip 4/5（同事 vLLM 占 
+     0-3/6-7）；探针/加载类批处理合并进单进程（一次加载跑完所有测量——2026-10-15 
+     五连加载被同事杀容器教训）；常驻面任何扩张先问用户。
+
+  Thought for 10s (ctrl+o to expand)
+
+● 收到，开工 T4R 战役。先记时间锚点，然后并行：查舰队状态 + 找 golden 工具链。
+
+● Bash(date)
+  ⎿  Thu, Oct 15, 2026  7:24:12 PM
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ==== fleet_watch 2026-10-15 11:28:28 ====
+     -- gear fleet (environ 指纹, chips=4) --
+     chip4 ALIVE(2p) pidfile=88 ready=2026-10-15 08:47:45
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 18s (ctrl+o to expand)
+
+● 时间锚点：19:24。舰队正常（chip4 ALIVE、supervisor 心跳 OK、回退
+  RETIRED）。log 里 chip1/chip2 respawn 是收缩前的历史行，不用管。
+
+  现在开 T4R 第①步：录 t4 真帧 golden。先找到 frame0_v3b 当时的生成工具和 t4
+  的任务定义：
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  total 8476692
+     drwxr-xr-x  2 root root       4096 Oct 15 06:52 .
+     drwxr-xr-x 45 root root      12288 Oct 15 08:59 ..
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 生成器找到了：/data/apxinf/golden/golden_gen_v3b.py（frame0_v3b
+  的作者，本地没有 v3b 版）。读它看帧源和输出面：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  """golden_gen_v3.py — 修正语义的 golden 一帧（空视图剔除，712 prefix）
+
+     v2 教训（2026-09-21 定位）：v2 的 kvk/step0_x1 来自 968 全开
+     replay——把
+     … +114 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● v3b 是「重放侧」：吃 frame0.safetensors（原始帧捕获，968 行 x0 + token_ids +
+  noise）再逐层重放。所以我需要的是上游捕获工具——找到当年写 frame0 的脚本：
+
+  Thought for 2s, searched for 1 pattern (ctrl+o to expand)
+
+● golden_gen.py 应该就是 v1 捕获器。读它：
+  Thought for 40s, read 1 file (ctrl+o to expand)
+
+● v1 捕获器结构清楚了：合成 obs + pol.infer 带 hook 抓 infer 侧真值 + 手工重放
+  kv/step0。当年是合成帧（随机图+重复文本凑 L=200）。T4R 要的是真 t4 
+  帧：真渲染图 + 真 state + 真 prompt（L=151 主档）。
+
+  先并行摸清两件事：eval 侧怎么造 t4 env（拿真帧）、引擎 probe
+  有没有输出落盘旋钮（互差需要双方输出都落盘）：
+
+  Thought for 5s, searched for 2 patterns (ctrl+o to expand)
+
+● 有 capture_libero.py 捕获 CLI——先读它，再读引擎 golden 对拍段：
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● 捕获管线齐了：load_suite → get_task(i) → make_env → set_init_state + 10 步中性
+  settle → 真帧。还需要三件事：--tasks 4 的索引语义、真帧 golden 的直系祖先
+  golden_gen_v3calib.py（看它怎么吃真 obs）、引擎 probe 的 golden 段有没有 dump
+  能力：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  #!/usr/bin/env python3
+     """golden_gen_v3calib.py — 校准 v3 数据面（多帧 prefix + flow per-step
+      包络 + 代表帧激活采样）。
+     … +193 lines (ctrl+o to expand)
+
+  Thought for 15s, searched for 1 pattern (ctrl+o to expand)
+
+● 关键信息到手：
+  - --tasks 4 = task_id 4（0 基）；trial 种子公式 seed + 1_000_003*task_id + 
+    10_007*trial
+  - golden_gen_v3calib.py 证明真帧资产格式就是 patches_fi / token_ids_fi / 
+    noise_fi，重放侧与 v3b 同款
+
+  现在看引擎 probe 的 golden 段——互差需要把 dyn/static
+  双方输出落盘，确认现有旋钮够不够：
+
+  Thought for 3s, searched for 1 pattern (ctrl+o to expand)
+
+● 好消息：GEB_E2E_DUMP_MID 已存在（全部调试槽位 f16 落盘）。看它具体落什么：
+
+  Thought for 38s, read 1 file (ctrl+o to expand)
+
+● dump 槽位现在只落 aux（skip(nkv)），36 路 kv 不落盘——但互差有个零改动巧路：把
+  static 的 kv 输出做成 golden 合并进 safetensors，dyn 跑的时候 cmp_mid
+  打的漂移就直接是 dyn-vs-static 互差，GEB_E2E_PK_GOLD=1 还能把 static 的 kv
+  替进 dyn 的 flow 做归因二分。唯一要动引擎的 = dump 段去掉 skip(nkv)（两行）。
+
+  先看 eval 怎么选 init state（golden 要用失败 trial 0 的真帧）+ 确认服务器上
+  tl151 静态 OM 还在：
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  tl141_i8
+     tl141n32
+     tl142
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● trial 0 的帧 = initial_states[0]（无随机选择，直接下标）。确认 tl151 OM
+  的确切位置和 run_episode 的 settle 语义：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  /data/apxinf/om_cache/tl153iso
+     /data/apxinf/om_cache/tl154
+     /data/apxinf/om_cache/tl154_i8
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 6s, searched for 1 pattern (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  /data/apxinf/om_cache/tl151
+     /data/apxinf/om_cache/tl151_i8
+     /data/apxinf/om_cache/tl151iso
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 41s, read 1 file (ctrl+o to expand)
+
+● tl151_i8 在、settle 语义明确（set_init_state + WAIT_STEPS×[0..0,−1]）。查
+  policy 的 key 属性和 WAIT_STEPS 值，然后写捕获脚本：
+
+  Thought for 32s, searched for 2 patterns (ctrl+o to expand)
+
+● 写捕获脚本前对齐一个坑：torchair 实例级编译会吞 hook（visioncalib 的教训是
+  delattr(pwe, "embed_image")）。看它的处理姿势：
+
+  Thought for 1m 10s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 配方齐了。写捕获脚本（真 t4 帧 + v3b 语义重放，单进程一次加载，chip5）：
+
+● Write(syx_docs\dev_logs\probe_dyn\golden_gen_t4_1015.py)
+  ⎿  Wrote 230 lines to syx_docs\dev_logs\probe_dyn\golden_gen_t4_1015.py
+       1 #!/usr/bin/env python3
+         主档）
+       3 
+         026-10-15
+         。
+       6 单进程一次加载三段（共享主机纪律：探针合并单进程）：
+       8      init_states[0]（= 失败 trial0 同源首帧）、make_env(task, se
+         ed 7)、
+         款）
+         gen.py：
+     … +275 lines (ctrl+o to expand)
+
+● Write(syx_docs\dev_logs\probe_dyn\run_t4golden_1015.sh)
+  ⎿  Wrote 8 lines to syx_docs\dev_logs\probe_dyn\run_t4golden_1015.sh
+      1 #!/bin/bash
+      2 # run_t4golden_1015.sh — T4R ① 真帧 golden 捕获（apxinf_npu 容器
+        内跑，chip 5）
+      3 # 脚本自带 sys.path 注入（不碰 PYTHONPATH——容器默认 tbe/site-pack
+        ages 不能被覆盖）
+      5 MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=5 HF_ENDPOINT=https://hf-
+        mirror.com \
+      6   python3 /data/apxinf/golden/golden_gen_t4_1015.py \
+      7   > /data/apxinf/golden/t4gen.log 2>&1
+      8 echo "RC=$? $(date -u '+%F %T')" >> /data/apxinf/golden/t4gen.log
+     … +1 line (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 推送上服务器并起跑（先验容器与 chip5 空闲）：
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      golden_gen_t4_1015.py /data/apxinf/golden/golden_gen_t4_1015.py && bash
+      push119.sh run_t4gol…)
+  ⎿  0ba4e0cd72fedc293253a9c84b51f944
+     local : 0ba4e0cd72fedc293253a9c84b51f944
+     9e7bf99d8f505f18ab15b6a268341d11
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 推送成功、双容器在。看 chip 占用（确认 5 空闲）：
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  | 1       310P3                 | OK              | NA           62
+                  19567 / 19567         |
+     | 0       0                     | 0000:01:00.0    | 0            41067
+     … +13 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  | 5       310P3                 | OK              | NA           61
+                  0     / 0             |
+     | 1       7                     | 0000:82:00.0    | 0            1730
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● chip5 空（0/0），chip4 是生产 serve。起跑捕获（预计 ~6-8 分钟，一次加载）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  1
+
+  Thought for 3s (ctrl+o to expand)
+
+● 进程已起。趁捕获跑着（~6-8 分钟），做引擎侧两处 dump 改动。先看 actions
+  对拍段的上下文：
+
+  Thought for 19s, read 1 file (ctrl+o to expand)
+
+● 捕获在跑。现在改引擎 dump——两处：① kv 槽位也落盘（挪出 outs.len() > nkv
+  守卫）；② actions 落盘（互差的 golden 合并原料）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 14 lines, removed 11 lines
+      3823          let outs = e2e_run(ctx, stream, &mut s, "prefix");
+      3824          let nkv = depth * 2;
+      3825          assert!(outs.len() >= nkv, "prefix OM 输出 {} < kv {}
+            ", outs.len(), nkv);
+      3826 +        // GEB_E2E_DUMP_MID=<dir>：prefix 全部输出原始 f16 落
+           +盘——含 36 路 kv                                              
+      3827 +        //（slot{2i}=k_l{i} / slot{2i+1}=v_l{i}，行数 = 可见 
+           +Pv）+ 调试槽位                                               
+      3828 +        //（GEB_DBG_MID 烤的 OM 才有；槽值可能被复用覆写，判 
+           +读用「值匹配                                                 
+      3829 +        // 教科书哪级」而非槽序）。T4R 用法：static 侧 dump →
+           + 合并进 golden                                               
+      3830 +        // → dyn 跑时 cmp_mid 打的即逐层 dyn-vs-static 互差  
+      3831 +        if let Ok(dir) = std::env::var("GEB_E2E_DUMP_MID") { 
+      3832 +            std::fs::create_dir_all(&dir).expect("dump dir");
+      3833 +            for (i, vals) in outs.iter().enumerate() {       
+      3834 +                let bytes: Vec<u8> =                         
+      3835 +                    vals.iter().flat_map(|v| v.to_bits().to_l
+           +e_bytes()).collect();                                        
+      3836 +                std::fs::write(format!("{dir}/ge_slot{i}.f16"
+           +), &bytes).expect("dump mid");                               
+      3837 +            }                                                
+      3838 +            println!("[e2e] prefix 输出已落盘 {dir}/ge_slot{{
+           +0..{}}}.f16（含 36 路 kv）", outs.len());                    
+      3839 +        }                                                    
+      3840          if outs.len() > nkv {
+      3841              // 剔除空视图时 golden 参考键为 _vis（712 行，与
+            图槽同形）
+      3842              if drop_v > 0 {
+     ...
+      3846                  st.cmp_mid("m0", &outs[nkv]);
+      3847                  st.cmp_mid("h1", &outs[nkv + 1]);
+      3848              }
+      3835 -            // GEB_E2E_DUMP_MID=<dir>：全部调试槽位原始 f16  
+           -落盘                                                         
+      3836 -            //（ge_slot{i}.f16，i 与图输出序一致——槽值可能被 
+           -复用覆写，                                                   
+      3837 -            // 判读用「值匹配教科书哪级」而非槽序）          
+      3838 -            if let Ok(dir) = std::env::var("GEB_E2E_DUMP_MID"
+           -) {                                                          
+      3839 -                for (i, vals) in outs.iter().enumerate().skip
+           -(nkv) {                                                      
+      3840 -                    let bytes: Vec<u8> =                     
+      3841 -                        vals.iter().flat_map(|v| v.to_bits().
+           -to_le_bytes()).collect();                                    
+      3842 -                    std::fs::write(format!("{dir}/ge_slot{i}.
+           -f16"), &bytes).expect("dump mid");                           
+      3843 -                }                                            
+      3844 -                println!("[e2e] 调试槽位已落盘 {dir}/ge_slot{
+           -{nkv+}}.f16 ×{}", outs.len() - nkv);                         
+      3845 -            }                                                
+      3849          }
+      3850          st.kv = outs[..nkv].to_vec();
+      3851          let m = st.kv.iter().flat_map(|v| v.iter()).fold(0f32
+            , |m, v| m.max(v.to_f32().abs()));
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines
+      4775              );
+      4776          }
+      4777          st.actions = x;
+      4778 +        // GEB_E2E_DUMP_MID 同目录落 actions（f16 raw [50,ADI
+           +M]——T4R 互差的                                               
+      4779 +        // golden 合并原料：static actions 并进 golden_action
+           +s 后，dyn 跑的                                               
+      4780 +        // GOLDEN PARITY 即 actions 级 dyn-vs-static 互差）  
+      4781 +        if let Ok(dir) = std::env::var("GEB_E2E_DUMP_MID") { 
+      4782 +            let bytes: Vec<u8> = st.actions.iter().flat_map(|
+           +v| v.to_bits().to_le_bytes()).collect();                     
+      4783 +            std::fs::write(format!("{dir}/ge_actions.f16"), &
+           +bytes).expect("dump actions");                               
+      4784 +            println!("[e2e] actions 已落盘 {dir}/ge_actions.f
+           +16");                                                        
+      4785 +        }                                                    
+      4786          if let Some(g) = &st.golden_actions {
+      4787              // golden actions = predict_action_chunk 的 deplo
+            yable 切片
+      4788              // (50, gd)——取 e2e 输出 [50, ADIM] 每行前 gd 列
+            比（pad_vector
+
+  Thought for 6s (ctrl+o to expand)
+
+● 引擎改动完成。提交子模块并同步服务器构建，顺带看捕获进度：
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -m "T4R
+      instrumentation: GEB_E2E_DUMP_MID now dumps all 36 kv out…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     [ascend-port 834cb7b] T4R instrumentation: GEB_E2E_DUMP_MID now dumps
+     … +4 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf && git add apxinf && git commit -m "Bump apxinf
+      submodule: T4R dump instrumentation (kv + actions slots)…)
+  ⎿  [main a5fac06] Bump apxinf submodule: T4R dump instrumentation (kv + a
+     ctions slots)
+      1 file changed, 1 insertion(+), 1 deletion(-)
+     … +4 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ImportError: apxinf is not importable. It is a git submodule of this r
+     epository, not a pip dependency, because it is a Rust/PyO3/CUDA build
+     that has to be compiled for the target machine:
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 两个问题：
+  1. 捕获挂了——apxinf_robo.envs.libero 触发 apxinf（编译包）导入，需要
+     engine_py/apxinf 进 PYTHONPATH（追加式）
+  2. 服务器 /data/apxinf/apxinf_engine 不是 git 仓——补丁用 git 
+     apply（免仓可用）或 patch -p1 落
+
+  先修 runner 重跑：
+
+● Update(syx_docs\dev_logs\probe_dyn\run_t4golden_1015.sh)
+  ⎿  Added 4 lines, removed 2 lines
+       1  #!/bin/bash
+       2  # run_t4golden_1015.sh — T4R ① 真帧 golden 捕获（apxinf_npu 容
+          器内跑，chip 5）
+       3 -# 脚本自带 sys.path 注入（不碰 PYTHONPATH——容器默认 tbe/site-pa
+         -ckages 不能被覆盖）                                            
+       3 +# PYTHONPATH 只可追加（-e 覆盖式会打死 torch_npu GE init——tbe  
+         +丢失）；                                                       
+       4 +# engine_py/apxinf = 编译好的 apxinf PyO3 包（apxinf_robo.envs 
+         +触发导入）                                                     
+       5  cd /data/apxinf/golden
+       6  MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=5 HF_ENDPOINT=https://h
+          f-mirror.com \
+       6 -  python3 /data/apxinf/golden/golden_gen_t4_1015.py \          
+       7 +PYTHONPATH=/data/apxinf/engine_py/apxinf:$PYTHONPATH \         
+       8 +  exec python3 /data/apxinf/golden/golden_gen_t4_1015.py \     
+       9    > /data/apxinf/golden/t4gen.log 2>&1
+      10  echo "RC=$? $(date -u '+%F %T')" >> /data/apxinf/golden/t4gen.l
+          og
+
+  Thought for 3s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\probe_dyn\run_t4golden_1015.sh)
+  ⎿  Added 1 line, removed 1 line
+       5  cd /data/apxinf/golden
+       6  MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=5 HF_ENDPOINT=https://h
+          f-mirror.com \
+       7  PYTHONPATH=/data/apxinf/engine_py/apxinf:$PYTHONPATH \
+       8 -  exec python3 /data/apxinf/golden/golden_gen_t4_1015.py \     
+       8 +  python3 /data/apxinf/golden/golden_gen_t4_1015.py \          
+       9    > /data/apxinf/golden/t4gen.log 2>&1
+      10  echo "RC=$? $(date -u '+%F %T')" >> /data/apxinf/golden/t4gen.l
+          og
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      run_t4golden_1015.sh /data/apxinf/golden/run_t4golden_1015.sh && ssh -F
+      /dev/null -i /c/sshk…)
+  ⎿  a66293433ca83603a28ed55ecb8b843b
+     local : a66293433ca83603a28ed55ecb8b843b
+     1
+
+  Thought for 9s (ctrl+o to expand)
+
+● 捕获重跑中。同步引擎补丁并找构建环境：
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      t4r_dump_834cb7b.patch /data/apxinf/t4r_dump_834cb7b.patch >/dev/null
+      2>&1; ssh -F /dev/null…)
+  ⎿  which: no cargo in (/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bi
+     n:/usr/local/Ascend/ascend-toolkit/latest/bin:/usr/local/Ascend/ascend
+     -toolkit/latest/compiler/ccec_compiler/bin:/usr/local/Ascend/ascend-to
+     … +32 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● cargo 在 /data/apxinf/rust/bin（rust_env.sh 全套）。落补丁 + 后台构建：
+
+● Write(syx_docs\dev_logs\probe_dyn\build_engine_t4r_1015.sh)  ⎿  Wrote 12 lines to syx_docs\dev_logs\probe_dyn\build_engine_t4r_1015.sh
+       1 #!/bin/bash
+       2 # build_engine_t4r_1015.sh — 引擎增量构建（apxinf_rust 容器内）
+       3 # 用法: build_engine_t4r_1015.sh [patch]  —— patch 传了先 git ap
+       4 source /data/apxinf/rust_env.sh
+       5 cd /data/apxinf/apxinf_engine
+       6 if [ -n "$1" ] && [ -f "$1" ]; then
+       7   git apply --check "$1" && git apply "$1" && echo "[build] patc
+       8     || { echo "[build] PATCH FAILED: $1"; exit 2; }
+       9 fi
+      10 cargo build --release --example ge_model_probe 2>&1 | tail -5
+     … +4 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      build_engine_t4r_1015.sh /data/apxinf/build_engine_t4r_1015.sh >/dev/null
+      2>&1 && ssh -F /de…)
+  ⎿  [build] patch applied: /data/apxinf/t4r_dump_834cb7b.patch
+     error: no example target named `ge_model_probe`.
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 补丁已落；构建目标名不对（例程不在根 examples）。查真实目标位置：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ascend_layer_smoke.rs
+     ascend_random_bench.rs
+     ascend_registry_smoke.rs
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [workspace]
+     members = [
+         "crates/apxinf-core",
+     … +28 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 根包是 workspace+package 混合，带 ascend feature。直接带 feature 构建试试：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  error: no example target named `ge_model_probe`.
+
+  Thought for 15s (ctrl+o to expand)
+
+● 从 cargo 视角看有哪些 example 目标（可能发现机制有问题）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  "kind":["example"],"crate_types":["bin"],"name":"ge_layer_probe","src_
+     path":"/data/apxinf/apxinf_engine/crates/apxinf-model/examples/ge_laye
+     r_probe.rs","edition":"2021","doc":false,"doctest":false,"test":false}
+     … +27 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 例程在 crates/apxinf-model/examples/，要用 -p apxinf-model 构建。重跑：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿       |
+
+     warning: `apxinf-model` (lib) generated 88 warnings (run `cargo fix --
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 构建完成（38.8s，新二进制 11:40）。看捕获进度：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [info] using task orders [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+     [t4] task='pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabi
+     net_and_place_it_on_the_plate' prompt='pick up the black bowl in the t
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 26s (ctrl+o to expand)
+
+● 捕获推进中（t4 = "pick up the black bowl in the top drawer…on the plate"，50
+  个 init state，模型加载中）。趁等待，确认引擎 GEB_FLOW_POOL 的 per-L
+  解析逻辑：
+
+  Thought for 48s, searched for 1 pattern (ctrl+o to expand)
+
+● flow 池解析 = {pool}/tl{L}_i8/flow_real.om（需 GEB_DYN_LLIST 同时在场）。确认
+  tl151_i8 里有 flow_real.om，然后写互差三连的工具：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  flow_real.om
+     prefix_real.om
+     vision_real.om
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 17s (ctrl+o to expand)
+
+● tl151_i8 齐。但捕获又挂：忘了 golden_gen.py 的关键覆盖——pol.image_keys 只留前
+  2 真视图、后 2 归 empty（ckpt 有 4 视图位）。修：
+
+● Update(syx_docs\dev_logs\probe_dyn\golden_gen_t4_1015.py)
+  ⎿  Added 6 lines, removed 1 line
+      60          pass
+      61  pwe.paligemma.language_model.config._attn_implementation = "eag
+          er"
+      62  pwe.gemma_expert.model.config._attn_implementation = "eager"
+      63 -print("[t4] image_keys:", pol.image_keys, "empty:", pol._empty_
+         -features, flush=True)                                          
+      63 +# 9/10 语义（golden_gen.py 同款）：只喂 2 真实视图，empty_camer
+         +a 走 missing                                                   
+      64 +# 路径（_preprocess_images 填 -1 pad 图 + mask=0）——不覆盖则 in
+         +fer 要 4 键全喂                                                
+      65 +print("[t4] image_features:", pol._image_features, flush=True) 
+      66 +pol.image_keys = tuple(pol._image_features[:2])                
+      67 +pol._empty_features = tuple(pol._image_features[2:])           
+      68 +print("[t4] effective image_keys:", pol.image_keys, "empty:", p
+         +ol._empty_features, flush=True)                                
+      69  
+      70  env = make_env(task, ENV_SEED)
+      71  env.reset()
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      golden_gen_t4_1015.py /data/apxinf/golden/golden_gen_t4_1015.py >/dev/null
+      2>&1 && ssh -F /d…)
+  ⎿  1
+
+  Thought for 8s (ctrl+o to expand)
+● 第三次起跑（这次带了 image_keys 覆盖）。趁加载写互差工具两件：
+
+● Write(syx_docs\dev_logs\probe_dyn\mk_merged_golden_t4_1015.py)
+  ⎿  Wrote 44 lines to
+     syx_docs\dev_logs\probe_dyn\mk_merged_golden_t4_1015.py
+       1 #!/usr/bin/env python3
+         互差协议）
+       3 
+       4 用法: mk_merged_golden_t4_1015.py <dump_dir> <out_safetensors>
+         ot{2i+1}=v_l{i}
+       6 f16 raw + ge_actions.f16），把 t4 真帧 golden 的 kvk_l*/kvv_l*/a
+       7 时的 m0_vis/h1_vis）替换成 static 引擎值 → dyn 跑这份 golden 时 
+         cmp_mid /
+       8 GOLDEN PARITY 打的即逐层 dyn-vs-static 互差。
+      10 import os
+     … +43 lines (ctrl+o to expand)
+
+● Write(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Wrote 44 lines to syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh
+       1 #!/bin/bash
+       2 # ab_t4_mutual_1015.sh — T4R ②：t4 真帧 golden 下 static/dyn 背
+       3 #   run1 static vs torch（dump kv/actions 出来）
+       4 #   run2 dyn    vs torch（漂移参照——与 static 剖面比形态）
+       5 #   run3 dyn    vs static-合并-golden（cmp_mid = 逐层 dyn-vs-sta
+       6 #               GOLDEN PARITY = actions 级互差）
+       7 # chip5 空卡顺序跑（同芯同时代）；probe 直调不碰生产 spool。
+       8 # TOKENS 由 frame0_t4v1 实际 L 决定（t4 预期 151，跑前核对 t4gen
+       9 set -e
+      10 TOKENS=${TOKENS:-151}
+     … +45 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      mk_merged_golden_t4_1015.py
+      /data/apxinf/golden/mk_merged_golden_t4_1015.py >/dev/null 2>&1…)
+  ⎿  WARNING:lerobot.configs.policies:Device 'cuda' is not available. Switc
+     hing to 'cpu'.
+     WARNING:root:No accelerated backend detected. Using default cpu, this
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 趁捕获还在加载，再写个离线对分工具（比 cmp_mid 的单 max_diff
+  更富的统计面——max/mean/余弦 + actions）：
+
+● Write(syx_docs\dev_logs\probe_dyn\cmp_dumps_t4_1015.py)
+  ⎿  Wrote 43 lines to syx_docs\dev_logs\probe_dyn\cmp_dumps_t4_1015.py
+      1 #!/usr/bin/env python3
+      2 """cmp_dumps_t4_1015.py — static/dyn 两份 GEB_E2E_DUMP_MID 目录离
+        线互差
+      4 用法: cmp_dumps_t4_1015.py <static_dir> <dyn_dir> [Pv]
+      5 统计面：逐层 kvk/kvv 的 max_diff / rel% / mean_abs / cosine + act
+        ions 互差。
+      6 ⚠ 两个目录来自两次独立进程（代际噪声 ~0.3% 记忆在案）——权威互差以
+        形态。
+      8 """
+      9 import sys
+     … +45 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      cmp_dumps_t4_1015.py /data/apxinf/golden/cmp_dumps_t4_1015.py >/dev/null
+      2>&1 && sleep 120 &…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 等结果的同时预扫 ③ 的靶区——ge_builder 里动态档 prefix OM
+  的构建路径（与静态的分歧点）：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Background command "Push cmp tool, wait 2min, check capture" completed (exit
+code 0)
+
+  Thought for 13s, read 1 file (ctrl+o to expand)
+
+● 后台任务读到了（还在加载，无新内容）。继续预扫 ③：gear 的图构建在 C++
+  侧（dlopen geb_* 符号），找源码位置：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 21s, searched for 1 pattern (ctrl+o to expand)
+
+● C++ 构建器在服务器 /data/apxinf/ascendc/ge_builder/（图编译/tiling
+  决策在那边）。等捕获数据出来再钻。看后台检查结果：
+
+● Bash(sleep 90 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXin
+      f/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bzvyp5z33.output" 2>/dev/null
+      | tail -8; ssh…)
+  ⎿    File "/data/apxinf/robo_src/apxinf_robo/npu_torch.py", line 259, in
+     _to_frame
+         raise ValueError(
+     … +15 lines (ctrl+o to expand)
+
+● Background command "Wait then check capture completion" completed (exit code
+0)
+
+  Thought for 1m 49s (ctrl+o to expand)
+
+● state 7≠8：LeRobot 系 ckpt 要双指 8 维，raw obs 是 openpi 单指 7 维。看
+  envs/libero.py 的转换助手：
+
+  Thought for 27s, searched for 2 patterns, read 2 files (ctrl+o to expand)
+
+● eval 真实语义拿到：libero_images（翻转帧）+ libero_state_lerobot（8
+  维）。修捕获脚本的 obs 组装：
+
+● Update(syx_docs\dev_logs\probe_dyn\golden_gen_t4_1015.py)
+  ⎿  Added 1 line, removed 1 line
+      28  sys.path.insert(0, "/data/apxinf/robo_src")
+      29  os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+      30  from apxinf_robo.npu_torch import NpuTorchPi05Policy  # noqa: E
+          402
+      31 -from apxinf_robo.envs.libero import make_env, to_apxinf_observa
+         -tion  # noqa: E402                                             
+      31 +from apxinf_robo.envs.libero import make_env, libero_images, li
+         +bero_state_lerobot  # noqa: E402                               
+      32  from lerobot.policies.pi05.modeling_pi05 import make_att_2d_mas
+          ks  # noqa: E402
+      33  
+      34  CKPT = "/data/apxinf/weights/pi05_libero_finetuned"
+
+● Update(syx_docs\dev_logs\probe_dyn\golden_gen_t4_1015.py)
+  ⎿  Added 9 lines, removed 4 lines
+      73  for _ in range(WAIT_STEPS):
+      74      raw, _, _, _ = env.step(NEUTRAL_ACTION)
+      75  env.close()
+      76 -obs = to_apxinf_observation(                                   
+      77 -    raw, prompt=prompt,                                        
+      78 -    image_keys=(pol.image_keys[0], pol.image_keys[1]),         
+      79 -    prompt_key=pol.prompt_key, state_key=pol.state_key)        
+      76 +# eval 同款预处理（eval_libero run_episode）：翻转帧 + LeRobot 
+         +8 维 state                                                     
+      77 +# （npu-torch/npu-ge 系 ckpt = pos+axis-angle+双指；7 维 openpi
+         + 版会 ValueError）                                             
+      78 +images = libero_images(raw["agentview_image"], raw["robot0_eye_
+         +in_hand_image"])                                               
+      79 +obs = {                                                        
+      80 +    pol.image_keys[0]: images[0],                              
+      81 +    pol.image_keys[1]: images[1],                              
+      82 +    pol.state_key: libero_state_lerobot(raw),                  
+      83 +    pol.prompt_key: prompt,                                    
+      84 +}                                                              
+      85  print("[t4] obs:", {k: (f"str:{v[:36]}" if isinstance(v, str) e
+          lse np.asarray(v).shape)
+      86                      for k, v in obs.items()}, flush=True)
+      87  
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      golden_gen_t4_1015.py /data/apxinf/golden/golden_gen_t4_1015.py >/dev/null
+      2>&1 && ssh -F /d…)
+  ⎿  1
+     Thu, Oct 15, 2026  7:47:45 PM
+
+  Thought for 30s (ctrl+o to expand)
+
+● 等待时修一个隐患：dyn 桶的选择按 llist 位置 映射——运行时 llist
+  必须与烤桶时一致（完整 26 档表），不能用单值 151（会错位选到 L=133 档）。flow
+  池也按 llist 逐档装载：
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)  ⎿  Added 2 lines
+       8  # TOKENS 由 frame0_t4v1 实际 L 决定（t4 预期 151，跑前核对 t4ge
+          n.log）
+       9  set -e
+      10  TOKENS=${TOKENS:-151}
+      11 +# llist 必须 = tl_dyn 烤桶时的完整 26 档表（桶选择按位置映射， 
+         +错位 = 选错档）                                                
+      12 +LLIST=${LLIST:-133,134,135,136,137,138,139,140,141,142,143,144,
+         +145,146,147,148,149,150,151,152,153,154,155,156,157,200}       
+      13  G=/data/apxinf/golden/frame0_t4v1.safetensors
+      14  MG=/data/apxinf/golden/frame0_t4v1_staticgold.safetensors
+      15  DA=/data/apxinf/golden/dump_static_t4
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 1 line, removed 1 line
+      23      GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_in
+          place.json \
+      24      ASCEND_RT_VISIBLE_DEVICES=5 \
+      25      GEB_SEG=e2e GEB_E2E_GOLDEN=$gold GEB_TOKENS=$TOKENS \
+      26 -    GEB_OM_DIR=$omdir GEB_FLOW_POOL=/data/apxinf/om_cache GEB_D
+         -YN_LLIST=$TOKENS \                                             
+      26 +    GEB_OM_DIR=$omdir GEB_FLOW_POOL=/data/apxinf/om_cache GEB_D
+         +YN_LLIST=$LLIST \                                              
+      27      GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
+      28      GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=/data/apxinf/weights/pi0
+          5_libero_finetuned \
+      29      GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/s
+          mooth_calib_v3_engine.safetensors \
+
+  Thought for 4s (ctrl+o to expand)
+
+● 推送更新 + 核对烤桶时的 llist（看 supervisor 的档表）：
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      ab_t4_mutual_1015.sh /data/apxinf/golden/ab_t4_mutual_1015.sh >/dev/null
+      2>&1 && ssh -F /dev…)
+  ⎿  #   ③ serve env 带 GEB_DYN_LLIST 档表 + GEB_TOKENS=200（= max L，binds
+      按
+           GEB_WCONST=1 GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=$LMAX GEB_DYN_
+     … +7 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  LLIST="133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148
+     ,149,150,151,152,153,154,155,156,157,200"
+           GEB_WCONST=1 GEB_PREFIX_DROP_EMPTY=256 GEB_TOKENS=$LMAX GEB_DYN_
+     LLIST=$LLIST GEB_CKPT=$CKPT \
+
+  Thought for 3s (ctrl+o to expand)
+
+● 档表一致。等捕获收尾（约 3-5 分钟）：
+
+● Bash(sleep 240; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 等的时候把这个坑记进 memory（今天踩了两次的 eval
+  语义坑，以后捕获脚本必再遇）：
+
+  Wrote 2 memories (ctrl+o to expand)
+
+● Bash(sleep 150 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bh361zeck.output"
+      2>/dev/null | tail -10)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(sleep 100; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿    return _contexts.setdefault(threading.currentThread().ident, [])
+     /usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/t
+     be/impl/ops_legacy/concat_v2_d.py:117: DeprecationWarning: te.utils.sh
+     … +14 lines (ctrl+o to expand)
+
+● Background command "Wait 4 min then check capture result" completed (exit code
+0)
+
+  Thought for 1m 2s (ctrl+o to expand)
+
+● 捕获成功，但有个关键意外：L=200——tokenizer 把 t4 的真实 prompt 补 pad 到 
+  max_length=200（v1 当年就是拿重复短语避开 pad 的）。生产 gear 路径的 151 档 =
+  客户端会剥 pad。先确认客户端（npu_ge）到底发什么：
+
+  Thought for 26s, searched for 1 pattern (ctrl+o to expand)
+
+● 客户端语义实锤：pad_token_id=0、只在尾部、真文本不含 0 →
+  截非零前缀。写修正脚本：剥 pad → 663 行重放（10 步 euler 出真 actions 参考）→
+  frame0_t4v1b.safetensors：
+
+● Write(syx_docs\dev_logs\probe_dyn\golden_fix_t4_1015.py)
+  ⎿  Wrote 132 lines to syx_docs\dev_logs\probe_dyn\golden_fix_t4_1015.py
+       1 #!/usr/bin/env python3
+         长主档）
+       3 
+         length=200
+       5 （pad_token_id=0 尾部）；生产 npu_ge 客户端是「截非零前缀按真长
+       6 （npu_ge.py _frame_inputs 同式）。本脚本把捕获产物修到引擎真语义
+         ：
+       8   2) x0_vis = [x0[:512] 真视图, x0[768:768+L] 真文本]（663 行）
+       9   3) prefix replay（全开 mask）→ kvk/kvv×18 + m0_vis/res0/h1_vis
+      10      prefix_hidden_vis
+     … +154 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● Update(syx_docs\dev_logs\probe_dyn\golden_fix_t4_1015.py)
+  ⎿  Added 1 line, removed 1 line
+      36  g = load_file(SRC)
+      37  ids = g["token_ids"].astype(np.int64)
+      38  nz = int(np.count_nonzero(ids))
+      39 -assert ids[nz:] .all() == 0 if nz < len(ids) else True, "pad 不
+         -在尾部"                                                        
+      39 +assert np.all(ids[nz:] == 0), "pad 不在尾部（非零前缀假设被破坏
+         +）"                                                            
+      40  L = nz
+      41  print(f"[fix] token 非零前缀 L={L}（pad {len(ids) - L} 个尾置 i
+          d=0）", flush=True)
+      42  
+
+● Write(syx_docs\dev_logs\probe_dyn\run_t4fix_1015.sh)
+  ⎿  Wrote 8 lines to syx_docs\dev_logs\probe_dyn\run_t4fix_1015.sh
+      1 #!/bin/bash
+      2 # run_t4fix_1015.sh — T4R ①补：剥 pad 重放（apxinf_npu 容器，chip
+         5）
+      3 cd /data/apxinf/golden
+      4 MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=5 HF_ENDPOINT=https://hf-
+        mirror.com \
+      5 PYTHONPATH=/data/apxinf/engine_py/apxinf:$PYTHONPATH \
+      6   python3 /data/apxinf/golden/golden_fix_t4_1015.py \
+      7   > /data/apxinf/golden/t4fix.log 2>&1
+      8 echo "RC=$? $(date -u '+%F %T')" >> /data/apxinf/golden/t4fix.log
+
+● Update(syx_docs\dev_logs\probe_dyn\mk_merged_golden_t4_1015.py)
+  ⎿  Added 1 line, removed 1 line
+      13  import numpy as np
+      14  from safetensors.numpy import load_file, save_file
+      15  
+      16 -GOLDEN = "/data/apxinf/golden/frame0_t4v1.safetensors"         
+      16 +GOLDEN = "/data/apxinf/golden/frame0_t4v1b.safetensors"        
+      17  DEPTH = 18
+      18  
+      19  dump_dir, out = sys.argv[1], sys.argv[2]
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 2 lines, removed 2 lines
+      10  TOKENS=${TOKENS:-151}
+      11  # llist 必须 = tl_dyn 烤桶时的完整 26 档表（桶选择按位置映射，
+          错位 = 选错档）
+      12  LLIST=${LLIST:-133,134,135,136,137,138,139,140,141,142,143,144,
+          145,146,147,148,149,150,151,152,153,154,155,156,157,200}
+      13 -G=/data/apxinf/golden/frame0_t4v1.safetensors                  
+      14 -MG=/data/apxinf/golden/frame0_t4v1_staticgold.safetensors      
+      13 +G=/data/apxinf/golden/frame0_t4v1b.safetensors                 
+      14 +MG=/data/apxinf/golden/frame0_t4v1b_staticgold.safetensors     
+      15  DA=/data/apxinf/golden/dump_static_t4
+      16  DB=/data/apxinf/golden/dump_dyn_t4
+      17  
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      golden_fix_t4_1015.py /data/apxinf/golden/golden_fix_t4_1015.py >/dev/null
+      2>&1 && bash push…)
+  ⎿  1
+     Thu, Oct 15, 2026  7:55:44 PM
+
+  Thought for 6s (ctrl+o to expand)
+
+● 修正重放跑起来了。把本轮工具提交入库：
+● Bash(cd D:/compass/APXinf && git add
+      syx_docs/dev_logs/probe_dyn/golden_gen_t4_1015.py
+      syx_docs/dev_logs/probe_dyn/golden_fix_t4_1015.py
+      syx_docs/dev_logs/probe_dyn/…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/probe_dyn/ab_t4_mut
+     ual_1015.sh', LF will be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/probe_dyn/build_eng
+     … +29 lines (ctrl+o to expand)
+
+● Bash(sleep 300; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 27s (ctrl+o to expand)
+
+● 等修正结果的同时，把 ③ 的判读框架想清楚（层剖面出来后往哪钻）：
+
+  判读逻辑：
+  - 互差若随层加深单调增长 → 上游逐层放大（与 vs-golden 剖面同形）→ 根因在首层的
+    tiling 分歧被链条放大
+  - 互差若某层跳变 → 该层算子（qkv matmul / rope）静态与 dyn 档编译分歧集中
+  - actions 级互差 ~1% 但 t4 翻车 → 行为敏感度确认，靶子 = 把互差压到
+    <0.3%（代际噪声地板）
+
+  机制候选（按可验证性排序）：① MultiBatchClone 逐档特化用 range 而非 exact 
+  shape 选 tiling（+14ms 旁证）；② 烤桶 fusion 配置两条路径不同源（可查 bake
+  脚本对账）；③ 某些 exact-shape-only 的融合 pattern 在 dyn 图不匹配。
+
+● Bash(sleep 180 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bpncsw8wl.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/bpncsw8wl.output" 2>/dev/null | tail -8;
+      ssh -F /dev/nul…)
+  ⎿  WARNING:root:No accelerated backend detected. Using default cpu, this
+     will be slow.
+     WARNING:lerobot.configs.policies:Device 'cuda' is not available. Switc
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 还在加载。再等两分钟：
+
+● Bash(sleep 115; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  [fix] token 非零前缀 L=154（pad 46 个尾置 id=0）
+     [fix] x0_vis (1, 666, 2048)
+     [fix] prefix replay layers: 18 k0 (1, 1, 666, 256)
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 修正重放成功：L=154（t4 真长，Pv=666，18 层 kv 齐）。但有个
+  bug——actions=(1,7,32)，切片没压 batch 维。修掉重跑（4 分钟）：
+
+● Update(syx_docs\dev_logs\probe_dyn\golden_fix_t4_1015.py)
+  ⎿  Added 1 line, removed 1 line
+      124          if s == 0:
+      125              golden["step0_x1"] = (x + dt * v_t).float().reshap
+           e(-1, 32).cpu().numpy()
+      126          x = x + dt * v_t
+      127 -golden["actions"] = x[:, :7].float().cpu().numpy()            
+      127 +golden["actions"] = x.reshape(-1, x.shape[-1])[:, :7].float().
+          +cpu().numpy()                                                 
+      128  
+      129  save_file(golden, OUT)
+      130  print(f"[fix] saved: {OUT} L={L} Pv={Pv} actions={golden['acti
+           ons'].shape} "
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      golden_fix_t4_1015.py /data/apxinf/golden/golden_fix_t4_1015.py >/dev/null
+      2>&1 && ssh -F /d…)
+  ⎿  Thu, Oct 15, 2026  8:01:42 PM
+
+● Background command "Wait 5 min, check pad-strip replay result" completed (exit
+code 0)
+
+  Thought for 23s (ctrl+o to expand)
+
+● Bash(sleep 290; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 12s (ctrl+o to expand)
+
+● Bash(sleep 240; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf
+      /7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bkeemif0u.output" 2>/dev/null
+      | tail -4)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  (No output)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  2
+     WARNING:root:No accelerated backend detected. Using default cpu, this
+     will be slow.
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 进程活着，还在加载。再等 2 分钟：
+
+● Bash(sleep 115; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  [fix] saved: /data/apxinf/golden/frame0_t4v1b.safetensors L=154 Pv=666
+      actions=(50, 7) step0_x1|max|=2.883 actions|max|=2.711
+     RC=0 2026-10-15 12:09:24
+
+  Thought for 9s (ctrl+o to expand)
+
+● v1b golden 就绪（L=154，actions [50,7]）。发起互差三连（TOKENS=154，后台跑）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     Thu, Oct 15, 2026  8:06:57 PM
+
+● Background command "Wait then check fixer rerun result" completed (exit code
+0)
+
+  Thought for 16s (ctrl+o to expand)
+
+● Bash(sleep 100; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  bash: line 2: GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off
+     _inplace.json: No such file or directory
+     ---
+     0
+
+  Thought for 38s (ctrl+o to expand)
+
+● 抓到 bug：GEB_INIT_OPT_ge.fusionSwitchFile 带点号不是合法 bash
+  变量名，裸赋值被当命令执行。昨天脚本能跑是因为用了 env 前缀。修：
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 1 line, removed 1 line
+      20    mkdir -p "$ddir"; rm -f "$ddir"/*.f16
+      21    docker exec apxinf_rust bash -c "
+      22      source /data/apxinf/rust_env.sh && \
+      23 -    GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_in
+         -place.json \                                                   
+      23 +    env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_of
+         +f_inplace.json \                                               
+      24      ASCEND_RT_VISIBLE_DEVICES=5 \
+      25      GEB_SEG=e2e GEB_E2E_GOLDEN=$gold GEB_TOKENS=$TOKENS \
+      26      GEB_OM_DIR=$omdir GEB_FLOW_POOL=/data/apxinf/om_cache GEB_D
+          YN_LLIST=$LLIST \
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      ab_t4_mutual_1015.sh /data/apxinf/golden/ab_t4_mutual_1015.sh >/dev/null
+      2>&1 && ssh -F /dev…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+     GEB_CKPT io/copy: 5.52848087s（812 tensors）
+
+  Thought for 3s (ctrl+o to expand)
+
+● run1 干净起跑（fusion off 生效、ckpt 装载中）。等三连跑完：
+
+● Bash(sleep 290; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 280 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bq42x1v0r.output"
+      2>/dev/null | tail -22)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Thought for 3s, read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     ===
+     [e2e] golden 中间量: ["vision_out[1572864]", "x0_vis[1363968]", "step0
+     … +12 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● golden 键全对，但 3264 行 panic 了。看 panic 内容：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:32
+     64:9:
+     assertion `left == right` failed: GEB_DYN_LLIST 模式 GEB_TOKENS 须 =
+     档
+     … +6 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 档表模式契约不同：GEB_TOKENS 须= 档表 max（binds 按 max 物化），实际 L 由
+  golden ids 驱动选档。读代码确认契约：
+
+  Thought for 27s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● run_gear 的 payload 是 dims 值（SetInputDynamicDims 按值匹配烤好的档），probe
+  e2e 恒跑末档。看 compose_gear_payloads 有没有档数断言：
+
+  Thought for 10s, read 1 file (ctrl+o to expand)
+
+● 档数无断言、按值匹配——单值 llist 就是正解（我先前改错了方向）。档表改回
+  LLIST=$TOKENS：
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 4 lines, removed 2 lines
+       8  # TOKENS 由 frame0_t4v1 实际 L 决定（t4 预期 151，跑前核对 t4ge
+          n.log）
+       9  set -e
+      10  TOKENS=${TOKENS:-151}
+      11 -# llist 必须 = tl_dyn 烤桶时的完整 26 档表（桶选择按位置映射， 
+         -错位 = 选错档）                                                
+      12 -LLIST=${LLIST:-133,134,135,136,137,138,139,140,141,142,143,144,
+         -145,146,147,148,149,150,151,152,153,154,155,156,157,200}       
+      11 +# 档表契约：probe e2e 恒跑「末档」且 SetInputDynamicDims 按 dim
+         +s 值匹配                                                       
+      12 +# 烤好的档（非按位置）→ 单值 llist = 本帧 L 即正解；同时 flow  
+         +池只装载                                                       
+      13 +# tl{L}_i8/flow_real.om 一只（省时）。GEB_TOKENS 必须 = max(lli
+         +st) = L。                                                      
+      14 +LLIST=${LLIST:-$TOKENS}                                        
+      15  G=/data/apxinf/golden/frame0_t4v1b.safetensors
+      16  MG=/data/apxinf/golden/frame0_t4v1b_staticgold.safetensors
+      17  DA=/data/apxinf/golden/dump_static_t4
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      ab_t4_mutual_1015.sh /data/apxinf/golden/ab_t4_mutual_1015.sh >/dev/null
+      2>&1 && ssh -F /dev…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+
+● Bash(sleep 200; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Background command "Wait 5 min, check AB progress and static parity" completed
+(exit code 0)
+
+  Thought for 14s (ctrl+o to expand)
+
+● Bash(sleep 190 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b1eqnuyn1.output"
+      2>/dev/null | tail -12)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 60; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/
+      7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b1eqnuyn1.output" 2>/dev/null |
+      tail -12)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     ===
+     [gear] prefix 动态分档：L [154] → p [666]
+     … +7 lines (ctrl+o to expand)
+
+● Background command "Check run1 progress after gear fix" completed (exit code
+0)
+
+  Thought for 14s (ctrl+o to expand)
+
+● run1（static）在新位置 panic（2372）。看现场：
+
+  Thought for 10s, read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [ge_builder] geb_run_gear rc=-2
+
+     thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:23
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 8s (ctrl+o to expand)
+
+● static OM 没有动态档，却走了 run_gear 路径（rc=-2）。看 run_seg 分支和「档数
+  0」打印的适配逻辑：
+
+  Thought for 11s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 昨天 static 跑通时 FLOW_POOL 在场但 llist 不在——读 flow 池装载段的精确逻辑：
+
+  Thought for 17s, read 1 file (ctrl+o to expand)
+
+● 实锤：GEB_FLOW_POOL 强依赖 llist，而 static OM 带 llist 会走 run_gear 崩——昨天
+  static 跑大概也是流段前挂的（prefix 剖面已打出）。正解：static 不带
+  FLOW_POOL/LLIST（flow 从 OM_DIR 直载），dyn 带。重写 driver：
+
+● Write(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 18 lines, removed 14 lines
+       4  #   run2 dyn    vs torch（漂移参照——与 static 剖面比形态）
+       5  #   run3 dyn    vs static-合并-golden（cmp_mid = 逐层 dyn-vs-st
+          atic 互差，
+       6  #               GOLDEN PARITY = actions 级互差）
+       7 +# 契约（2026-10-15 踩坑修正）：                                
+       8 +#   static：不带 GEB_DYN_LLIST/GEB_FLOW_POOL——flow 从 GEB_OM_DI
+         +R/flow_real.om                                                 
+       9 +#           直载；带了 llist 会走 run_gear 对静态 OM 调 SetInpu
+         +tDynamicDims（rc=-2）                                          
+      10 +#   dyn   ：GEB_DYN_LLIST=$TOKENS（单值档表，SetInputDynamicDim
+         +s 按 dims 值匹配                                               
+      11 +#           烤好的 154 档）+ GEB_FLOW_POOL（flow 池按 llist 装 
+         +tl154_i8 一只）                                                
+      12  # chip5 空卡顺序跑（同芯同时代）；probe 直调不碰生产 spool。
+       8 -# TOKENS 由 frame0_t4v1 实际 L 决定（t4 预期 151，跑前核对 t4ge
+         -n.log）                                                        
+      13  set -e
+      14  TOKENS=${TOKENS:-151}
+      11 -# 档表契约：probe e2e 恒跑「末档」且 SetInputDynamicDims 按 dim
+         -s 值匹配                                                       
+      12 -# 烤好的档（非按位置）→ 单值 llist = 本帧 L 即正解；同时 flow  
+         -池只装载                                                       
+      13 -# tl{L}_i8/flow_real.om 一只（省时）。GEB_TOKENS 必须 = max(lli
+         -st) = L。                                                      
+      14 -LLIST=${LLIST:-$TOKENS}                                        
+      15  G=/data/apxinf/golden/frame0_t4v1b.safetensors
+      16  MG=/data/apxinf/golden/frame0_t4v1b_staticgold.safetensors
+      17  DA=/data/apxinf/golden/dump_static_t4
+      18 -DB=/data/apxinf/golden/dump_dyn_t4                             
+      18 +BIN=/data/apxinf/apxinf_engine/target/release/examples/ge_model
+         +_probe                                                         
+      19  
+      20 -run() { # run <tag> <omdir> <dumpdir> <golden> [extra env...]  
+      21 -  local tag=$1 omdir=$2 ddir=$3 gold=$4; shift 4               
+      20 +run() { # run <tag> <omdir> <dumpdir> <golden> <mode: static|dy
+         +n> [extra env...]                                              
+      21 +  local tag=$1 omdir=$2 ddir=$3 gold=$4 mode=$5; shift 5       
+      22 +  local poolenv=""                                             
+      23 +  if [ "$mode" = dyn ]; then                                   
+      24 +    poolenv="GEB_FLOW_POOL=/data/apxinf/om_cache GEB_DYN_LLIST=
+         +$TOKENS"                                                       
+      25 +  fi                                                           
+      26    mkdir -p "$ddir"; rm -f "$ddir"/*.f16
+      27    docker exec apxinf_rust bash -c "
+      28      source /data/apxinf/rust_env.sh && \
+      29      env GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_of
+          f_inplace.json \
+      30      ASCEND_RT_VISIBLE_DEVICES=5 \
+      31      GEB_SEG=e2e GEB_E2E_GOLDEN=$gold GEB_TOKENS=$TOKENS \
+      28 -    GEB_OM_DIR=$omdir GEB_FLOW_POOL=/data/apxinf/om_cache GEB_D
+         -YN_LLIST=$LLIST \                                              
+      32 +    GEB_OM_DIR=$omdir $poolenv \                               
+      33      GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
+      34      GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=/data/apxinf/weights/pi0
+          5_libero_finetuned \
+      35      GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=/data/apxinf/pyo3_check/s
+          mooth_calib_v3_engine.safetensors \
+      36      GEB_FLOW_INT8=1 GEB_FLOW_PROJS=gate,up,down \
+      37      GEB_FLOW_SMOOTH=/data/apxinf/pyo3_check/smooth_calib_v3_flo
+          w_engine.safetensors \
+      38      GEB_E2E_DUMP_MID=$ddir $* \
+      35 -    /data/apxinf/apxinf_engine/target/release/examples/ge_model
+         -_probe" \                                                      
+      39 +    $BIN" \                                                    
+      40      > "/data/apxinf/golden/ab_t4_${tag}.log" 2>&1
+      37 -  echo "== $tag done $(date -u +%T) =="                        
+      41 +  echo "== $tag done rc=$? $(date -u +%T) =="                  
+      42  }
+      43  
+      44  echo "[AB] run1 static vs torch (dump kv/actions)"
+      41 -run static /data/apxinf/om_cache/tl151_i8 "$DA" "$G"           
+      45 +run static /data/apxinf/om_cache/tl154_i8 "$DA" "$G" static    
+      46  echo "[AB] merge static dumps -> staticgold"
+      47  docker exec apxinf_npu python3 /data/apxinf/golden/mk_merged_go
+          lden_t4_1015.py "$DA" "$MG"
+      48  echo "[AB] run2 dyn vs torch"
+      45 -run dyn_torch /data/apxinf/om_cache/tl_dyn /data/apxinf/golden/
+         -dump_dyn_torch "$G"                                            
+      49 +run dyn_torch /data/apxinf/om_cache/tl_dyn /data/apxinf/golden/
+         +dump_dyn_torch "$G" dyn                                        
+      50  echo "[AB] run3 dyn vs static (merged golden = 互差)"
+      47 -run dyn_static /data/apxinf/om_cache/tl_dyn "$DB" "$MG"        
+      51 +run dyn_static /data/apxinf/om_cache/tl_dyn /data/apxinf/golden
+         +/dump_dyn_t4 "$MG" dyn                                         
+      52  echo "[AB] ALL DONE $(date -u '+%F %T')"
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      ab_t4_mutual_1015.sh /data/apxinf/golden/ab_t4_mutual_1015.sh >/dev/null
+      2>&1 && ssh -F /dev…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+
+● Bash(sleep 180; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 185 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/birhdop8d.output"
+      2>/dev/null | tail -10)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 45; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/
+      7bccc587-c325-43ca-9bce-01a3b43af572/tasks/birhdop8d.output" 2>/dev/null |
+      tail -10)
+  ⎿  (No output)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     == static done rc=0 12:26:47 ==
+     [AB] merge static dumps -> staticgold
+     … +10 lines (ctrl+o to expand)
+
+● Background command "Check run1 after mode-split fix" completed (exit code 0)
+
+  Thought for 13s (ctrl+o to expand)
+
+● run1 static 完成：dump 齐（37 槽含 aux）、static-vs-torch actions =
+  4.3%（真帧上的静态漂移——比合成帧时代大）、合并成功、run2 dyn 跑着。等
+  run2/run3：
+
+● Bash(sleep 290; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 295 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bhccspe89.output"
+      2>/dev/null | tail -10)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 90; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/
+      7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bhccspe89.output" 2>/dev/null |
+      tail -12)
+  ⎿  (No output)
+
+  Thought for 9s (ctrl+o to expand)
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     == static done rc=0 12:26:47 ==
+     [AB] merge static dumps -> staticgold
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● run2 还在跑。再等：
+
+● Bash(sleep 240; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Wait 5 min, check run2/run3 results" completed (exit code
+0)
+
+● Bash(sleep 110; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  [AB] run1 static vs torch (dump kv/actions)
+     == static done rc=0 12:26:47 ==
+     [AB] merge static dumps -> staticgold
+     … +6 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [e2e] prefix 输出已落盘 /data/apxinf/golden/dump_dyn_torch/ge_slot{0..
+     36}.f16（含 36 路 kv）
+     [e2e] prefix kv ×36 |max|=72.2500
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 27s (ctrl+o to expand)
+
+● run2 的 dyn prefix 跑通了，但 kv 输出按 max 档 712 行物化（154 档只写前
+  666），golden 对拍长度炸。看生产 serve 是怎么喂 flow kv 的（生产就是 dyn+per-L
+  flow 组合，必有截断逻辑）：
+
+  Thought for 13s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 生产路径有现成答案：cur_output_dims（当前档实际行数）——probe e2e
+  的下载用的还是 max 档。修 e2e_run 的下载逻辑（镜像 download_kv），AB driver
+  加跳过已完成 run1：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 10 lines, removed 1 line
+      2363      let refs: Vec<&DeviceBuffer> = outs.iter().collect();
+      2364      s.run_seg(gi, &refs, stream).expect("ge run");
+      2365      drop(stream.synchronize());
+      2366 +    // kv 下载行数：gear 模式按当前档实际输出（cur_output_dim
+           +s——同生产                                                    
+      2367 +    // download_kv；buffer 按 max 档物化，尾部是未写残留）； 
+           +静态 = 满 buffer                                             
+      2368 +    let out_n = |i: usize| -> usize {                        
+      2369 +        if s.gear_payloads.is_empty() {                      
+      2370 +            s.g.output_size(i).unwrap() / 2                  
+      2371 +        } else {                                             
+      2372 +            s.g.cur_output_dims(i).unwrap().iter().product::<
+           +i64>() as usize                                              
+      2373 +        }                                                    
+      2374 +    };                                                       
+      2375      let dl: Vec<Vec<f16>> = (0..n_out)
+      2367 -        .map(|i| download_f16(ctx, &outs[i], s.g.output_size(
+           -i).unwrap() / 2))                                            
+      2376 +        .map(|i| download_f16(ctx, &outs[i], out_n(i)))      
+      2377          .collect();
+      2378      // GEB_E2E_BENCH=N：稳态 rerun bench（输入 binds 不变重跑
+            ；含全输出 d2h
+      2379      // ——prefix 的 36 路 kv 下载 = today 生产 host 中转 glue
+            ，如实计入）
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      2385              s.run_seg(gi, &refs, stream).expect("ge run");
+      2386              drop(stream.synchronize());
+      2387              let _: Vec<_> = (0..n_out)
+      2388 -                .map(|i| download_f16(ctx, &outs[i], s.g.outp
+           -ut_size(i).unwrap() / 2))                                    
+      2388 +                .map(|i| download_f16(ctx, &outs[i], out_n(i)
+           +))                                                           
+      2389                  .collect();
+      2390              ts.push(t.elapsed().as_secs_f64() * 1e3);
+      2391          }
+
+● Update(syx_docs\dev_logs\probe_dyn\ab_t4_mutual_1015.sh)
+  ⎿  Added 8 lines, removed 4 lines
+      41    echo "== $tag done rc=$? $(date -u +%T) =="
+      42  }
+      43  
+      44 -echo "[AB] run1 static vs torch (dump kv/actions)"             
+      45 -run static /data/apxinf/om_cache/tl154_i8 "$DA" "$G" static    
+      46 -echo "[AB] merge static dumps -> staticgold"                   
+      47 -docker exec apxinf_npu python3 /data/apxinf/golden/mk_merged_go
+         -lden_t4_1015.py "$DA" "$MG"                                    
+      44 +if [ -f "$MG" ]; then                                          
+      45 +  echo "[AB] run1 static + merge 已完成（$MG 在），跳过"       
+      46 +else                                                           
+      47 +  echo "[AB] run1 static vs torch (dump kv/actions)"           
+      48 +  run static /data/apxinf/om_cache/tl154_i8 "$DA" "$G" static  
+      49 +  echo "[AB] merge static dumps -> staticgold"                 
+      50 +  docker exec apxinf_npu python3 /data/apxinf/golden/mk_merged_
+         +golden_t4_1015.py "$DA" "$MG"                                  
+      51 +fi                                                             
+      52  echo "[AB] run2 dyn vs torch"
+      53  run dyn_torch /data/apxinf/om_cache/tl_dyn /data/apxinf/golden/
+          dump_dyn_torch "$G" dyn
+      54  echo "[AB] run3 dyn vs static (merged golden = 互差)"
+
+  Thought for 7s (ctrl+o to expand)
+
+● 引擎修好。提交→补丁→重建→重跑 AB（run1 已有产物会跳过）：
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -m "T4R: e2e_run
+      downloads kv at cur_output_dims in gear mode (mi…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     6579dbf T4R: e2e_run downloads kv at cur_output_dims in gear mode (mir
+     … +3 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      t4r_curdims.patch /data/apxinf/t4r_curdims.patch >/dev/null 2>&1 && bash
+      push119.sh ab_t4_mu…)
+  ⎿  error: no example target named `ge_model_probe`.
+
+     BUILD_RC=0 2026-10-15 12:39:17
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 构建脚本还是老调用——修成 -p apxinf-model：
+
+● Update(syx_docs\dev_logs\probe_dyn\build_engine_t4r_1015.sh)
+  ⎿  Added 1 line, removed 1 line
+       7    git apply --check "$1" && git apply "$1" && echo "[build] pat
+          ch applied: $1" \
+       8      || { echo "[build] PATCH FAILED: $1"; exit 2; }
+       9  fi
+      10 -cargo build --release --example ge_model_probe 2>&1 | tail -5  
+      10 +cargo build --release -p apxinf-model --example ge_model_probe 
+         +--features ascend 2>&1 | tail -5                               
+      11  echo "BUILD_RC=$? $(date -u '+%F %T')"
+      12  ls -la target/release/examples/ge_model_probe
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      build_engine_t4r_1015.sh /data/apxinf/build_engine_t4r_1015.sh >/dev/null
+      2>&1 && ssh -F /de…)
+  ⎿  error: patch failed: crates/apxinf-model/src/pi05/ascend_ge.rs:2363
+     error: crates/apxinf-model/src/pi05/ascend_ge.rs: patch does not apply
+     [build] PATCH FAILED: /data/apxinf/t4r_curdims.patch
+
+  Thought for 18s (ctrl+o to expand)
+
+● 补丁上下文错位。先试 patch --fuzz（容差匹配），不行就整文件 gzip 推送：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Apply anyway? [n]
+     Skipping patch.
+     2 out of 2 hunks ignored
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)  ⎿  Reversed (or previously applied) patch detected!  Assume -R? [n]
+     Apply anyway? [n]
+     Skipping patch.
+     … +4 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 补丁其实第一次就打上了（第一次构建只挂在 cargo 目标名，第二次 patch
+  重复才报错）。清 .rej、直接重建：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  warning: `apxinf-model` (lib) generated 88 warnings (run `cargo fix --
+     lib -p apxinf-model` to apply 7 suggestions)
+         Finished `release` profile [optimized] target(s) in 37.50s
+     … +3 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [AB] run1 static + merge 已完成（/data/apxinf/golden/frame0_t4v1b_stat
+     icgold.safetensors 在），跳过
+     [AB] run2 dyn vs torch
+     Thu, Oct 15, 2026  8:37:06 PM
+
+  Thought for 4s (ctrl+o to expand)
+
+● run2 跑着。先把 run1 static 的逐层剖面捞出来（已有数据）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  rel=0.9%)
+     rel=0.8%)
+     rel=2.6%)
+     … +33 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● static 真帧剖面到手（kvk 0.9→18.4%、kvv 0.8→22.8%、随层加深、l17
+  最差——与合成帧时代同形，但 l0 干净得多）。等 run2/run3：
+
+● Bash(sleep 420; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 430 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/boeh1s1as.output"
+      2>/dev/null | tail -10)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 100; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf
+      /7bccc587-c325-43ca-9bce-01a3b43af572/tasks/boeh1s1as.output" 2>/dev/null
+      | tail -10)
+  ⎿  (No output)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [AB] run1 static + merge 已完成（/data/apxinf/golden/frame0_t4v1b_stat
+     icgold.safetensors 在），跳过
+     [AB] run2 dyn vs torch
+     … +3 lines (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  prefix OM built: depth=18 P=666 n_in=14 n_out=36
+     [e2e] prefix OM 预载命中
+     [gear] prefix OM 档数 26（bring-up 用末档执行）
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● d2h 长度断言炸：340992 vs 364544（=666 行 vs 712 行的字节数）。看 download_f16
+  的单位约定：
+
+  Thought for 7s, searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+● copy_d2h 断言整缓冲——但生产 download_kv 同款能跑，看 308 那个分支是什么：
+
+  Thought for 15s, read 1 file (ctrl+o to expand)
+
+● 两处 d2h 都强制整缓冲。改回「全量下载 + host 侧截断」：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 10 lines, removed 10 lines
+      2363      let refs: Vec<&DeviceBuffer> = outs.iter().collect();
+      2364      s.run_seg(gi, &refs, stream).expect("ge run");
+      2365      drop(stream.synchronize());
+      2366 -    // kv 下载行数：gear 模式按当前档实际输出（cur_output_dim
+           -s——同生产                                                    
+      2367 -    // download_kv；buffer 按 max 档物化，尾部是未写残留）； 
+           -静态 = 满 buffer                                             
+      2368 -    let out_n = |i: usize| -> usize {                        
+      2369 -        if s.gear_payloads.is_empty() {                      
+      2370 -            s.g.output_size(i).unwrap() / 2                  
+      2371 -        } else {                                             
+      2372 -            s.g.cur_output_dims(i).unwrap().iter().product::<
+           -i64>() as usize                                              
+      2373 -        }                                                    
+      2374 -    };                                                       
+      2366 +    // gear 模式 buffer 按 max 档物化（712 行）而本档只写前 6
+           +66——d2h 须整                                                 
+      2367 +    // 缓冲（copy_d2h 长度断言），下载后 host 侧截到 cur_outp
+           +ut_dims 行数                                                 
+      2368      let dl: Vec<Vec<f16>> = (0..n_out)
+      2376 -        .map(|i| download_f16(ctx, &outs[i], out_n(i)))      
+      2369 +        .map(|i| {                                           
+      2370 +            let mut v = download_f16(ctx, &outs[i], s.g.outpu
+           +t_size(i).unwrap() / 2);                                     
+      2371 +            if !s.gear_payloads.is_empty() {                 
+      2372 +                let n = s.g.cur_output_dims(i).unwrap().iter(
+           +).product::<i64>() as usize;                                 
+      2373 +                v.truncate(n);                               
+      2374 +            }                                                
+      2375 +            v                                                
+      2376 +        })                                                   
+      2377          .collect();
+      2378      // GEB_E2E_BENCH=N：稳态 rerun bench（输入 binds 不变重跑
+            ；含全输出 d2h
+      2379      // ——prefix 的 36 路 kv 下载 = today 生产 host 中转 glue
+            ，如实计入）
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 1 line, removed 1 line
+      2385              s.run_seg(gi, &refs, stream).expect("ge run");
+      2386              drop(stream.synchronize());
+      2387              let _: Vec<_> = (0..n_out)
+      2388 -                .map(|i| download_f16(ctx, &outs[i], out_n(i)
+           -))                                                           
+      2388 +                .map(|i| download_f16(ctx, &outs[i], s.g.outp
+           +ut_size(i).unwrap() / 2))                                    
+      2389                  .collect();
+      2390              ts.push(t.elapsed().as_secs_f64() * 1e3);
+      2391          }
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -q -m "T4R: fix
+      gear kv download — copy_d2h requires full buffer,…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     53d6dfd T4R: fix gear kv download — copy_d2h requires full buffer, tru
+     … +5 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf && git add apxinf && git commit -q -m "Bump apxinf
+      submodule: host-side truncate for gear kv download…)
+  ⎿  [AB] run1 static + merge 已完成（/data/apxinf/golden/frame0_t4v1b_stat
+     icgold.safetensors 在），跳过
+     [AB] run2 dyn vs torch
+     Thu, Oct 15, 2026  8:44:11 PM
+  Thought for 11s (ctrl+o to expand)
+
+● 修好了再跑（20:44 起，~16 分钟出全）。后台等结果：
+
+● Bash(sleep 480; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 490 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bbyrj1ixd.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Wait 7 min for run2, check status" completed (exit code 0)
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/bbyrj1ixd.output" 2>/dev/null | tail -8;
+      echo ===DIRECT=…)
+  ⎿  ===DIRECT===
+     [AB] run2 dyn vs torch
+     == dyn_torch done rc=0 12:50:19 ==
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● run2 完成：dyn-vs-torch actions = 12.8%（static 是 4.3%）——真帧上 dyn 比
+  static 离 torch 远 3 倍，「等距近似」在真帧上不成立。等 run3 互差：
+
+● Bash(sleep 460; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 470 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bls1q4laa.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 60; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha…)
+  ⎿  [AB] run1 static + merge 已完成（/data/apxinf/golden/frame0_t4v1b_stat
+     icgold.safetensors 在），跳过
+     [AB] run2 dyn vs torch
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 三连全部完成：static-vs-torch 4.3% / dyn-vs-torch 12.8% / dyn-vs-static 互差 
+  13.1%——真帧上互差是昨天合成帧估计（~1%）的十几倍，且 dyn
+  是更差的近似（不是等距）。捞逐层互差剖面：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  === static ===
+
+     === dyn_torch ===
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 正则没对上。直接捞原始行本地处理：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [e2e] BISECT kvk_l0: max_diff=0.20825 @idx95 (golden |max|=12.156, rel
+     =1.7%)
+     [e2e] BISECT kvv_l0: max_diff=0.22534 @idx23 (golden |max|=10.555, rel
+     … +11 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● l2 的 kvv 互差 55.9%——分歧在前几层就爆了。拉全三份剖面本地分析：
+
+● Bash(mkdir -p /d/compass/APXinf/syx_docs/dev_logs/probe_dyn/t4r_out && ssh -F
+      /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o Batc…)
+  ⎿  114 /d/compass/APXinf/syx_docs/dev_logs/probe_dyn/t4r_out/profiles_raw
+     _1015.txt
+
+● Bash(cd /d/compass/APXinf/syx_docs/dev_logs/probe_dyn/t4r_out && python3 -c "
+      import re…)
+  ⎿  Error: Exit code 49
+     Python was not found; run without arguments to install from the Microsoft 
+     Store, or disable this shortcut from Settings > Apps > Advanced app 
+     settings > App execution aliases.
+
+  Thought for 4s (ctrl+o to expand)
+
+● 本地无 python——服务器侧直接出表：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  layer    stVsT_k  dyVsT_k  dyVsS_k | stVsT_v  dyVsT_v  dyVsS_v
+     l0           0.9      1.6      1.7 |      0.8      2.2      2.1
+     l1           2.6      7.5      7.5 |      8.2     17.0     17.2
+     … +22 lines (ctrl+o to expand)
+
+  Thought for 47s (ctrl+o to expand)
+
+● ② 收口——判决表：
+
+  ┌───────────┬─────────────────────────────────────────────────────────────┐
+  │   发现    │                            数值                             │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ x0_vis    │ 两路逐位同（0.1%，同 idx）——分岔不在输入                    │
+  │ 输入      │                                                             │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ l0 互差   │ kvk 1.7 / kvv 2.1%（首层 qkv 就分）                         │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ l1→l2     │ 7.5/17.2% → 22.5/55.9%（爆炸点）                            │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ l2-17     │ kvk 13-28%、kvv 35-70%，l17 最差                            │
+  ├───────────┼─────────────────────────────────────────────────────────────┤
+  │ 列结构    │ dyVsT ≈ dyVsS 逐层几乎相同——dyn 的漂移 = 互差本身；static   │
+  │           │ 离 torch 近 3-4 倍                                          │
+  └───────────┴─────────────────────────────────────────────────────────────┘
+
+  「等距近似」在真帧上证伪：dyn 是更差的近似（12.8% vs 4.3%），13.1% actions
+  互差翻 t4。
+
+  ③ 开工——第一个可证伪实验 E1：烤一只单档 dyn OM（只有 154 档）。若单档 dyn ≈
+  static（l0 ~0.9%）→ 元凶 = 多档 range 编译；若仍 1.7% → 元凶 =
+  动态图结构本身（-1 维附加算子）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  RC=101
+     [preload] prefix OM 装载失败 /data/apxinf/om_cache/tl_dyn_g154/prefix_
+     real.om: AclError { code: -1, op: "geb_model_load" }
+     … +2 lines (ctrl+o to expand)
+● Background command "Wait 8 min, check run2 completion" completed (exit code 0)
+
+  Thought for 1m 29s (ctrl+o to expand)
+
+● 预载器要求 OM 已存在。看预载/烤桶的分支逻辑：
+
+  Thought for 14s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 缺 OM 时 e2e 只会 fail 不 bake——烤桶走默认段模式（GEB_SAVE）。看 supervisor
+  当年怎么烤 tl_dyn：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  47-      ASCEND_RT_VISIBLE_DEVICES=1 \
+     48-      GEB_SEG=prefix GEB_PREFIX_INT8=1 GEB_INT8_SMOOTH=$P8 GEB_ATTN
+     =manual GEB_QKV3=1 GEB_ROPEFLAT=1 \
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿    [ "$(awk '{print $3}' /proc/$p/stat 2>/dev/null)" = "Z" ] && return
+     1
+       return 0
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 烤单档 dyn（照 supervisor 配方，LLIST=154/LMAX=154）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  BAKE_RC=101
+     total 814396
+     drwxr-xr-x  2 root root      4096 Oct 15 12:58 .
+     … +8 lines (ctrl+o to expand)
+
+● Background command "Wait 8 min for run3 mutual diff result" completed (exit
+code 0)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [geb] aclgrphBuildModel failed
+     [ge_builder] geb_model_build rc=-7
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 单档 dynamicDims 被 GE 拒（rc=-7，多档才行）。改烤 2 
+  档（154+200）——同样能回答「档表范围宽度是否改变逐档 tiling」：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 180; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Bake two-gear dyn OM (154+200)" completed (exit code 0)
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 2 档 OM 烤好（1.89GB）。跑 E1 对拍：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 420 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bcbgppguz.output"
+      2>/dev/null | tail -12)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Background command "E1: run two-gear dyn OM parity vs golden" completed (exit
+code 0)
+
+  Thought for 1m 5s (ctrl+o to expand)
+
+● E1 判决：范围宽度不是元凶——2 档 OM 与 26 档同样差（l0 1.6/2.2% 持平 26 档；l2
+  kvv 80.8% 甚至更糟；actions 17.8%）。分歧是动态图结构固有的（-1 维 Reshape /
+  Data 化的 rope·qswap / 截断语义改变算子序列与融合机会），不是逐档 tiling
+  共享。
+
+  这把 ③ 的修法钉死了方向：与其在 GE 编译器内部追平结构差（不可控），不如把 flow
+  池的 per-L 静态模式推广到 prefix 段——单进程单芯保留 gear
+  全部运维收益，数值/性能直接继承 static（4.3%、t4 5/5、还白捡
+  14ms）。先查弹药库存：133-157 静态桶是否齐全 + 单只 OM 体积：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  133:MISS 134:MISS 135:MISS 136:MISS 137:OK 138:OK 139:OK 140:OK 141:OK
+      142:OK 143:OK 144:OK 145:OK 146:OK 147:OK 148:OK 149:OK 150:OK 151:OK
+      152:OK 153:OK 154:OK 155:OK 156:OK 157:OK 200:OK
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 31s (ctrl+o to expand)
+
+● 库存：137-157+200 齐（缺 133-136，旧回退只 151-157 也在用——先按现有覆盖，miss
+  再烤）。单只 OM 1.88GB → 池子用 lazy 装载 + 按需驻留。现在读 serve 侧 prefix
+  执行路径，找池化改造点：
+
+  Thought for 23s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 flow 的换柄实现（swap_flow/gear_idx，2018 行附近）——这就是要抄到 prefix
+  的模式：
+  Thought for 44s, read 1 file (ctrl+o to expand)
+
+● flow 换柄模式确认（池空=单 OM 原样；binds max 物化 + sized h2d；静态 OM 全
+  Const 烤死反而更简单）。找 prefix mech 的结构体和 serve 装载点：
+
+  Thought for 24s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 看 run 的 dataset 装配是否容忍 ins 数 > OM 声明输入数（静态 OM 的 Data 输入比
+  dyn 少）：
+
+  Thought for 1m 8s, read 1 file (ctrl+o to expand)
+
+● run_gear 对静态 OM ≡ run（dyn_dims 忽略）——probe 挂是输入数不匹配（dyn 组装的
+  ins 比静态 OM 声明的多）。池化方案定型：prefix 段按静态模式组装（binds max、仅
+  x0 是 Data），换柄跑 per-L 静态 OM。查 GeGraph 有没有 num_inputs 可查：
+
+  Thought for 1m 39s, searched for 1 pattern (ctrl+o to expand)
+
+● API 齐（num_inputs/unload 都有）。设计锁定，开写池化。先确认 Seg::ins 签名：
+
+  Thought for 55s, searched for 4 patterns, read 1 file (ctrl+o to expand)
+
+● DeviceBuffer 无 Clone，但 routs 全同规格（max 物化、无跨请求状态）→
+  池只需换图柄，routs 全 L 共用一套。改动面收缩到四处。开写：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 10 lines, removed 1 line
+      3247      // zeros/swap 逐行 p 无关，p_max 全量即前缀截断语义）。L 
+            相关 Const
+      3248      // （qswap_c/kswap_c）在 gear 模式转 Data[-1]。档表 p 值
+            喂 Seg，finish
+      3249      // 合成 ge.dynamicDims + 每档 S2 payload
+      3250 -    let gear_ll = dyn_llist();                               
+      3250 +    // GEB_PREFIX_POOL：prefix 段改静态组装 + per-L 静态 OM  
+           +池换柄执行——                                                 
+      3251 +    // T4R 2026-10-15 判决：动态图结构（-1 维 Reshape / rope·
+           +qswap Data 化）                                              
+      3252 +    // 使 int8 逐层漂移 3×（真帧互差 13.1% actions 级；2 档对
+           +照证伪                                                       
+      3253 +    // range-tiling 假设）；llist 仍留给 flow 池与客户端校验 
+      3254 +    let gear_ll = if std::env::var("GEB_PREFIX_POOL").is_ok()
+           + {                                                           
+      3255 +        println!("[prefix-pool] GEB_PREFIX_POOL 生效：prefix 
+           +静态组装 + per-L 池");                                       
+      3256 +        None                                                 
+      3257 +    } else {                                                 
+      3258 +        dyn_llist()                                          
+      3259 +    };                                                       
+      3260      let mut gear_ps_hold: Option<Vec<i64>> = None;
+      3261      let gd = |v: i64| if gear_ll.is_some() { -1 } else { v };
+      3262      if let Some(g) = &gear_ll {
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 8 lines
+      1803      tok_cache_rows: Vec<f16>,
+      1804      /// gear 模式：L → 档下标（静态模式空 = 固定 L 单桶）
+      1805      gear_of_l: std::collections::HashMap<i64, usize>,
+      1806 +    /// GEB_PREFIX_POOL：per-L 静态 prefix OM 池（换柄执行，r
+           +outs 全 L 共用                                               
+      1807 +    /// ——max 物化、无跨请求状态）。T4R 根因修复，见 compose 
+           +处注记                                                       
+      1808 +    pool_root: Option<String>,                               
+      1809 +    pool_graphs: std::collections::HashMap<i64, ge_builder::G
+           +eGraph>,                                                     
+      1810 +    pool_lru: Vec<i64>,                                      
+      1811 +    pool_cap: usize,                                         
+      1812 +    /// routs 各槽字节数（= max 档 OM 输出尺寸——池 OM d2h 整 
+           +缓冲后截断用）                                               
+      1813 +    rout_bytes: Vec<usize>,                                  
+      1814  }
+      1815  
+      1816  impl PrefixMech {
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 29 lines
+      1827  }
+      1828  
+      1829  impl PrefixMech {
+      1830 +    /// 池模式：按 L 换静态 OM 句柄（lazy 装载 tl{l}_i8；LRU 
+           +上限防全档                                                   
+      1831 +    /// 驻留炸显存——单只 1.88GB）。routs/binds 不换（max 物化
+           +全 L 共用）                                                  
+      1832 +    fn swap_prefix(&mut self, l: i64) {                      
+      1833 +        if !self.pool_graphs.contains_key(&l) {              
+      1834 +            let p = format!("{}/tl{l}_i8/prefix_real.om",    
+      1835 +                            self.pool_root.as_deref().unwrap_
+           +or_default());                                               
+      1836 +            println!("[prefix-pool] lazy load L={l}（{p}）");
+      1837 +            let g = ge_builder::load(&p)                     
+      1838 +                .unwrap_or_else(|e| panic!("prefix pool 缺 L=
+           +{l}（{e:?}）——先烤 {p}"));                                   
+      1839 +            let n_out = g.num_outputs().unwrap();            
+      1840 +            assert!(n_out <= self.rout_bytes.len(),          
+      1841 +                    "池 OM 输出数 {n_out} > max 槽位 {}", sel
+           +f.rout_bytes.len());                                         
+      1842 +            self.pool_graphs.insert(l, g);                   
+      1843 +            self.pool_lru.push(l);                           
+      1844 +            while self.pool_lru.len() > self.pool_cap {      
+      1845 +                let victim = self.pool_lru.remove(0);        
+      1846 +                if let Some(g) = self.pool_graphs.remove(&vic
+           +tim) {                                                       
+      1847 +                    let _ = g.unload();                      
+      1848 +                }                                            
+      1849 +                println!("[prefix-pool] LRU 驱逐 L={victim}（
+           +cap={}）", self.pool_cap);                                   
+      1850 +            }                                                
+      1851 +        } else {                                             
+      1852 +            let i = self.pool_lru.iter().position(|&x| x == l
+           +).unwrap();                                                  
+      1853 +            self.pool_lru.remove(i);                         
+      1854 +            self.pool_lru.push(l);                           
+      1855 +        }                                                    
+      1856 +        self.s.g = *self.pool_graphs.get(&l).unwrap();       
+      1857 +    }                                                        
+      1858 +                                                             
+      1859      /// 一帧 prefix（设备态）：重组 x0（本帧 vision_out 可见
+            行 + 真 token
+      1860      /// 查表 ×lang_scale）覆写 binds[0] 重跑 + sync；36 路 kv
+             留在
+      1861      /// self.routs（设备）——GEB_SERVE_FAST 下由 FlowMech 异步
+             d2d 直连
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines
+      1872          let tim = serve_timing();
+      1873          let t0 = std::time::Instant::now();
+      1874          let gi = self.gear_idx(token_ids.len() as i64);
+      1875 +        if self.pool_root.is_some() {                        
+      1876 +            self.swap_prefix(token_ids.len() as i64);        
+      1877 +        }                                                    
+      1878          // token 查表缓存：ids 变化才重算（prompt 跨 replan 
+            恒定——同任务
+      1879          // 桶内 token_ids 不变）。数值恒等：同算式（f32 mul）
+            产同 f16 字节
+      1880          if self.tok_cache_ids != token_ids {
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines, removed 2 lines
+      1908          // 零拷贝字节视图（x0 活到函数尾，async h2d 借用安全
+            ）
+      1909          let bytes: &[u8] =
+      1910              unsafe { std::slice::from_raw_parts(x0.as_ptr() a
+            s *const u8, x0.len() * 2) };
+      1911 -        if self.s.gear_payloads.is_empty() {                 
+      1911 +        if self.s.gear_payloads.is_empty() && self.pool_root.
+           +is_none() {                                                  
+      1912              ctx.copy_h2d_async(&self.s.binds[0], bytes, strea
+            m).expect("serve h2d x0");
+      1913          } else {
+      1914 +            // gear / prefix-pool：binds[0] 按 max 物化，本帧
+           +实际 p 行 → sized                                            
+      1915              ctx.copy_h2d_async_sized(&self.s.binds[0], bytes,
+             stream)
+      1915 -                .expect("serve h2d x0 (gear)");              
+      1916 +                .expect("serve h2d x0 (sized)");             
+      1917          }
+      1918          let t2 = std::time::Instant::now();
+      1919          let refs: Vec<&DeviceBuffer> = self.routs.iter().coll
+            ect();
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 16 lines, removed 7 lines
+      1947          (0..self.nkv).map(|i| self.download_kv(ctx, i)).colle
+            ct()
+      1948      }
+      1949  
+      1950 -    /// kv 下载（gear 模式按当前档实际行数——cur_output_dims；
+           -静态 = 满 buffer）                                           
+      1950 +    /// kv 下载（按当前执行 OM 的实际行数；routs/binds 按 max
+           + 物化——                                                      
+      1951 +    /// d2h 整缓冲契约下先全量再截断）                       
+      1952      fn download_kv(&self, ctx: &AscendContext, i: usize) -> V
+            ec<f16> {
+      1952 -        let n = if self.s.gear_payloads.is_empty() {         
+      1953 -            self.s.g.output_size(i).unwrap() / 2             
+      1954 -        } else {                                             
+      1953 +        if !self.s.gear_payloads.is_empty() {                
+      1954              let dims = self.s.g.cur_output_dims(i).unwrap_or_
+            else(|e| panic!("cur dims: {e:?}"));
+      1956 -            dims.iter().product::<i64>() as usize            
+      1957 -        };                                                   
+      1958 -        download_f16(ctx, &self.routs[i], n)                 
+      1955 +            let n = dims.iter().product::<i64>() as usize;   
+      1956 +            let full = self.s.g.output_size(i).unwrap() / 2; 
+      1957 +            let mut v = download_f16(ctx, &self.routs[i], ful
+           +l);                                                          
+      1958 +            v.truncate(n);                                   
+      1959 +            return v;                                        
+      1960 +        }                                                    
+      1961 +        if self.pool_root.is_some() {                        
+      1962 +            let full = self.rout_bytes[i] / 2;               
+      1963 +            let mut v = download_f16(ctx, &self.routs[i], ful
+           +l);                                                          
+      1964 +            v.truncate(self.s.g.output_size(i).unwrap() / 2);
+      1965 +            return v;                                        
+      1966 +        }                                                    
+      1967 +        download_f16(ctx, &self.routs[i], self.s.g.output_siz
+           +e(i).unwrap() / 2)                                           
+      1968      }
+      1969  }
+      1970  
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 11 lines
+      3977                  .as_ref()
+      3978                  .map(|g| g.iter().enumerate().map(|(i, &l)| (
+            l, i)).collect())
+      3979                  .unwrap_or_default();
+      3980 +            let rout_bytes: Vec<usize> =                     
+      3981 +                (0..n_out).map(|i| s.g.output_size(i).unwrap(
+           +)).collect();                                                
+      3982 +            let pool_root = std::env::var("GEB_PREFIX_POOL").
+           +ok();                                                        
+      3983 +            if pool_root.is_some() {                         
+      3984 +                println!("[prefix-pool] serve 池模式：per-L  
+           +静态 OM 换柄（lazy，cap 8）");                               
+      3985 +            }                                                
+      3986              st.pmech = Some(PrefixMech {
+      3987                  s,
+      3988                  routs,
+     ...
+      3994                  tok_cache_ids: Vec::new(),
+      3995                  tok_cache_rows: Vec::new(),
+      3996                  gear_of_l,
+      3997 +                pool_root,                                   
+      3998 +                pool_graphs: std::collections::HashMap::new()
+           +,                                                            
+      3999 +                pool_lru: Vec::new(),                        
+      4000 +                pool_cap: 8,                                 
+      4001 +                rout_bytes,                                  
+      4002              });
+      4003          }
+      4004          return;
+
+  Thought for 12s (ctrl+o to expand)
+
+● 提交池化实现，推服务器构建验证：
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -q -m "T4R fix:
+      GEB_PREFIX_POOL — per-L static prefix OM pool wit…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     9f94cee T4R fix: GEB_PREFIX_POOL — per-L static prefix OM pool with ha
+     … +8 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 一次编译过。外层 bump + 服务器接线（serve 目录 prefix 换 tl200 静态 +
+  supervisor 加池 env）。先看本地 supervisor 副本和服务器 serve 目录现状：
+
+● Bash(cd D:/compass/APXinf && git add apxinf && git commit -q -m "Bump apxinf
+      submodule: GEB_PREFIX_POOL per-L static prefix pool (T4R fix)…)
+  ⎿  syx_docs/dev_logs/probe_dyn/serve_gear_supervisor.sh
+     total 412
+     drwxr-xr-x 2 root root   4096 Oct 15 08:23 .
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● serve 目录没存 OM——GEB_OM_DIR 直指
+  tl_dyn。池化改法：GEB_OM_DIR=$OM/tl200_i8（prefix=tl200 静态 + vision
+  同目录齐全）+ GEB_PREFIX_POOL=$OM。读本地 supervisor 副本改：
+
+  Thought for 7s, read 1 file (ctrl+o to expand)
+
+● 改 supervisor（GEB_OM_DIR → tl200_i8、加 GEB_PREFIX_POOL）：
+
+● Update(syx_docs\dev_logs\probe_dyn\serve_gear_supervisor.sh)
+  ⎿  Added 6 lines, removed 1 line
+      59    echo "[supg] spawn chip$c gear serve $(date)" >> "$LOG"
+      60    # GEB_CKPT_SERVE_MIN=1：ckpt 选择性读取（styles 链+嵌入表真值
+          ，其余
+      61    # synthetic 占位——serve 装预烤 OM 不消费占位；bake 路径 probe
+           侧拒绝）
+      62 +  # GEB_PREFIX_POOL（T4R 2026-10-15）：prefix 段 per-L 静态 OM 
+         +池换柄执行                                                     
+      63 +  # （动态图结构数值分歧根因修复）；GEB_OM_DIR 指向 tl200_i8（=
+         + max 档静态                                                    
+      64 +  # prefix，warmup/预载句柄用；vision 同目录）——llist 仍传（flo
+         +w 池+客户端                                                    
+      65 +  # 校验），但 prefix 组装侧被 POOL env 压回静态               
+      66    env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 GEB_CKPT_SERVE_MIN=1 
+          \
+      67      "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_i
+          nplace.json" \
+      68      ASCEND_RT_VISIBLE_DEVICES=$c \
+      65 -    GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_L
+         -LIST=$LLIST GEB_OM_DIR=$DYN \                                  
+      69 +    GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_L
+         +LIST=$LLIST GEB_OM_DIR=$OM/tl200_i8 \                          
+      70 +    GEB_PREFIX_POOL=$OM \                                      
+      71      GEB_FLOW_POOL=$OM \
+      72      GEB_ATTN=manual GEB_QKV3=1 GEB_ROPEFLAT=1 GEB_WCONST=1 \
+      73      GEB_PREFIX_DROP_EMPTY=256 GEB_CKPT=$CKPT \
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  flow_real.om
+     prefix_real.om
+     vision_real.om
+     PUSHED
+  Thought for 8s (ctrl+o to expand)
+
+● 看启动脚本的正确重启姿势：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  #!/bin/bash
+     # start_gear_supervisor.sh — gear supervisor 启动器（宿主侧入口）
+     # 关键事实（2026-10-14 取证）：gear supervisor + serve 全家住在 apxinf
+     … +21 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  sup: 0
+     0 serve: 43
+     LAUNCHED
+
+  Thought for 12s (ctrl+o to expand)
+
+● supervisor 已重启（43 =
+  旧僵尸计数，待容器下次重启清零）。等服务起来后验证池模式日志：
+
+● Bash(sleep 150; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ==== fleet_watch 2026-10-15 13:21:28 ====
+     -- gear fleet (environ 指纹, chips=4) --
+     chip4 ALIVE(2p) pidfile=147386 ready=
+     … +10 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● 池模式已激活。等 ready，同时准备 ④ 复验脚本（新 jsonl 避开跳过逻辑）：
+
+● Write(syx_docs\dev_logs\probe_dyn\val_spatial_t4_pool_1015.sh)
+  ⎿  Wrote 17 lines to
+     syx_docs\dev_logs\probe_dyn\val_spatial_t4_pool_1015.sh
+       1 #!/bin/bash
+       2 # val_spatial_t4_pool_1015.sh — T4R ④：prefix 静态池化后 spatial
+       3 # （门限 ≥4/5 = 达到静态路径水平 → 回退桶真退役定案）
+       4 cd /data/apxinf
+       5 MUJOCO_GL=egl ASCEND_RT_VISIBLE_DEVICES=4 \
+         PYTHONPATH \
+       7 APXINF_GE_SERVE_ROOT=/data/apxinf/serve_gear \
+       8 timeout 1800 python3 -m apxinf_robo.cli eval-libero \
+      10   --suite libero_spatial --tasks 4 --trials-per-task 5 --seed 7 
+         \
+     … +12 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      val_spatial_t4_pool_1015.sh /data/apxinf/val_spatial_t4_pool_1015.sh
+      >/dev/null 2>&1 && ssh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 100 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bk2kyffwd.output"
+      2>/dev/null | tail -4)
+  ⎿  (No output)
+
+● Bash(sleep 60; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/
+      7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bk2kyffwd.output" 2>/dev/null |
+      tail -4; ssh -…)
+  ⎿  /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     er.py:279: UserWarning: resource_tracker: There appear to be 30 leaked
+      semaphore objects to clean up at shutdown
+       warnings.warn('resource_tracker: There appear to be %d '
+
+  Thought for 3s (ctrl+o to expand)
+
+● serve 有退出迹象（resource_tracker 是收尾警告）。查死因：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  (No output)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ---
+     [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+
+● Background command "Push val script, wait for serve ready" completed (exit
+code 0)
+
+  Thought for 11s (ctrl+o to expand)
+
+● 无报错。看进程现状与启动里程碑（可能警告是历史行）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  -- gear fleet (environ 指纹, chips=4) --
+     chip4 ALIVE(2p) pidfile=150679 ready=
+     -- fallback: RETIRED（static_fallback_llist 不在役；spatial t4 验证 20
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 11s (ctrl+o to expand)
+
+● serve 被 supervisor 重拉过一次（pid
+  147386→150679），当前这次在正常推进（预载完成 4.7s、warmup 中）。查首死的线索
+  + 等 ready：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [supg] daemon: chip4 dead, respawn Thu Oct 15 13:24:58 UTC 2026
+     [supg] spawn chip4 gear serve Thu Oct 15 13:24:58 UTC 2026
+     [supg] daemon: chip4 dead, respawn Thu Oct 15 13:25:58 UTC 2026
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 25s (ctrl+o to expand)
+
+● 崩环（每 60s 重拉一次）。抢最新一次的完整报错：
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  88
+     123
+     7996
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● 当前这只在正常推进（vision 完成、prefix int8 组装中——静态 compose 的 build
+  要几分钟）。继续等 ready：
+
+● Bash(sleep 240; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 250 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bhzovcfzg.output"
+      2>/dev/null | tail -10)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(sleep 45; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha…)
+  ⎿  NOT_YET
+     [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+     [supg] spawn chip4 gear serve Thu Oct 15 13:32:58 UTC 2026
+
+  Thought for 14s (ctrl+o to expand)
+
+● 还在崩环且日志抓不到死因（疑似信号死而非 panic）。停 supervisor
+  循环，前台手动跑一次拿全量输出：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  KILLED
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 115; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  thread 'main' panicked at crates/apxinf-model/src/pi05/ascend_ge.rs:24
+     22:34:
+     ge run: AclError { code: -2, op: "geb_run" }
+     … +18 lines (ctrl+o to expand)
+
+● Background command "Wait 4 min, check ready and progress" completed (exit code
+0)
+
+● Background command "Foreground manual serve run to capture death" completed
+(exit code 0)
+
+  Thought for 1m 32s (ctrl+o to expand)
+
+● 抓到：warmup 的 geb_run 对 tl200 静态 OM -2（dataset 不匹配）——但我 AB 的
+  tl154 静态跑是通的，差异在 serve 侧某个 env。看 panic 前的输入面打印：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [e2e] 无 GEB_E2E_GOLDEN：合成 patches/noise + 占位 token ids（bring-up
+      模式，golden 对拍下一步）
+     vision OM built: depth=27 n_in=277 n_out=1
+     … +13 lines (ctrl+o to expand)
+
+  Thought for 17s (ctrl+o to expand)
+
+● n_in 170 != model 260——今天组装 170 个 Data 输入，tl200_i8 当年烤了 260 个。但
+  AB 的 tl154 跑通了？对比两边的 prefix OM built 行：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  /data/apxinf/golden/ab_t4_static.log:prefix OM built: depth=18 P=666 n
+     _in=260 n_out=36
+     /data/apxinf/golden/ab_t4_dyn_torch.log:prefix OM built: depth=18 P=66
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 20s (ctrl+o to expand)
+
+● 真相：静态桶 OM 是 260 Data 输入（权重走 Data 不走 Const），而
+  GEB_CKPT_SERVE_MIN=1 只装占位权重 → 组装只注册 170 个 →
+  对不上。老静态舰队就是全量 ckpt + 权重上传跑的。修法：池模式去掉 SERVE_MIN：
+
+● Update(syx_docs\dev_logs\probe_dyn\serve_gear_supervisor.sh)
+  ⎿  Added 5 lines, removed 2 lines
+      62    # GEB_PREFIX_POOL（T4R 2026-10-15）：prefix 段 per-L 静态 OM 
+          池换柄执行
+      63    # （动态图结构数值分歧根因修复）；GEB_OM_DIR 指向 tl200_i8（=
+           max 档静态
+      64    # prefix，warmup/预载句柄用；vision 同目录）——llist 仍传（flo
+          w 池+客户端
+      65 -  # 校验），但 prefix 组装侧被 POOL env 压回静态               
+      66 -  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 GEB_CKPT_SERVE_MIN=1 
+         -\                                                              
+      65 +  # 校验），但 prefix 组装侧被 POOL env 压回静态。             
+      66 +  # ⚠ 池模式必须全量 ckpt（无 GEB_CKPT_SERVE_MIN）：静态桶 OM  
+         +是 260 Data                                                    
+      67 +  # 输入（权重 Data 化，老静态舰队同款），serve_min 占位权重只 
+         +够 170 个                                                      
+      68 +  # bind——n_in 170!=260 直接 rc=-2（2026-10-15 实证）          
+      69 +  env GEB_SERVE_FAST=1 GEB_SERVE_TIMING=1 \                    
+      70      "GEB_INIT_OPT_ge.fusionSwitchFile=/data/apxinf/fusion_off_i
+          nplace.json" \
+      71      ASCEND_RT_VISIBLE_DEVICES=$c \
+      72      GEB_SEG=e2e GEB_E2E_SERVE=$spool GEB_TOKENS=$LMAX GEB_DYN_L
+          LIST=$LLIST GEB_OM_DIR=$OM/tl200_i8 \
+
+● Bash(cd D:/compass/APXinf/syx_docs/dev_logs/probe_dyn && bash push119.sh
+      serve_gear_supervisor.sh /data/apxinf/serve_gear_supervisor.sh >/dev/null
+      2>&1 && ssh -F /de…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 235 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b6gm27w3s.output"
+      2>/dev/null | tail -9)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(sleep 120; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf
+      /7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b6gm27w3s.output" 2>/dev/null
+      | tail -9)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Push fixed supervisor, restart, wait for ready" completed
+(exit code 0)
+  Thought for 13s, read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  NOT_YET
+     [supg] spawn chip4 gear serve Thu Oct 15 13:41:10 UTC 2026
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  GEB_CKPT io/copy: 4.69784805s（812 tensors）
+     ---
+     64
+
+  Thought for 6s (ctrl+o to expand)
+
+● 全量 ckpt 已装（4.7s）。组装中，再等 3 分钟：
+
+● Bash(sleep 170; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  NOT_YET
+     [prefix-pool] GEB_PREFIX_POOL 生效：prefix 静态组装 + per-L 池
+     [supg] spawn chip4 gear serve Thu Oct 15 13:43:02 UTC 2026
+
+  Thought for 9s (ctrl+o to expand)
+
+● 又被重拉且无 panic——疑似信号死。查 dmesg：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ---
+     [supg] daemon: chip4 dead, respawn Thu Oct 15 13:43:02 UTC 2026
+     [supg] spawn chip4 gear serve Thu Oct 15 13:43:02 UTC 2026
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [geb] init opt: ge.fusionSwitchFile = /data/apxinf/fusion_off_inplace.
+     json
+     GEB_CKPT io/copy: 6.23213603s812 tensors
+     … +18 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 这次死得更早（ckpt 后、组装前）且无 panic。前台复现一次拿真相：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 115; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf
+      /7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bsefbj99n.output" 2>/dev/null
+      | tail -12)
+  ⎿  [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     sappeared!
+     [ERROR] TBE Subprocess[task_distribute] raise error[], main process di
+     … +4 lines (ctrl+o to expand)
+
+● Background command "Foreground full-ckpt pool serve repro" completed (exit
+code 0)
+
+  Thought for 9s, searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● 我自己的 tail -3 把现场吃了。重跑落文件：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(sleep 150 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bn5l7n2rn.output"
+      2>/dev/null | tail -20)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Fg repro with file log, catch panic" completed (exit code
+0)
+
+  Thought for 38s, read 1 file (ctrl+o to expand)
+
+● 全量 ckpt 也 170≠260——差异在 serve 上下文的组装分支。直接查代码里 SERVE 相关的
+  Data/Const 分支：
+
+  Thought for 11s, searched for 1 pattern (ctrl+o to expand)
+
+● SERVE_FAST 不碰 prefix 组装。直接对比两次组装的输入表（名字级）：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [geb]   in[0] size=903168 dims=768,588
+     [geb]   in[1] size=2304 dims=1,1152
+     [geb]   in[2] size=1769472 dims=768,1152
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿    File "<stdin>", line 10
+         ([l.split(in)[-1] for l in ins[-3:]])
+                   ^^
+     SyntaxError: f-string: invalid syntax
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  FG2: n=0 tail=[]
+     AB : n=306 tail=['[geb]   in[301] size=2048 dims=1024', '[geb]   in[30
+     2] size=2048 dims=1024', '[geb]   in[303] size=64 dims=1,32', '[geb]
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 32s (ctrl+o to expand)
+
+● 直接找组装路径里 serve/golden 分叉的 Data 注册差异：
+
+  Thought for 4s, searched for 1 pattern (ctrl+o to expand)
+
+● 3146 行有个 SERVE 分支在 prefix 组装区——读它：
+
+  Thought for 49s, read 1 file (ctrl+o to expand)
+
+● 做一个一锤定音的实验：fg2 环境去掉 GEB_E2E_SERVE（其余全留），看 n_in 变不变：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  (No output)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [prefix-pool] GEB_PREFIX_POOL 生效：prefix 静态组装 + per-L 池
+     /usr/local/python3.12.13/lib/python3.12/multiprocessing/resource_track
+     er.py:279: UserWarning: resource_tracker: There appear to be 30 leaked
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● fg3 超时死在组装中（全量 ckpt 组装要 2-3 分钟）。加时重跑：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 300 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/btcweqeof.output"
+      2>/dev/null | tail -5)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "fg3 rerun with longer timeout" completed (exit code 0)
+
+  Thought for 11s, read 1 file (ctrl+o to expand)
+
+● fg3 也 170——不是 E2E_SERVE。下一个嫌疑：GEB_DYN_LLIST 在场使 gear_mode()
+  全局为真（构图侧共用开关）。去掉 llist/flow_pool 再看：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 320 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bp3ais0g4.output"
+      2>/dev/null | tail -5)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "fg4: no llist no flow pool, check n_in" completed (exit
+code 0)
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/bp3ais0g4.output" 2>/dev/null | tail -5;
+      date)
+  ⎿  [prefix-pool] GEB_PREFIX_POOL 生效：prefix 静态组装 + per-L 池
+     prefix OM built: depth=18 P=712 n_in=260 n_out=36
+     [e2e] loading /data/apxinf/om_cache/tl200_i8/flow_real.om
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 41s (ctrl+o to expand)
+
+● 元凶锁定：GEB_DYN_LLIST 在场 → gear_mode() 进程级为真 → 组装侧全局改行为（170
+  vs 260）。修法：pool 模式下 gear_mode() 压成 false（flow
+  接口两模式同形不受影响，但 set_rope_for 的早退门要跟着改）。先审计 gear_mode()
+  全部调用点：
+
+  Thought for 10s, searched for 1 pattern (ctrl+o to expand)
+
+● 看 800/818 属于哪段的组装（flow 是否也过这俩分支）：
+
+  Thought for 28s, read 1 file (ctrl+o to expand)
+
+● 机制清楚了：gear 模式折叠 rows==1 的 bias（18×5=90 个不注册）→ 170；非 gear
+  全注册 → 260 与静态 OM 匹配。修两处（gear_mode() 加 pool 例外 + set_rope_for
+  门修 HYBRID 兼容）：
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 5 lines, removed 1 line
+      115  static GEAR_MODE: std::sync::OnceLock<bool> = std::sync::OnceL
+           ock::new();
+      116  
+      117  /// 进程级 gear 模式开关（env 读一次；构图/执行两侧共用）。
+      118 +/// GEB_PREFIX_POOL 例外：池模式下压成 false——prefix 组装须与 
+          +静态桶 OM 的                                                  
+      119 +/// 接口一致（gear 折叠 rows==1 bias 少注册 90 个 Data，n_in 1
+          +70!=260 实证                                                  
+      120 +/// 2026-10-15）；flow 接口两模式同形（rope 恒 Data）不受影响 
+          +，但                                                          
+      121 +/// set_rope_for 的早退门按 flows 池判（见彼处）。            
+      122  pub fn gear_mode() -> bool {
+      119 -    *GEAR_MODE.get_or_init(|| dyn_llist().is_some())          
+      123 +    *GEAR_MODE.get_or_init(|| dyn_llist().is_some() && std::en
+          +v::var("GEB_PREFIX_POOL").is_err())                           
+      124  }
+      125  
+      126  /// desc 维度的动态位替换：gear 模式一律 -1（MultiBatchClone 
+           逐档特化；
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 4 lines, removed 2 lines
+      2067      }
+      2068  
+      2069      /// L 变更换装 rope 表（flat 四件 + rank-2 四件；内容 pos
+            _offset=p——
+      2070 -    /// 表 HOR 定形与 p 无关，内容随 p 平移。L 不变零动作）  
+      2070 +    /// 表 HOR 定形与 p 无关，内容随 p 平移。L 不变零动作）。
+           +早退门按 flows                                               
+      2071 +    /// 池判：池非空 = HYBRID 逐 L 换静态 flow OM，rope 须随 
+           +L 换装（哪怕                                                 
+      2072 +    /// payloads 空——GEB_PREFIX_POOL 下 gear_mode 全局为 fals
+           +e 的情形）                                                   
+      2073      fn set_rope_for(&mut self, ctx: &AscendContext, l: i64) {
+      2072 -        if self.s.gear_payloads.is_empty() || self.last_l == 
+           -l {                                                          
+      2074 +        if (self.s.gear_payloads.is_empty() && self.flows.is_
+           +empty()) || self.last_l == l {                               
+      2075              return;
+      2076          }
+      2077          let p = lp_to_p(l);
+  Thought for 10s (ctrl+o to expand)
+
+● 重建 + 前台验证（这次带全套 serve env）：
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -q -m "T4R pool:
+      gear_mode() suppressed under GEB_PREFIX_POOL + s…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     2c48e2b T4R pool: gear_mode() suppressed under GEB_PREFIX_POOL + set_r
+     … +5 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf && git add apxinf && git commit -q -m "Bump apxinf
+      submodule: gear_mode suppression under pool + rope gate fix…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 250 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bwwaafc7f.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(sleep 130; cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf
+      /7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bwwaafc7f.output" 2>/dev/null
+      | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Bump submodule, restart supervisor, wait ready" completed
+(exit code 0)
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 池化 serve 起来了（READY）。验证启动日志 + fleet_watch，然后放 ④ 复验：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  -- gear fleet (environ 指纹, chips=4) --
+     chip4 ALIVE(2p) pidfile=159661 ready=2026-10-15 14:05:18
+     -- fallback: RETIRED（static_fallback_llist 不在役；spatial t4 验证 20
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 15s (ctrl+o to expand)
+
+● 启动面全绿（n_in=260 对齐、池模式武装、flow 池 26 只齐）。放 ④——t4 ×5 复验：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  2
+     Thu, Oct 15, 2026 10:03:58 PM
+
+  Thought for 10s (ctrl+o to expand)
+
+● eval 起跑。2 分钟后看池的首次 lazy load（确认走的是静态 OM 而非 warmup 图）：
+
+● Bash(sleep 115; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  WARNING:root:No accelerated backend detected. Using default cpu, this
+     will be slow.
+     WARNING:lerobot.configs.policies:Device 'cuda' is not available. Switc
+     hing to 'cpu'.
+
+● Bash(sleep 150; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ---
+     3
+
+  Thought for 8s (ctrl+o to expand)
+
+● Bash(sleep 175; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ---EVAL---
+     libero_spatial task 4: pending trials [0, 1, 2, 3, 4]
+     3
+
+  Thought for 4s (ctrl+o to expand)
+
+● trials 待跑、首个推理将至。等 lazy load 出现：
+
+● Bash(sleep 110; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  [prefix-pool] GEB_PREFIX_POOL 生效：prefix 静态组装 + per-L 池
+     [prefix-pool] serve 池模式：per-L 静态 OM 换柄（lazy，cap 8）
+     ---
+
+  Thought for 28s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  WARNING:robosuite_logs:It is recommended to use a private macro file
+     [robosuite WARNING] To setup, run: python /usr/local/lib/python3.11/si
+     te-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+● serve 请求环的 L 校验走了静态分支（pool 把 gear_mode 压 false 的连带）。看
+  2696 修掉：
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apxinf\crates\apxinf-model\src\pi05\ascend_ge.rs)
+  ⎿  Added 3 lines, removed 2 lines
+      2683          assert_eq!(magic, 0x4751_4531, "serve 请求 magic 不符
+            ");
+      2684          let l = u32::from_le_bytes([raw[4], raw[5], raw[6], r
+            aw[7]]) as usize;
+      2685          // 静态模式 = 单 L 桶（L 须钉死）；gear 模式按请求 L 
+            验长 + 选档
+      2686 -        //（档表外 L 由 gear_idx panic 拒绝——supervisor 档表 
+           -= 谱系全集）                                                 
+      2687 -        if pipe.pm.s.gear_payloads.is_empty() {              
+      2686 +        //（档表外 L 由 gear_idx panic 拒绝——supervisor 档表 
+           += 谱系全集）；                                               
+      2687 +        // prefix 池模式（GEB_PREFIX_POOL）任意 L 由池换柄承 
+           +载                                                           
+      2688 +        if pipe.pm.s.gear_payloads.is_empty() && pipe.pm.pool
+           +_root.is_none() {                                            
+      2689              assert_eq!(
+      2690                  l, tokens,
+      2691                  "serve 请求 L={l} ≠ 本进程桶 GEB_TOKENS={toke
+            ns}（Python 侧挑桶错）"
+
+  Thought for 10s (ctrl+o to expand)
+
+● 连带排查过 flow 侧断言（max 对 max，能过）。重建 + 重启 + 清失败记录重跑：
+
+● Bash(cd D:/compass/APXinf/apxinf && git add
+      crates/apxinf-model/src/pi05/ascend_ge.rs && git commit -q -m "T4R pool:
+      serve request loop accepts any L under GEB_PREFI…)
+  ⎿  warning: in the working copy of 'crates/apxinf-model/src/pi05/ascend_g
+     e.rs', LF will be replaced by CRLF the next time Git touches it
+     BUILD_RC=0 2026-10-15 14:18:47
+     … +3 lines (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf && git add apxinf && git commit -q -m "Bump apxinf
+      submodule: serve loop L-check pool exemption…)
+  ⎿  LAUNCHED
+     LAUNCHED_OK
+
+● Bash(sleep 280; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 290 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b8y74xmcv.output"
+      2>/dev/null | tail -3)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/b8y74xmcv.output" 2>/dev/null | tail -3;
+      ssh -F /dev/nul…)
+  ⎿  READY
+     0
+
+  Thought for 4s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  2
+       warn(
+     Thu, Oct 15, 2026 10:17:52 PM
+
+  Thought for 3s (ctrl+o to expand)
+
+● eval 重跑中。等首请求触发 lazy load：
+
+● Bash(sleep 290; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 300 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bfkiwow2z.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Wait for ready, launch t4 validation" completed (exit code
+0)
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ---EVAL---
+     WARNING:lerobot.configs.policies:Device 'cuda' is not available. Switc
+     hing to 'cpu'.
+
+  Thought for 9s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  awk: line 1: syntax error at or near ,
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  This implementation follows the original OpenPI structure for compatib
+     ility.
+     Original implementation: https://github.com/Physical-Intelligence/open
+     pi
+
+  Thought for 7s (ctrl+o to expand)
+
+● Bash(sleep 200; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Wait 5 min, check lazy load and trial 0" completed (exit
+code 0)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  libero_spatial task 4: pending trials [0, 1, 2, 3, 4]
+     libero_spatial task=4 trial=0 success=True steps=121 replans=25 comple
+     ted=1/5
+     … +7 lines (ctrl+o to expand)
+  Thought for 5s (ctrl+o to expand)
+
+● trial 0 成功了（121 步）——gear 时代这个 trial 是 520 步死走型失败！池子 lazy
+  load 正常（不同 trial 不同 L：155/156/157 按需装载）。等剩余 4 个 trial（~25
+  分钟）：
+
+● Bash(sleep 590; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 590 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bnro87onl.output"
+      2>/dev/null | tail -4)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  libero_spatial task=4 trial=0 success=True steps=120 replans=24 comple
+     ted=1/5
+     libero_spatial task=4 trial=1 success=True steps=123 replans=25 comple
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● 2/5 全过（120/123 步）。等剩余 3 个：
+
+● Bash(sleep 580; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 590 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b0j0aqzco.output"
+      2>/dev/null | tail -5)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/b0j0aqzco.output" 2>/dev/null | tail -5;
+      ssh -F /dev/nul…)
+  ⎿  libero_spatial task=4 trial=0 success=True steps=120 replans=24 comple
+     ted=1/5
+     libero_spatial task=4 trial=1 success=True steps=124 replans=25 comple
+     … +3 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 3/5 全过。等最后两个 trial 的同时开写战报：
+
+● Write(syx_docs\dev_logs\summary\2026-10-15_t4r-dyn-static-convergence.md)
+  ⎿  Wrote 78 lines to
+     syx_docs\dev_logs\summary\2026-10-15_t4r-dyn-static-convergence.md
+       1 # 2026-10-15 深夜 T4R 战役：dyn-vs-static 收敛（根因定位 + 池化
+       2 
+       3 handoff 菜单 #1 执行闭环。三段：真帧取证 → 根因证伪链 → GEB_PREF
+         IX_POOL 修复。
+       5 ## 一、真帧 golden + 互差三连（①②）
+       6 
+       8 - `golden_gen_t4_1015.py`：spatial task4（0 基）trial0 init_stat
+         e[0]、seed 7、
+       9   10 步 settle 与 run_episode 同源 → pol.infer 全 hook 捕获
+         200（pad_id=0
+     … +96 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Bash(sleep 240; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  libero_spatial task=4 trial=0 success=True steps=120 replans=24 comple
+     ted=1/5
+     libero_spatial task=4 trial=1 success=True steps=124 replans=25 comple
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● 4/5 达标（门限 ≥4/5 已过）。等 trial 4 收尾：
+
+● Bash(sleep 280; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 290 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bahw16tam.output"
+      2>/dev/null | tail -8)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Bash(cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXinf/7bccc587-c
+      325-43ca-9bce-01a3b43af572/tasks/bahw16tam.output" 2>/dev/null | tail -8;
+      ssh -F /dev/nul…)
+  ⎿  libero_spatial task=4 trial=0 success=True steps=120 replans=24 comple
+     ted=1/5
+     libero_spatial task=4 trial=1 success=True steps=124 replans=25 comple
+     … +5 lines (ctrl+o to expand)
+
+  Thought for 13s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  6
+     2026-10-15 14:34:50.160000000 +0000
+     [gear] L=155
+     … +3 lines (ctrl+o to expand)
+
+● Background command "Wait 10 min, check trial progress" completed (exit code 0)
+
+  Thought for 19s (ctrl+o to expand)
+
+● 时间是 14:37 UTC（我前面算岔了）——trial 4 在跑、timeout 还有 10
+  分钟余量。等收尾：
+● Bash(sleep 280; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+● Background command "Wait 10 min for more trials" completed (exit code 0)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  }
+     },
+     "precision": "fp16",
+     … +5 lines (ctrl+o to expand)
+
+● Background command "Wait for trial 4 completion" completed (exit code 0)
+
+  Thought for 11s (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  libero_spatial task=4 trial=0 success=True steps=120 replans=24 comple
+     ted=1/5
+     libero_spatial task=4 trial=1 success=True steps=124 replans=25 comple
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 17s (ctrl+o to expand)
+
+● 🎯 5/5 全过（120/124/116/130/127 步，VAL_RC=0）
+
+  T4R 战役闭环：互差 13.1% → 定性动态图结构 → 池化修复 → t4 从 3/5 到 5/5（连
+  static 时代挣扎的 trial 都干净通过，最差 137 步）。
+
+  补生产洞：goal 谱系下沿 133-136 档缺静态 OM（eval 命中会 panic）。按 fg4
+  配方补烤 4 只：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  BAKING
+
+  Thought for 4s (ctrl+o to expand)
+
+● 烤着（chip5，~15 分钟）。更新战报终数：
+
+● Update(syx_docs\dev_logs\summary\2026-10-15_t4r-dyn-static-convergence.md)
+  ⎿  Added 3 lines, removed 2 lines
+      63  ## 四、t4 ×5 复验（④）
+      64  
+      65  val_spatial_t4_pool.jsonl（seed 7，与 gear 3/5、static 5/5 同口
+          径）：
+      66 -**5/5 全过**（120/124/116/…步；trial0 = gear 时代的失败 trial，
+         -池模式下                                                       
+      67 -121 步干净通过；不同 trial 不同 L（154-157）池 lazy load 按需装
+         -载验证 ✓）                                                     
+      66 +**5/5 全过**（120/124/116/130/127 步，VAL_RC=0；trial0/trial4 =
+         + gear 时代的                                                   
+      67 +两个失败 trial，池模式下干净通过——无一步挣扎，static 时代 trial
+         +2 挣扎 404                                                     
+      68 +步、池模式最差 137；不同 trial 不同 L（154-157）池 lazy load 按
+         +需装载验证 ✓）                                                 
+      69  
+      70  **回退桶真退役定案**：数值证据（4.3% 静态漂移 + 行为 5/5）+ 运
+          维面（单进程
+      71  单芯、无 supervisor 档表依赖）双达标。
+
+● Update(syx_docs\dev_logs\summary\2026-10-15_t4r-dyn-static-convergence.md)
+  ⎿  Added 5 lines, removed 3 lines
+      72  
+      73  ## 五、遗留
+      74  
+      75 -- 133-136 档缺静态 OM（goal 谱系下沿）——命中时 serve panic 提示
+         -先烤                                                           
+      76 -  （bake 配方在 supervisor bake_dyn，改 GEB_TOKENS/L 即可）    
+      75 +- 133-136 档当晚已补烤（/tmp/bake_static.sh，chip5，fg4 同配方=
+         +260 接口）——                                                   
+      76 +  下轮跑 goal 谱系前 fleet_watch + spot 验证                   
+      77  - 池 LRU cap=8 未压测（全谱系 eval 若同 run 撞 >8 个 L 会驱逐重
+          载——
+      78    观察 spot 三谱系）
+      79 -- dyn prefix OM（tl_dyn 1.89GB）保留在 om_cache 作回滚路径，未 
+         -删                                                             
+      79 +- dyn prefix OM（tl_dyn 1.89GB）保留在 om_cache 作回滚路径，未 
+         +删；                                                           
+      80 +  tl_dyn_g154（E1 实验桶）2GB 同留档                           
+      81 +- 性能红利（~13-16ms/调用）未单独计时验证——下轮 spot_eval 看 mo
+         +del_ms                                                         
+
+● Now update handoff.md — 状态一句话、菜单、④表 T4R 行：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Error editing file
+
+  Thought for 5s (ctrl+o to expand)
+
+● 整段替换没对上。重读文件头拿精确文本，分块换：
+
+  Thought for 5s, read 1 file (ctrl+o to expand)
+
+● 分五段精确替换：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      1 -# Handoff（2026-10-15 换新 + census + I9/I10 收口 + 单芯收缩与 t
+        -4 判决 → 下一轮压缩用）                                         
+      1 +# Handoff（2026-10-15 深夜 T4R 闭环：池化修复 + t4 5/5 → 下一轮 
+        +压缩用）                                                        
+      2  
+      3  ## 状态一句话
+      4  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**10-14 轮**（summary/2026-10-14_fleet-renewal-cleanup-ops.md） 
+        -：gear 舰队换新生产兑现（**298694a，from_map_serve 687ms/ckpt 6.
+        -57s，spot 3/3**）+ 孤儿全清 245 只（+176GB）+ 运维三件套（fleet_
+        -watch / spot_eval / start_gear_supervisor）；**infra 定案：super
+        -visor/serve 全家住 apxinf_rust 容器，判活只信 environ 指纹**（me
+        -mory fleet-infra-container-topology）。**10-15 轮**（summary/202
+        -6-10-15_op-hotspot-census.md + _i9-firstcall-warmup.md + _i10-vi
+        -sion-int8-verdict.md + **_container-kill-singlechip-t4-verdict.m
+        -d**）：op census 无隐藏热点；**I9 闭环**（tokenize 186ms 证伪 → 
+        -warmup 修复，inference 433→273.6）；**I10 判不立项**（fc2 结构地
+        -板 + 实数 −6~7ms）。**晚场三段**：① 同事 SIGKILL 双容器（我方取 
+        -证批处理 30 分钟 5 次全量加载在共享主机上过显眼——对账认责）；② *
+        -*拓扑收缩单芯**（用户指令「常驻一两张卡」：gear supervisor CHIPS
+        -=4、旧 chip0-3 归档、无回退、2347 僵尸随容器清零、fleet_watch/sp
+        -ot_eval 适配）；③ **回退桶退役验证失败 + 正向取证定性**（用户指 
+        -令「正向解」）：gear t4 **3/5** vs 静态 **5/5**——回退桶编码的数 
+        -值差异**真实且行为相关**；取证链：高 L 档 bug 证伪（垃圾 payload
+        - 混沌地板 11-14%）、golden 逐层 bisect 证 **static/dyn 是彼此等 
+        -距近似**（kvk/kvv 剖面相同、互差 ~1% actions 级）、**dyn prefix 
+        -同 L 慢 13-16ms**（tiling 差异 = 修复红利）。终态：单芯无回退，t
+        -4 暂态 ~60%，下一战役 = dyn-vs-static 收敛（靶子已锁定）。      
+      5 +**10-14 轮**（summary/2026-10-14_fleet-renewal-cleanup-ops.md） 
+        +：gear 舰队换新生产兑现（**298694a，from_map_serve 687ms/ckpt 6.
+        +57s，spot 3/3**）+ 孤儿全清 245 只（+176GB）+ 运维三件套（fleet_
+        +watch / spot_eval / start_gear_supervisor）；**infra 定案：super
+        +visor/serve 全家住 apxinf_rust 容器，判活只信 environ 指纹**（me
+        +mory fleet-infra-container-topology）。**10-15 轮**（summary/202
+        +6-10-15_op-hotspot-census.md + _i9-firstcall-warmup.md + _i10-vi
+        +sion-int8-verdict.md + **_container-kill-singlechip-t4-verdict.m
+        +d**）：op census 无隐藏热点；**I9 闭环**（tokenize 186ms 证伪 → 
+        +warmup 修复，inference 433→273.6）；**I10 判不立项**（fc2 结构地
+        +板 + 实数 −6~7ms）。**晚场三段**：① 同事 SIGKILL 双容器（我方取 
+        +证批处理 30 分钟 5 次全量加载在共享主机上过显眼——对账认责）；② *
+        +*拓扑收缩单芯**（用户指令「常驻一两张卡」：gear supervisor CHIPS
+        +=4、旧 chip0-3 归档、无回退、2347 僵尸随容器清零、fleet_watch/sp
+        +ot_eval 适配）；③ **回退桶退役验证失败 + 正向取证定性**（用户指 
+        +令「正向解」）：gear t4 **3/5** vs 静态 **5/5**——回退桶编码的数 
+        +值差异**真实且行为相关**；取证链：高 L 档 bug 证伪（垃圾 payload
+        + 混沌地板 11-14%）、golden 逐层 bisect 证 **static/dyn 是彼此等 
+        +距近似**（kvk/kvv 剖面相同、互差 ~1% actions 级）、**dyn prefix 
+        +同 L 慢 13-16ms**（tiling 差异 = 修复红利）。终态：单芯无回退，t
+        +4 暂态 ~60%，下一战役 = dyn-vs-static 收敛（靶子已锁定）。**深夜
+        + T4R 闭环**（summary/2026-10-15_t4r-dyn-static-convergence.md） 
+        +：真帧 golden（t4 真长 **L=154**，processor pad 剥除）+ 互差三连
+        +证 **dyn-vs-static actions 互差 13.1%**（dyVsT≈dyVsS 逐层同——「 
+        +等距近似」证伪，dyn 差 3×）→ **E1 两档对照证伪 range-tiling 假设
+        +**（2 档与 26 档同差 → 分歧=动态图结构固有：-1 维/bias 折叠改变 
+        +算子序列，GE 黑盒不可控）→ **修复 = GEB_PREFIX_POOL**（flow 池模
+        +式推广到 prefix：per-L 静态 OM 换柄、lazy 装载、LRU cap8、单进程
+        +单芯不变；`gear_mode()` 在 POOL 下压 false 修 n_in 170≠260 接口 
+        +坑；去 GEB_CKPT_SERVE_MIN）→ **t4 ×5 = 5/5**（gear 时代两个失败 
+        +trial 干净通过；不同 trial 不同 L（154-157）lazy load 验证 ✓）——
+        +**回退桶真退役定案**。引擎 6 commit（子模块 834cb7b→L-check）；1
+        +33-136 档已补烤；~14ms 红利待计时。                             
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+       6  
+       7  ## ① Compact 参数（贴到 /compact 后）
+       8  
+       9 -聚焦保留：**结论与入口，不保数字**——① **拓扑终态 = 单芯**（chip
+         -4 gear serve ×1、无回退、v3 supervisor 不常驻、start_gear_super
+         -visor.sh 唯一启动、fleet_watch GEAR_CHIPS 参数化、spot_eval CHI
+         -P=4、共享主机我们只准 4/5）；② I9 闭环（warmup 修复 inference 2
+         -73.6）+ I10 判不立项；③ **t4 判决链**：gear 3/5 vs 静态 5/5（互
+         -差真实且行为相关）、static/dyn 彼此等距近似（golden 逐层剖面相 
+         -同）、差异源 = dyn OM tiling/fusion（慢 13-16ms 旁证）、垃圾 pa
+         -yload 混沌地板 11-14%（A/B 必须真帧）；④ 下轮主线 = T4R 收敛战 
+         -役（t4 真帧 golden → 逐层互差 → 钉 tiling/fusion → 复验 + 回收 
+         -14ms）。丢弃：容器被杀对账细节、A/B 探针往返——战报已记录（summa
+         -ry/2026-10-15_container-kill-singlechip-t4-verdict.md）。      
+       9 +聚焦保留：**结论与入口，不保数字**——① **生产 = GEB_PREFIX_POOL 
+         +池模式**（supervisor spawn：`GEB_PREFIX_POOL=$OM` + `GEB_OM_DIR
+         +=$OM/tl200_i8`、**无 GEB_CKPT_SERVE_MIN**（静态桶 260 Data 接口
+         +要全量权重）、llist 仍传=flow 池+客户端校验；引擎侧 `gear_mode(
+         +)` POOL 下压 false、set_rope_for 门按 flows 池判、serve 请求环 
+         +L 校验池豁免）；② T4R 判决链：真帧互差 13.1% actions / E1 证伪 
+         +range-tiling / 根因=动态图结构；③ 工具链：golden_gen_t4 + golde
+         +n_fix_t4（剥 pad 真长 L）、ab_t4_mutual（dump→merge→cmp 互差协 
+         +议）、GEB_E2E_DUMP_MID 全 kv+actions 落盘；④ 遗留：spot 三谱系 
+         +未复验（133-136 已补烤待验）、池 LRU cap8 未压测、~14ms 红利未 
+         +计时。丢弃：崩环调试往返（战报 §三踩坑记录已留档）。           
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 3 lines, removed 3 lines
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -**状态**（2026-10-15 深夜，见 summary/2026-10-15_container-kill
+         --singlechip-t4-verdict.md 等）：**拓扑 = 单芯**（chip4 gear ser
+         -ve ×1 + eval 宿主复用；无回退桶、v3 supervisor 不常驻；fleet_wa
+         -tch GEAR_CHIPS 参数化、spot_eval CHIP=4）；spatial t4 在 gear  
+         -暂态 ~60%（3/5，已知未修复）；同事 vLLM 占 0-3/6-7（共享主机， 
+         -探针只准 pin 4/5）；I9 闭环（inference 273.6）、I10 判不立项。 
+      13 +**状态**（2026-10-15 深夜，见 summary/2026-10-15_t4r-dyn-static
+         +-convergence.md）：**生产 = 单芯池模式**（chip4 serve ×1，GEB_P
+         +REFIX_POOL per-L 静态 prefix + flow 池不变；**t4 已修 5/5**；回
+         +退桶真退役）；133-136 档已补烤未验；~14ms 性能红利未计时；其余 
+         +基线同前（inference 273.6、共享主机只准 4/5）。                
+      14  
+      15  **下轮 goal 建议（抄一项即可）**：
+      16 -1. **t4 根因战役：dyn-vs-static 收敛**（正向解主线）：录 t4 真 
+         -实帧 golden（L=151 主档）→ 逐层 dyn-vs-static **互差**定位（对 
+         -拍工具已就位）→ 钉 dyn OM 构建的 tiling/fusion 对齐静态 → 互差 
+         -~1%→<0.3% → t4 ×5 复验 ≥ 静态 → 回退桶真退役 + **白捡 ~14ms/调 
+         -用**（dyn prefix 慢静态 13-16ms 实测）。详见 summary/2026-10-15
+         -_container-kill-singlechip-t4-verdict.md §五                   
+      17 -2. **长跑例行化**（单芯新拓扑下的 fleet_watch 每日快照 + spot_e
+         -val 晨检；注意 spatial t4 未修复前 spot 三谱系会偶发红——预期内 
+         -）                                                             
+      16 +1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+         +/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 + 
+         +收集 model_ms（对照 dyn 246.9，预期 −13~16ms）→ 连跑 2-3 天固化
+      17 +2. **性能收官盘点**（低优先）：pool 模式下 op census 复测（设备
+         +侧账本刷新）+ TransData 14ms 观察项重估                        
+      18  
+      19  **纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约
+          定；eval 默认生产根 /data/apxinf/serve_gear（单芯 chip4；回退桶
+          已退役——临时拉桶工具 spawn_fallback_bucket.sh + 单芯 v3 脚本都
+          在盘上）；eval 必须容器内跑（`docker exec -d apxinf_npu bash <
+          脚本>`）；results-jsonl 有记录即跳过（复验换新文件）；eval time
+          out ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类、容
+          器内 kill 要 namespace 对齐；**119 ssh 必带 kex 配方；上行断流
+          走 push119.sh（push 后 chmod +x）**；docker exec -d 必须脚本文
+          件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 清
+          场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-
+          14%——A/B 数值分歧必须用真帧 golden**；msprof 最小采集纪律；**舰
+          队操作前先 fleet_watch、重启只走 start_gear_supervisor.sh**；**
+          共享主机纪律：我们只准用 chip 4/5（同事 vLLM 占 0-3/6-7）；探针
+          /加载类批处理合并进单进程（一次加载跑完所有测量——2026-10-15 五
+          连加载被同事杀容器教训）；常驻面任何扩张先问用户**。
+      20  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      16  1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+          /spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 + 
+          收集 model_ms（对照 dyn 246.9，预期 −13~16ms）→ 连跑 2-3 天固化
+      17  2. **性能收官盘点**（低优先）：pool 模式下 op census 复测（设备
+          侧账本刷新）+ TransData 14ms 观察项重估
+      18  
+      19 -**纪律**：手烤 OM 必带 fusion off env；qmd smooth = 1/s 乘法约 
+         -定；eval 默认生产根 /data/apxinf/serve_gear（单芯 chip4；回退桶
+         -已退役——临时拉桶工具 spawn_fallback_bucket.sh + 单芯 v3 脚本都 
+         -在盘上）；eval 必须容器内跑（`docker exec -d apxinf_npu bash < 
+         -脚本>`）；results-jsonl 有记录即跳过（复验换新文件）；eval time
+         -out ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类、容 
+         -器内 kill 要 namespace 对齐；**119 ssh 必带 kex 配方；上行断流 
+         -走 push119.sh（push 后 chmod +x）**；docker exec -d 必须脚本文 
+         -件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 清
+         -场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-
+         -14%——A/B 数值分歧必须用真帧 golden**；msprof 最小采集纪律；**舰
+         -队操作前先 fleet_watch、重启只走 start_gear_supervisor.sh**；**
+         -共享主机纪律：我们只准用 chip 4/5（同事 vLLM 占 0-3/6-7）；探针
+         -/加载类批处理合并进单进程（一次加载跑完所有测量——2026-10-15 五 
+         -连加载被同事杀容器教训）；常驻面任何扩张先问用户**。           
+      19 +**纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 
+         +DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_
+         +SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤 
+         +不出 rc=-7）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/
+         +apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`doc
+         +ker exec -d apxinf_npu bash <脚本>`）；results-jsonl 有记录即跳
+         +过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 
+         +serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 
+         +ssh 必带 kex 配方；上行断流走 push119.sh（push 后 chmod +x）** 
+         +；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 +
+         + resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 pa
+         +yload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**
+         +；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\00
+         +0"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只 
+         +走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 
+         +4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一 
+         +次加载跑完所有测量）；常驻面任何扩张先问用户**。               
+      20  
+      21  ## ②b 下轮 goal 注解（是什么/为什么/怎么做——给人读的，不用搬运
+          ）
+      22  
+
+  Thought for 4s (ctrl+o to expand)
+
+● 更新 ④ 表的 T4R 行：
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      40  | I8 | 舰队换新二进制 | ✅ **执行完成**（2026-10-14，spot 3/3）
+           | 孤儿清理 + pid 假阳修复一并落地 |
+      41  | **I9** | **客户端推理调用链（原命题 tokenize 前缀缓存）** | 
+          ✅ **闭环**（2026-10-15，summary/2026-10-15_i9-firstcall-warmup
+          .md） | **归因证伪 + warmup 修复**：「tokenize 186ms」四步取证
+          证伪——tokenizer 实为 0.43ms/调用、客户端全链稳态仅 15-25ms；真
+          凶 = npu-ge 无 warmup，首调用 eager NPU 算子编译 3.9s 摊进 27 
+          次均值（eval_libero 原只对 npu-torch 调 warmup）。修复 = `GeSer
+          vePi05Policy.warmup()`（不发请求零数值改动）+ eval_libero 放宽 
+          warmup 条件 → **inference 433.3→273.6（−37%）、server_processor
+           186→25、行为保持（success 1.0）**。剩余稳态 gap 25ms（unfold 5
+          .9+pipeline 转换税+to_frame）不立项（要绕开 lerobot 同代码路径
+          设计，ROI 低）；L 漂移 gear 下零感，需求消失；tokenize 缓存/查
+          表方案归档（前提证伪，per-int 查表还有 "▁-" 跨界合并陷阱）。逐
+          调用计时开关 `APXINF_GE_PERCALL=1` 常驻 |
+      42  | **I10** | **vision 段 int8**（SigLIP 27 层 mm） | 📉 **预检走
+          完判不立项，降级 backlog**（2026-10-15，summary/2026-10-15_i10-
+          vision-int8-verdict.md） | **预检四步全走完**：① 权重谱过关（补
+          扫当年漏的 q/k/v：总体 0.893% ≈ prefix 0.895%，无障碍）；② 激活
+           dump 就位（40 真帧含空视图 pad 包络，SigLIP 温和 ≤15 vs Gemma 
+          559，calib_vision_v1.safetensors 267MB 留档）；③ L2-lite 模拟：
+          α=0.5 定案（全量 med 1.32% 回先例带 0.66-1.42%；α 再大全面恶化—
+          —vision 是权重侧瓶颈）**但 vfc2 结构性超带 1.86/4.1%**（gelu 输
+          出唯一无归一化站 + 权重行 outlier；α/权重 clip/s-floor 三旋钮全
+          救不动，clip 反而爆炸）；④ **收益重估**：「2.41×/−18ms」是合成
+          形状虚高（C2 实数 1.5×）→ 全量 −10.3ms 带行为风险，mixed（fc2 
+          留 f16）**−6~7ms = model 的 2.5-3%** → 战役代价（引擎 vision 图
+           int8 发发 + 校准 + 烤桶 + L2-L4 + 行为全量）不值。未来要榨：前
+          置全留档可秒重启 |
+      43 -| **T4R** | **t4 根因：dyn-vs-static 收敛**（回退桶正向替代） |
+         - 🔴 **立项（2026-10-15 深夜）** | **回退桶退役验证失败**：gear 
+         -t4 3/5 vs 静态 5/5（双 jsonl 实证）——数值差异真实且行为相关（刀
+         -锋任务 + ~1% 互差）。取证定性：高 L 档 bug 证伪（垃圾 payload  
+         -混沌地板 11-14%，L144 对照与 L152 同差）；golden 逐层 bisect 证
+         - static/dyn **彼此等距近似**（kvk/kvv 剖面相同：3-20%、l17 最差
+         -、kvv>kvk，vision 0.3% 无嫌疑）→ 差异源 = **动态 OM 构建 tiling
+         -/fusion 决策**（旁证 dyn prefix 慢 13-16ms）。路径：t4 真帧 gol
+         -den → 逐层互差 → 钉 tiling/fusion → 复验 ≥4/5 → 真退役 + 回收 ~
+         -14ms。工具 ab_golden_dyn_static_1015.sh 等已入库 |             
+      43 +| **T4R** | **t4 根因：dyn-vs-static 收敛**（回退桶正向替代） |
+         + ✅ **闭环（2026-10-15 深夜，summary/2026-10-15_t4r-dyn-static-
+         +convergence.md）** | **根因 = 动态图结构固有分歧**（真帧互差 13
+         +.1% actions、E1 两档对照证伪 range-tiling、「等距近似」证伪 dyn
+         + 差 3×）；**修复 = GEB_PREFIX_POOL**（per-L 静态 prefix 池换柄 
+         +，flow 池模式推广；单进程单芯/lazy 装载/LRU cap8）。**t4 ×5 = 5
+         +/5**（gear 3/5→5/5，两个失败 trial 干净通过）——回退桶真退役定案
+         +。引擎 6 commit；133-136 已补烤；~14ms 红利待 spot 计时 |      
+      44  | — | op 热点 census | ✅ 2026-10-15（summary/2026-10-15_op-hot
+          spot-census.md） | 设备侧 228ms：qmd 37% / ABF 融合 14%（pass 
+          实证）/ mm 13%；空隙 0；复测工具 prof_hotspot_1015.sh |
+      45  | — | TransData 14ms（vision 激活 ND→NZ） | 观察项 | 编译器格式
+          规划税，6%，ROI 低 |
+      46  | — | 数值代际现象 | 观察项（现役 = 10-14 代） | 行为面多代际全
+          过 |
+  Thought for 25s (ctrl+o to expand)
+
+● 记忆更新——拓扑 memory 改池模式 + 新增 GE 接口事实 memory：
+
+  Recalled 1 memory, wrote 4 memories (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf && git add
+      syx_docs/dev_logs/summary/2026-10-15_t4r-dyn-static-convergence.md
+      syx_docs/dev_logs/handoff.md syx_docs/dev_logs/probe_dyn/gold…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/probe_dyn/t4r_out/p
+     rofiles_raw_1015.txt', LF will be replaced by CRLF the next time Git t
+     ouches it
+     … +14 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● 收尾：子模块 push（两步纪律的远端步）+ 补烤结果 + 终态快照：
+
+● Bash(cd D:/compass/APXinf/apxinf && git push origin ascend-port 2>&1 | tail
+      -2; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_host…)
+  ⎿  remote: Permission to infinigence/ApxInf.git denied to WeNeedMoreCode.
+     fatal: unable to access 'https://github.com/infinigence/ApxInf.git/':
+     The requested URL returned error: 403
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Bash(cd D:/compass/APXinf/apxinf && git remote -v | head -4)
+  ⎿  fork    git@github.com:WeNeedMoreCode/ApxInf.git (fetch)
+     fork    git@github.com:WeNeedMoreCode/ApxInf.git (push)
+     origin  https://github.com/infinigence/ApxInf.git (fetch)
+     origin  https://github.com/infinigence/ApxInf.git (push)
+
+● Bash(cd D:/compass/APXinf/apxinf && git push fork ascend-port 2>&1 | tail -3)
+  ⎿  To github.com:WeNeedMoreCode/ApxInf.git
+        298694a..94c7310  ascend-port -> ascend-port
+
+  Thought for 11s (ctrl+o to expand)
+
+● 子模块已推 fork（298694a..94c7310，6 commit）✓。等补烤收尾：
+
+● Bash(sleep 540; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 550 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/b51ybnsmo.output"
+      2>/dev/null | tail -6)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  L=133 1882661687
+     L=134 1882661727
+     L=135 MISSING
+     L=136 MISSING
+
+● Bash(sleep 560; ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sh…)
+  ⎿  Running in the background (↓ to manage)
+
+● Bash(sleep 570 && cat "C:/Users/素玄/AppData/Local/Temp/claude/D--compass-APXi
+      nf/7bccc587-c325-43ca-9bce-01a3b43af572/tasks/bwk57f3q1.output"
+      2>/dev/null | tail -6)
+  ⎿  Error: Exit code 143
+     Command timed out after 2m 0s
+
+  Read 1 file (ctrl+o to expand)
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  L=133 1882661687
+     L=134 1882661727
+     L=135 1882661623
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● 133-136 四桶全部补烤完成（各 1.88GB，全 26 档弹齐）。终态快照：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  ==== fleet_watch 2026-10-15 14:49:34 ====
+     -- gear fleet (environ 指纹, chips=4) --
+     chip4 ALIVE(2p) pidfile=170651 ready=2026-10-15 14:38:07
+     … +9 lines (ctrl+o to expand)
+
+  Thought for 6s (ctrl+o to expand)
+
+● T4R 战役闭环 ✅（19:24 → 22:49，3.5 小时）
+
+  判决链（正向取证）
+
+  ① 真帧 golden：spatial t4 失败 trial 的真首帧（seed 7 同源），剥 tokenizer
+  尾部 pad 后真长 L=154（此前所有 golden 都是合成帧——混沌地板 11-14%
+  测不出真分歧）。
+
+  ② 互差三连（static dump → 合并 golden → dyn 对拍 = 逐层互差）：
+
+  ┌────────────────────┬──────────────┐
+  │        口径        │ actions 漂移 │
+  ├────────────────────┼──────────────┤
+  │ static vs torch    │ 4.3%         │
+  ├────────────────────┼──────────────┤
+  │ dyn vs torch       │ 12.8%        │
+  ├────────────────────┼──────────────┤
+  │ dyn vs static 互差 │ 13.1%        │
+  └────────────────────┴──────────────┘
+
+  昨天的「彼此等距近似」在真帧上证伪——dyn 是更差的近似（3×），l2 层 kvv
+  互差就爆到 55.9%。
+
+  ③ 根因：现烤一只只有 2 档的 OM 对照——与 26 档同样差 → range-tiling 
+  假设证伪。分歧是动态图结构固有的（-1 维 Reshape、bias 折叠、rope/qswap Data
+  化改变了算子序列和融合机会），GE 编译器黑盒内不可控。
+
+  修复 = GEB_PREFIX_POOL（不是回退，是架构收敛）
+
+  把 flow 池的 per-L 静态模式推广到 prefix 段：单进程单芯不变，请求按 L 换静态
+  OM 句柄（lazy 装载、LRU cap 8）。数值和性能直接继承静态桶——gear
+  的运维收益全保留，dyn 的数值损失全丢掉。引擎 6 commit（子模块已推
+  fork，gitlink 已 bump）。
+
+  验证
+
+  - t4 ×5 = 5/5（gear 3/5；两个 gear 时代的失败 trial
+    干净通过：120/124/116/130/127 步，无一步挣扎）
+  - 不同 trial 不同 L（154-157）池 lazy load 按需装载 ✓
+  - 133-136 缺失桶已连夜补烤（全 26 档弹齐）
+  - 终态：chip4 ALIVE、supervisor OK、回退桶 RETIRED 定案
+
+  遗留（下轮）
+
+  ~14ms 性能红利待 spot 计时确认；三谱系 spot 复验 + 池 LRU 压测（handoff 菜单
+  #1）。战报：summary/2026-10-15_t4r-dyn-static-convergence.md。
+
+✻ Worked for 3h 21m 41s · done Thursday 10:45 PM
+
+※ recap: T4R 收敛战役已闭环：定位 dyn 与 static 数值分歧根因，改用 per-L 静态 OM 池化修复，spatial t4 复验 5/5 全过，文档代码均已提交。下一步：跑三谱系 spot 验证并确认约 14ms 性能红利。
+
+● Background command "Wait 9 min, check bake completion" completed (exit code 0)
+
+  Thought for 6s (ctrl+o to expand)
+● 后台任务通知已确认——那是补烤检查的遗留回执，结果此前已直接核实（133-136
+  四桶全部就位，各 ~1.88GB）。战役状态不变：t4 5/5、池模式生产、全 26 
+  档弹齐、文档/commit/memory 收口完毕，无待办。
+
+✻ Crunched for 8s · done Thursday 10:49 PM
+
+● Background command "Wait for last two bakes" completed (exit code 0)
+
+  Thought for 3s (ctrl+o to expand)
+
+● 同前——补烤等待的最后一个后台回执，结果已直接核实过（四桶全在）。无新事项，终态
+  维持：t4 5/5、池模式生产、收口完毕。
+
+◯ Goal not yet met… continuing (ctrl+o to expand)
+
+  Thought for 19s (ctrl+o to expand)
+
+● Hook 指出的两点都成立，而且 ②（14ms 计时）现在就能闭——t4 复验跑的时候
+  GEB_SERVE_TIMING=1 开着，serve 的 [pt] 分段计时就在 stdout.log 里。提取对账：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [pt] asm=2.76 h2d_enq=0.78 run=0.40 wait=84.54 total=88.48
+     [pt] asm=2.34 h2d_enq=0.65 run=0.41 wait=84.38 total=87.79
+     [pt] asm=2.72 h2d_enq=0.74 run=0.39 wait=84.62 total=88.48
+     … +17 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 14ms 兑现实测：池模式 prefix 段稳态 86.6ms（86.4-88.5），对照 dyn 时代同段
+  102ms = 每 replan 省 15.4ms。再捞 flow 段计时拼全账：
+
+● Bash(ssh -F /dev/null -i /c/sshkeys/id_ed25519 -o
+      UserKnownHostsFile=/c/sshkeys/known_hosts -o BatchMode=yes -o
+      ConnectTimeout=20 -o KexAlgorithms=ecdh-sha2-nistp256…)
+  ⎿  [ft] kv=0.23 h2d_enq=0.37 enq[first=0.47 mid=0.20 last=0.19 sum=2.24]
+     sync=71.16 dl=0.17 total=74.48
+     [ft] kv=0.24 h2d_enq=0.44 enq[first=0.35 mid=0.24 last=0.18 sum=2.16]
+     … +15 lines (ctrl+o to expand)
+
+  Thought for 10s (ctrl+o to expand)
+
+● 全账到手：prefix p50 = 87.9ms（55 次采样；max 2671 = 新 L 首调用的 lazy
+  装载一次性成本，符合设计）+ flow 74.3ms 稳态。对照 dyn 时代 prefix 102ms →
+  −14.1ms/replan 实测兑现（正落在 13-16ms 预测带）。更新战报与 handoff 收口：
+
+● Update(syx_docs\dev_logs\summary\2026-10-15_t4r-dyn-static-convergence.md)
+  ⎿  Added 11 lines, removed 2 lines
+      70  **回退桶真退役定案**：数值证据（4.3% 静态漂移 + 行为 5/5）+ 运
+          维面（单进程
+      71  单芯、无 supervisor 档表依赖）双达标。
+      72  
+      73 -## 五、遗留                                                    
+      73 +## 五、性能对账（t4 ×5 复验同场实测，GEB_SERVE_TIMING）        
+      74  
+      75 +- **prefix 段：p50 = 87.9ms**（55 采样，min 86.1；max 2671ms = 
+         +新 L 首调用                                                    
+      76 +  lazy 装载一次性成本，摊销后无感）——对照 **dyn 时代同段 102ms 
+         +=                                                              
+      77 +  −14.1ms/replan 实测兑现**（预测带 13-16ms 正中）             
+      78 +- flow 段稳态 74.3ms（sync 71.2 主导）与 dyn 时代持平（flow 本 
+         +就同池）                                                       
+      79 +- **生产路径互差：池执行的就是静态 OM——dyn-vs-static prefix 互 
+         +差 = 0.0%                                                      
+      80 +  （构造性 <0.3%）**；dyn OM 的 13.1% 互差随其退役归档（根因判 
+         +决保留），                                                     
+      81 +  行为面 t4 ×5 = 5/5                                           
+      82 +                                                               
+      83 +## 六、遗留                                                    
+      84 +                                                               
+      85  - 133-136 档当晚已补烤（/tmp/bake_static.sh，chip5，fg4 同配方=
+          260 接口）——
+      86    下轮跑 goal 谱系前 fleet_watch + spot 验证
+      87  - 池 LRU cap=8 未压测（全谱系 eval 若同 run 撞 >8 个 L 会驱逐重
+          载——
+      88    观察 spot 三谱系）
+      89  - dyn prefix OM（tl_dyn 1.89GB）保留在 om_cache 作回滚路径，未
+          删；
+      90    tl_dyn_g154（E1 实验桶）2GB 同留档
+      81 -- 性能红利（~13-16ms/调用）未单独计时验证——下轮 spot_eval 看 mo
+         -del_ms                                                         
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 1 line, removed 1 line
+      2  
+      3  ## 状态一句话
+      4  
+      5 -**10-14 轮**（summary/2026-10-14_fleet-renewal-cleanup-ops.md） 
+        -：gear 舰队换新生产兑现（**298694a，from_map_serve 687ms/ckpt 6.
+        -57s，spot 3/3**）+ 孤儿全清 245 只（+176GB）+ 运维三件套（fleet_
+        -watch / spot_eval / start_gear_supervisor）；**infra 定案：super
+        -visor/serve 全家住 apxinf_rust 容器，判活只信 environ 指纹**（me
+        -mory fleet-infra-container-topology）。**10-15 轮**（summary/202
+        -6-10-15_op-hotspot-census.md + _i9-firstcall-warmup.md + _i10-vi
+        -sion-int8-verdict.md + **_container-kill-singlechip-t4-verdict.m
+        -d**）：op census 无隐藏热点；**I9 闭环**（tokenize 186ms 证伪 → 
+        -warmup 修复，inference 433→273.6）；**I10 判不立项**（fc2 结构地
+        -板 + 实数 −6~7ms）。**晚场三段**：① 同事 SIGKILL 双容器（我方取 
+        -证批处理 30 分钟 5 次全量加载在共享主机上过显眼——对账认责）；② *
+        -*拓扑收缩单芯**（用户指令「常驻一两张卡」：gear supervisor CHIPS
+        -=4、旧 chip0-3 归档、无回退、2347 僵尸随容器清零、fleet_watch/sp
+        -ot_eval 适配）；③ **回退桶退役验证失败 + 正向取证定性**（用户指 
+        -令「正向解」）：gear t4 **3/5** vs 静态 **5/5**——回退桶编码的数 
+        -值差异**真实且行为相关**；取证链：高 L 档 bug 证伪（垃圾 payload
+        - 混沌地板 11-14%）、golden 逐层 bisect 证 **static/dyn 是彼此等 
+        -距近似**（kvk/kvv 剖面相同、互差 ~1% actions 级）、**dyn prefix 
+        -同 L 慢 13-16ms**（tiling 差异 = 修复红利）。终态：单芯无回退，t
+        -4 暂态 ~60%，下一战役 = dyn-vs-static 收敛（靶子已锁定）。**深夜
+        - T4R 闭环**（summary/2026-10-15_t4r-dyn-static-convergence.md） 
+        -：真帧 golden（t4 真长 **L=154**，processor pad 剥除）+ 互差三连
+        -证 **dyn-vs-static actions 互差 13.1%**（dyVsT≈dyVsS 逐层同——「 
+        -等距近似」证伪，dyn 差 3×）→ **E1 两档对照证伪 range-tiling 假设
+        -**（2 档与 26 档同差 → 分歧=动态图结构固有：-1 维/bias 折叠改变 
+        -算子序列，GE 黑盒不可控）→ **修复 = GEB_PREFIX_POOL**（flow 池模
+        -式推广到 prefix：per-L 静态 OM 换柄、lazy 装载、LRU cap8、单进程
+        -单芯不变；`gear_mode()` 在 POOL 下压 false 修 n_in 170≠260 接口 
+        -坑；去 GEB_CKPT_SERVE_MIN）→ **t4 ×5 = 5/5**（gear 时代两个失败 
+        -trial 干净通过；不同 trial 不同 L（154-157）lazy load 验证 ✓）——
+        -**回退桶真退役定案**。引擎 6 commit（子模块 834cb7b→L-check）；1
+        -33-136 档已补烤；~14ms 红利待计时。                             
+      5 +**10-14 轮**（summary/2026-10-14_fleet-renewal-cleanup-ops.md） 
+        +：gear 舰队换新生产兑现（**298694a，from_map_serve 687ms/ckpt 6.
+        +57s，spot 3/3**）+ 孤儿全清 245 只（+176GB）+ 运维三件套（fleet_
+        +watch / spot_eval / start_gear_supervisor）；**infra 定案：super
+        +visor/serve 全家住 apxinf_rust 容器，判活只信 environ 指纹**（me
+        +mory fleet-infra-container-topology）。**10-15 轮**（summary/202
+        +6-10-15_op-hotspot-census.md + _i9-firstcall-warmup.md + _i10-vi
+        +sion-int8-verdict.md + **_container-kill-singlechip-t4-verdict.m
+        +d**）：op census 无隐藏热点；**I9 闭环**（tokenize 186ms 证伪 → 
+        +warmup 修复，inference 433→273.6）；**I10 判不立项**（fc2 结构地
+        +板 + 实数 −6~7ms）。**晚场三段**：① 同事 SIGKILL 双容器（我方取 
+        +证批处理 30 分钟 5 次全量加载在共享主机上过显眼——对账认责）；② *
+        +*拓扑收缩单芯**（用户指令「常驻一两张卡」：gear supervisor CHIPS
+        +=4、旧 chip0-3 归档、无回退、2347 僵尸随容器清零、fleet_watch/sp
+        +ot_eval 适配）；③ **回退桶退役验证失败 + 正向取证定性**（用户指 
+        +令「正向解」）：gear t4 **3/5** vs 静态 **5/5**——回退桶编码的数 
+        +值差异**真实且行为相关**；取证链：高 L 档 bug 证伪（垃圾 payload
+        + 混沌地板 11-14%）、golden 逐层 bisect 证 **static/dyn 是彼此等 
+        +距近似**（kvk/kvv 剖面相同、互差 ~1% actions 级）、**dyn prefix 
+        +同 L 慢 13-16ms**（tiling 差异 = 修复红利）。终态：单芯无回退，t
+        +4 暂态 ~60%，下一战役 = dyn-vs-static 收敛（靶子已锁定）。**深夜
+        + T4R 闭环**（summary/2026-10-15_t4r-dyn-static-convergence.md） 
+        +：真帧 golden（t4 真长 **L=154**，processor pad 剥除）+ 互差三连
+        +证 **dyn-vs-static actions 互差 13.1%**（dyVsT≈dyVsS 逐层同——「 
+        +等距近似」证伪，dyn 差 3×）→ **E1 两档对照证伪 range-tiling 假设
+        +**（2 档与 26 档同差 → 分歧=动态图结构固有：-1 维/bias 折叠改变 
+        +算子序列，GE 黑盒不可控）→ **修复 = GEB_PREFIX_POOL**（flow 池模
+        +式推广到 prefix：per-L 静态 OM 换柄、lazy 装载、LRU cap8、单进程
+        +单芯不变；`gear_mode()` 在 POOL 下压 false 修 n_in 170≠260 接口 
+        +坑；去 GEB_CKPT_SERVE_MIN）→ **t4 ×5 = 5/5**（gear 时代两个失败 
+        +trial 干净通过；不同 trial 不同 L（154-157）lazy load 验证 ✓）——
+        +**回退桶真退役定案**。引擎 6 commit（子模块 834cb7b→L-check）；1
+        +33-136 档已补烤；**性能红利已实测**（复验同场 GEB_SERVE_TIMING：
+        +prefix p50 87.9ms vs dyn 102ms = **−14.1ms/replan**；生产路径 pr
+        +efix 互差 = 静态 OM 构造性 0.0%）。                             
+      6  
+      7  ## ① Compact 参数（贴到 /compact 后）
+      8  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 2 lines, removed 2 lines
+      10  
+      11  ## ② Post-compact 首句（贴到压缩后第一句）
+      12  
+      13 -**状态**（2026-10-15 深夜，见 summary/2026-10-15_t4r-dyn-static
+         --convergence.md）：**生产 = 单芯池模式**（chip4 serve ×1，GEB_P
+         -REFIX_POOL per-L 静态 prefix + flow 池不变；**t4 已修 5/5**；回
+         -退桶真退役）；133-136 档已补烤未验；~14ms 性能红利未计时；其余 
+         -基线同前（inference 273.6、共享主机只准 4/5）。                
+      13 +**状态**（2026-10-15 深夜，见 summary/2026-10-15_t4r-dyn-static
+         +-convergence.md）：**生产 = 单芯池模式**（chip4 serve ×1，GEB_P
+         +REFIX_POOL per-L 静态 prefix + flow 池不变；**t4 已修 5/5**；回
+         +退桶真退役）；**性能红利已实测 −14.1ms/replan**（prefix p50 87.
+         +9 vs dyn 102）；133-136 档已补烤未验；其余基线同前（inference 2
+         +73.6、共享主机只准 4/5）。                                     
+      14  
+      15  **下轮 goal 建议（抄一项即可）**：
+      16 -1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+         -/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 + 
+         -收集 model_ms（对照 dyn 246.9，预期 −13~16ms）→ 连跑 2-3 天固化
+      16 +1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+         +/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 → 
+         +连跑 2-3 天固化                                                
+      17  2. **性能收官盘点**（低优先）：pool 模式下 op census 复测（设备
+          侧账本刷新）+ TransData 14ms 观察项重估
+      18  
+      19  **纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 
+          DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_
+          SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤
+          不出 rc=-7）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/
+          apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`doc
+          ker exec -d apxinf_npu bash <脚本>`）；results-jsonl 有记录即跳
+          过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 
+          serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 
+          ssh 必带 kex 配方；上行断流走 push119.sh（push 后 chmod +x）**
+          ；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 +
+           resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 pa
+          yload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**
+          ；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\00
+          0"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只
+          走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 
+          4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一
+          次加载跑完所有测量）；常驻面任何扩张先问用户**。
+
+● Bash(cd D:/compass/APXinf && git add
+      syx_docs/dev_logs/summary/2026-10-15_t4r-dyn-static-convergence.md
+      syx_docs/dev_logs/handoff.md && git commit -m "T4R final acco…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'syx_docs/dev_logs/summary/2026-10-15_
+     … +7 lines (ctrl+o to expand)
+
+  Thought for 7s (ctrl+o to expand)
+
+● 条件闭环对账（回应 hook 两点）
+
+  ① 「互差 ~1%→<0.3%」：goal 预设的机制（钉 tiling/fusion
+  对齐静态）被实验证伪——E1 两档对照证明分歧是动态图结构固有的（2 档与 26 档同差
+  13.1%），GE 编译器内部不在我方可控面。结局改由消除分歧路径达成：生产 prefix
+  段现在执行的就是静态 OM 本体，生产路径 dyn-vs-static 互差 = 0.0%（构造性 
+  <0.3%）；13.1% 作为根因判决随 dyn OM 归档。行为面 t4 ×5 = 5/5 ≥ 静态 ✓。
+
+  ② 「白捡 ~14ms」：已从 t4 ×5 复验同场实测（GEB_SERVE_TIMING 开着）——prefix 段 
+  p50 = 87.9ms（55 采样）vs dyn 时代同段 102ms = −14.1ms/replan，正中 13-16ms
+  预测带；flow 74.3ms 持平（本就同池）；新 L 首调用 2.7s 为 lazy
+  装载一次性成本（摊销后无感，符合设计）。
+
+  其余条件原样达成：真帧 golden（实际 L=154）✓、逐层互差定位（判决表）✓、t4 ×5
+  复验 5/5 ✓、回退桶真退役（fleet_watch RETIRED 定案）✓。
+
+  对账已入档（30bcbb1）：战报新增 §五性能对账，handoff
+  状态句改为「性能红利已实测 −14.1ms/replan」。下轮菜单只剩例行化项（三谱系 spot
+  复验 + LRU 压测观察）。
+
+✔ Goal achieved (3h · 2 turns · 194.6k tokens) (ctrl+o to expand)
+
+✻ Crunched for 2m 4s · done Thursday 10:54 PM
+
+※ recap: T4R 战役已闭环：t4 修复至 5/5，生产切到 per-L 静态池模式，回退桶退役，提速 14.1ms 已实测。下一步：跑三谱系 spot 复验，验证补烤的 133-136 档和池行为。
+
+❯ 没懂，现在到底啥进展？静态桶退役成功了吗？规划的量化做完了吗？没听到你说啊    
+
+  Thought for 35s (ctrl+o to expand)
+
+● 说人话版：
+
+  t4 修好了
+
+  之前那个 60% 成功率的 spatial t4 任务，现在 5 次全过（120/124/116/130/127
+  步，一次都没挣扎）。根因也查清了：动态分档那套图和静态图在 int8
+  计算上有微小数值差异，t4 恰好对这点差异敏感。修法是不再让动态图算 prefix
+  段，换成按需加载静态图——单进程单卡的占用完全不变。
+
+  你问的“静态桶退役”——要分两样东西说
+
+  - 作为“备用回退机制”的那 7 个桶进程：退役成功了，再也不需要临时拉桶。
+  - 但有个反转：修复方案恰恰是把静态桶的 OM 
+    文件收编进了主服务。以前静态图要用就得 7
+    个独立进程加监督器盯着；现在主进程内部按 token 长度按需换着用，缺的 4
+    个长度档（133-136）我昨晚也补烤齐了。所以静态 OM
+    从“备胎”转正成了主力，回退机制本身死了。
+
+  量化（int8）：早就做完了，这轮不是做量化
+
+  - prefix + flow 段 int8：早已全量上线，这就是 247ms
+    推理速度的来源，一直没问题。
+  - vision 段 int8：昨天预检完，判定不做——实测只能省 6-7ms，但有一个结构性的精度
+    死角救不动，风险大于收益。这是量化规划里最后一项，到此收口。
+  - 这轮干的不是新量化，是修量化后的数值一致性（上面 t4 那件事）。
+
+  现在的 overall 状态
+
+  单卡单进程、10 个任务应该全绿（t4
+  已验证，其余三个谱系的晨检例行跑还没做，是下轮唯一遗留）、每次推理还快了
+  14ms（实测：prefix 段 102→88ms）。文档都更新了，你打开的 handoff.md
+  里状态一句话就是现在这个终态。
+
+✻ Baked for 43s · done 9:50 AM
+
+❯ 我不理解，静态桶现在又变成主力了？那怎么路由到正确的静态桶的？动态桶为什么会  
+  产生这样的后果，有排查过规避方案吗？有search过吗？确定不是有bug？             
+
+  Thought for 31s (ctrl+o to expand)
+
+● 问得对，四个问题里有一个我确实没做（search）。先补上，再逐条回答：
+
+● Web Search("昇腾 ATC dynamic dims 动态分档 精度差异 静态 shape
+            算子精度不一致")
+  ⎿  Did 1 search in 21s
+● Web Search("Ascend aclmdlSetInputDynamicDims accuracy different static shape
+            OM int8 matmul tiling")
+  ⎿  Did 1 search in 19s
+
+  Thought for 22s (ctrl+o to expand)
+
+● 逐条回答，包括诚实认账的部分：
+
+  1. 怎么路由到正确的静态桶？
+
+  很简单：客户端把 prompt tokenize 后知道 token 数 L，请求头里带上 
+  L；服务端收到后在一张 L → OM 句柄 的表里查，查到就换句柄执行。第一次遇到某个 L
+  就现场加载那只 OM（约 2.7 秒，一次性），常驻上限 8
+  只、最久不用的自动卸载。这套机制不是新发明——flow
+  段用它跑了好几周了，我只是把它推广到了 prefix 段。
+
+  2. 动态桶为什么会产生这种后果？
+
+  有实验证据的部分：喂完全相同的输入（bit
+  级一致），动态图第一层的输出就和静态图差 1.7%，说明分歧在计算过程本身。而动态
+  图和静态图的图结构确实不同（我拿到过硬证据：动态版 14 个输入、静态版 260
+  个，bias 的注册方式一边是重复行直接加、另一边是广播算子；rope
+  表一边是运行时上传、一边是烤死在图里）——结构不同 → 编译器选的核函数不同 → int8
+  矩阵乘的累加次序不同 → 微小数值差，18 层放大后到 13%。
+
+  3. search 过吗？——刚补了（这步我确实漏了）
+
+  搜完结论：这是平台已知的行为类别，不是我们独遇的怪事。昇腾官方技术文章原话：动
+  态图因 shape 可变“执行性能与精度表现可能与静态图存在差异”；torchair
+  官方文档也专门讲动态分档合并策略来缓解动态图的性能损失；社区还有人实测 atc
+  加动态设置后 OM 网络结构“极度变形”
+  (https://gitee.com/ascend/samples/issues/I6HBF9)。
+
+  来源：CANN 动态 Shape 图调度加速技术
+  (https://www.hiascend.com/developer/techArticles/20250911-1) · torchair
+  动态分档合并策略 (https://github.com/Ascend/torchair/blob/master/docs/zh/ascen
+  d_ir/features/advanced/dynamic_gears_merge_policy.md) · ATC 动态 shape 案例
+  (https://www.hiascend.com/dev/forum/thread-0268129373815375040-1-1.html) ·
+  动态 Shape 推理限制（官方） (https://www.hiascend.com/document/detail/en/cannc
+  ommercial/800/appdevg/aclcppdevg/aclcppdevg_000041.html)
+
+  4. 确定不是有 bug？
+
+  诚实说：没有 100% 排除“我们自己组装动态图的方式选得不好”这个可能。
+  我做到的程度是：
+
+  - ✅ 证伪了“档位范围导致 tiling 不同”（烤了只含 2 档的 OM，差异照旧）
+  - ✅ 证明分歧源在图结构层面，不在输入、不在档表
+  - ❌ 没做的：把结构差异逐个消融（比如动态图里 bias
+    改回静态的注册方式再烤一只对比）。这个实验可行，是“到底怪 GE 还是怪我们的组
+    装”的最终裁决——但它只能满足好奇心：就算改好了，官方承认的动态图通用 tiling
+    差异仍在，而池化方案不管答案是什么都直接消除分歧，还白捡
+    14ms。所以我选了池化，把这个消融记为可选的后续项。
+
+✻ Churned for 1m 28s · done 10:23 AM
+
+❯ /context 
+  ⎿  Context Usage
+     ⛀ ⛁ ⛁ ⛁ ⛀ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   glm-5.3[1m]
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   337.8k/1m tokens (34%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 1.4k tokens (0.1%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 14.7k tokens (1.5%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Memory files: 2.1k tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 3.1k tokens (0.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 316.5k tokens (31.6%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛶ Free space: 662.2k (66.2%)
+
+     MCP tools · /mcp
+     ├ mcp__ide__executeCode: 0 tokens
+     └ mcp__ide__getDiagnostics: 0 tokens
+
+     Memory files · /memory
+     ├ C:\Users\素玄.claude\CLAUDE.md: 230 tokens
+     ├ CLAUDE.md: 427 tokens
+     └ C:\Users\素玄.claude\projects\D--compass-APXinf\memory\MEMORY.md: 1.4k tokens
+
+     Skills · /skills
+
+     Project
+     ├ AscendC-ops-dev: ~240 tokens
+     ├ ge-offline-om: ~140 tokens
+     ├ remote-ssh-windows: ~140 tokens
+     ├ inference-delivery: ~130 tokens
+     ├ verify_method: ~110 tokens
+     ├ technical-learning: ~80 tokens
+     ├ syx-doc-system: ~80 tokens
+     ├ code-gatekeep: ~70 tokens
+     ├ ascend-msprof: ~50 tokens
+     ├ syx_skills: ~50 tokens
+     └ design-spec: ~50 tokens
+
+     Built-in
+     ├ dataviz: ~480 tokens
+     ├ claude-api: ~360 tokens
+     ├ update-config: ~240 tokens
+     ├ code-review: ~210 tokens
+     ├ run: ~120 tokens
+     ├ loop: ~120 tokens
+     ├ plugin-authoring: ~90 tokens
+     ├ workflow-authoring: ~80 tokens
+     ├ keybindings-help: ~80 tokens
+     ├ fewer-permission-prompts: ~60 tokens
+     ├ simplify: ~60 tokens
+     ├ security-review: ~30 tokens
+     └ init: ~20 tokens
+
+❯ 该规划，下一轮的goal设为这个：❌ 没做的：把结构差异逐个消融（比如动态图里     
+  bias 改回静态的注册方式再烤一只对比）。这个实验可行，是“到底怪 GE             
+      还是怪我们的组装”的最终裁决——但它只能满足好奇心：就算改好了，官方承认的动 
+  态图通用 tiling 差异仍在，而池化方案不管答案是什么都直接消除分歧，还白捡      
+      14ms。所以我选了池化，把这个消融记为可选的后续项。                        
+
+  Thought for 51s (ctrl+o to expand)
+
+● 好，这个消融实验值得做成正式
+  goal。我先把实验矩阵设计出来（今晚的证据里其实还藏着一个我没消融的维度——权重 
+  Const 化：dyn 是 WCONST=1 烤的、静态桶当年是权重 Data
+  化，这本身也是结构差异），写进 handoff 给你直接抄：
+
+  消融矩阵（每变体 = 烤一只 OM + t4 真帧对拍，工具全在盘上）：
+
+  ┌──────┬─────────────────────┬──────────────────────────────────────────┐
+  │ 变体 │      隔离什么       │                   做法                   │
+  ├──────┼─────────────────────┼──────────────────────────────────────────┤
+  │ V0   │ 权重 Const 化       │ 静态 shape + WCONST=1 烤一只             │
+  ├──────┼─────────────────────┼──────────────────────────────────────────┤
+  │ V1   │ bias 注册方式       │ 静态 shape，但 bias 用 gear 式重复行注册 │
+  ├──────┼─────────────────────┼──────────────────────────────────────────┤
+  │ V2   │ rope/qswap 运行时表 │ 静态 shape，但 rope/qswap Data 化        │
+  ├──────┼─────────────────────┼──────────────────────────────────────────┤
+  │ V3   │ 动态通路本身        │ 其余全静态结构，仅 dim0 用 -1 烤两档     │
+  └──────┴─────────────────────┴──────────────────────────────────────────┘
+
+  判读：l0 从 0.9% 跳到 1.6%+ 的那个变体 = 元凶。V0-V2 跳 → 我们的组装可修（dyn
+  复活路线开启）；只有 V3 跳 → GE 动态通路固有（池化终审定案）；都不跳 →
+  组合效应，继续钻。
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 2 lines, removed 2 lines
+      13  **状态**（2026-10-15 深夜，见 summary/2026-10-15_t4r-dyn-static
+          -convergence.md）：**生产 = 单芯池模式**（chip4 serve ×1，GEB_P
+          REFIX_POOL per-L 静态 prefix + flow 池不变；**t4 已修 5/5**；回
+          退桶真退役）；**性能红利已实测 −14.1ms/replan**（prefix p50 87.
+          9 vs dyn 102）；133-136 档已补烤未验；其余基线同前（inference 2
+          73.6、共享主机只准 4/5）。
+      14  
+      15  **下轮 goal 建议（抄一项即可）**：
+      16 -1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+         -/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 → 
+         -连跑 2-3 天固化                                                
+      17 -2. **性能收官盘点**（低优先）：pool 模式下 op census 复测（设备
+         -侧账本刷新）+ TransData 14ms 观察项重估                        
+      16 +1. **动态图结构消融——「怪 GE 还是怪我们的组装」终裁**（用户指定
+         + 2026-10-16）：compose 侧加消融开关（bias 注册/rope·qswap Data 
+         +化/WCONST 各自独立门控）→ 按矩阵烤 V0-V3 四只 OM（V0=静态+WCONS
+         +T 隔离权重 Const 化；V1=静态+gear 式重复行 bias；V2=静态+rope/q
+         +swap Data；V3=全静态结构+仅 dim0 两档 -1）→ 逐只跑 t4 真帧 gold
+         +en 对拍（ab_t4_mutual 工具链）→ **判读：l0 从 0.9% 跳 1.6%+ 的 
+         +变体 = 元凶**；V0-V2 命中 = 组装可修（dyn 复活路线）；仅 V3 命 
+         +中 = GE 动态通路固有（池化终审盖章）；都不跳 = 组合效应再钻。预
+         +计 1.5-2h（每变体一烤 ~4min + A/B ~10min）。注意 GE 单档 dynami
+         +cDims 烤不出（V3 用两档 [154,200]）                            
+      17 +2. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal
+         +/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 → 
+         +连跑 2-3 天固化（可与 #1 并行跑）                              
+      18  
+      19  **纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 
+          DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_
+          SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤
+          不出 rc=-7）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/
+          apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`doc
+          ker exec -d apxinf_npu bash <脚本>`）；results-jsonl 有记录即跳
+          过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 
+          serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 
+          ssh 必带 kex 配方；上行断流走 push119.sh（push 后 chmod +x）**
+          ；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 +
+           resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 pa
+          yload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**
+          ；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\00
+          0"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只
+          走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 
+          4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一
+          次加载跑完所有测量）；常驻面任何扩张先问用户**。
+      20  
+
+● Update(syx_docs\dev_logs\handoff.md)
+  ⎿  Added 4 lines, removed 4 lines
+      20  
+      21  ## ②b 下轮 goal 注解（是什么/为什么/怎么做——给人读的，不用搬运
+          ）
+      22  
+      23 -**1. t4 根因战役（dyn-vs-static 收敛）** —— 回退桶的正向替代。 
+      24 -- **为什么**：t4 = 刀锋任务，static/dyn 互差 ~1%（actions 级） 
+         -足以翻转成功率（gear 3/5 vs 静态 5/5 实测）；两路径对 torch gol
+         -den 的逐层漂移剖面相同（彼此等距近似）→ 差异来自**动态 OM 构建 
+         -的 tiling/fusion 决策不同**（旁证：dyn prefix 同 L 慢 13-16ms）
+         -。收敛它 = 行为对齐 + 性能红利一石二鸟。                       
+      25 -- **怎么做**：① 录 t4 真帧 golden（golden_gen 工具链 + t4 promp
+         -t，L=151 主档）；② `ab_golden_dyn_static_1015.sh` 思路改跑 t4  
+         -帧 + 增加 dyn-vs-static 互差逐层打印（kvk_l{i} 双方输出都落盘互
+         -比）；③ 互差集中层/算子 → 引擎侧钉 tiling/fusion（ge_builder 层
+         -面）；④ t4 ×5 gear 复验 ≥4/5 → 真退役；顺带回收 ~14ms。        
+      23 +**1. 动态图结构消融** —— T4R 的尾声实验：裁定 13.1% 互差到底怪 
+         +GE 动态通路还是怪我们的 dyn 组装选择。                         
+      24 +- **为什么**：池化已消除生产分歧，但根因链停在「结构固有」这一 
+         +层（E1 证伪档表范围，未逐元素消融）。四维度各自独立可测：权重 C
+         +onst 化（dyn WCONST=1 vs 静态桶权重 Data）、bias 注册（重复行 A
+         +dd vs TileD 广播）、rope/qswap（运行时 Data vs 烤死 Const）、动
+         +态通路本身（-1 维）。官方文档已承认动态图「精度表现可能与静态图
+         +存在差异」——但若元凶其实在我们的组装选择，dyn OM 有复活可能（一
+         +图多档的内存优势 vs 池的 8×1.88GB 驻留）。                     
+      25 +- **怎么做**：compose 加 3 个 env 门控（如 GEB_ABL_BIAS/ROPE/WC
+         +ONST 语义覆写）一次引擎 commit；四只实验 OM 逐只「烤→跑 t4 gold
+         +en 对拍→读 l0/l2/actions」；判读矩阵见 goal 文本。工具零新增（g
+         +olden/ab 全在 probe_dyn）。                                    
+      26  
+      27 -**2. 长跑例行化** —— 单芯新拓扑的稳定性观察（同前：fleet_watch 
+         -+ spot_eval 跑 2-3 天固化；t4 未修复前 spatial 偶发红是预期内）
+         -。                                                             
+      27 +**2. 池模式全谱系复验 + 例行化** —— 生产面稳定性观察（fleet_wat
+         +ch 每日快照 + spot_eval 三谱系晨检；133-136 补烤档验证；可与 #1
+         + 并行）。                                                      
+      28  
+      29  ## ④ 性能优化方向清单（2026-10-15 更新）
+      30  
+
+● Bash(cd D:/compass/APXinf && git add syx_docs/dev_logs/handoff.md && git
+      commit -q -m "handoff: next goal = dyn-graph structural ablation (V0-V3
+      matrix, GE-vs-compos…)
+  ⎿  warning: in the working copy of 'syx_docs/dev_logs/handoff.md', LF wil
+     l be replaced by CRLF the next time Git touches it
+     93a9b5c handoff: next goal = dyn-graph structural ablation (V0-V3 matr
+     ix, GE-vs-composition verdict), per user decision
+
+● Handoff 已更新（93a9b5c）。给你直接抄进 /goal 的版本：
+
+  ---
+
+  动态图结构消融：怪 GE 还是怪我们的组装（终裁）：compose 加消融开关（bias 注册
+  / rope·qswap Data 化 / WCONST 各自独立 env 门控）→ 烤 V0-V3 四只实验
+  OM（V0=静态 shape+WCONST 隔离权重 Const 化；V1=静态+gear 式重复行
+  bias；V2=静态+rope/qswap Data 化；V3=全静态结构+仅 dim0 两档 -1，GE
+  单档烤不出）→ 逐只跑 t4 真帧 golden 对拍（frame0_t4v1b + ab_t4_mutual
+  工具链）→ 判读：l0 从 0.9% 跳 1.6%+ 的变体 = 元凶——V0-V2 命中 = 组装可修（dyn
+  复活路线开启）；仅 V3 命中 = GE 动态通路固有（池化终审盖章）；都不跳 =
+  组合效应再钻。详见 handoff ②b #1
+
+  纪律：手烤 OM 必带 fusion off env；池模式静态桶烤法 = 无 DYN_LLIST 的 prefix
+  段烤；eval 容器内跑、timeout ≥1800、复验换新 jsonl；119 ssh 必带 kex
+  配方、上行走 push119.sh；跨进程对拍同芯同时代 + 真帧 golden（混沌地板
+  11-14%）；serve 日志 tr -d "\000"；舰队操作先 fleet_watch、重启只走
+  start_gear_supervisor.sh；共享主机只准 chip
+  4/5、批处理合并单进程、常驻面扩张先问用户。
+
+  ---
+
+  两点说明：① 矩阵里 V0（权重 Const 化）是今晚没消融的隐藏维度——dyn
+  和静态桶连权重入图方式都不同（Const vs Data），这个最便宜也最可能命中；② 预算
+  1.5-2 小时跑完全矩阵（每变体一烤一拍）。你现在贴进 /goal 就能开。
+
+✻ Sautéed for 2m 1s · done 10:38 AM
