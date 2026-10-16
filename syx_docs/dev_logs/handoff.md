@@ -13,14 +13,17 @@
 **状态**（2026-10-16，见 summary/2026-10-16_dyn-structural-ablation-verdict.md）：**生产 = 单芯池模式不变**（chip4、t4 5/5、−14.1ms/replan）；**消融终裁已闭环：13.1% 互差全权归于 GE 动态分档编译（-1 dims / MultiBatchClone 逐档特化），组装三维度 bit 级惰性，dyn 复活路线关闭，池化终审盖章**。133-136 档已补烤未验；实验桶留档可清。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal/spatial 各 1 task）→ 验证 133-136 补烤档 + 池 LRU 行为 → fleet_watch 每日快照固化 2-3 天
+1. **Range padding + mask 化（桶粗化 26→9），与全谱系复验合并**（用户拍板 2026-10-16）：① 先 spot_eval 三谱系跑一轮当回归基线（顺带验证 133-136 补烤档）；② prefix/flow 手工 attention 的 softmax 前加 [1,p] 加性 mask bias 输入（真行 0 / pad 行 −30000，int8/f16 域禁真 −inf；引擎按请求 true L 自生成，客户端只需 pad token 到桶界 + 请求头带 true L）；③ 重烤 stride-8 九桶 {136,144,152,160,168,176,184,192,200}；④ golden 对拍「桶版 vs 精确版」——mask 数学上精确（投影行独立 + masked 列 softmax 贡献 0），互差应 ≈0（近 bit 级；同属静态图内可控改动，按消融结论 GE 等价编译）；⑤ t4 行为复验 + 三谱系 spot 再验对比基线。收益：表外 L 根除（L=136 事故类问题连根拔）、LRU cap8 焦虑消失、磁盘 49→17GB；税 +0.6% prefix ≈ +0.5ms/replan（14ms 红利的 1/28）。估 1.5-2h
 2. **清理收尾**（半小时）：tl154_{v1bias,v2rope,v4sm} ~9.3GB + tl_dyn_g154 2GB 清或归档；2347 僵尸随下次容器重启自清
 
 **纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤不出 rc=-7）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`docker exec -d apxinf_npu bash <脚本>`）；results-jsonl 有记录即跳过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 ssh 必带 kex 配方；上行断流走 push119.sh（push 后 chmod +x）**；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\000"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一次加载跑完所有测量）；常驻面任何扩张先问用户**；**消融门控 GEB_ABL_BIAS/ROPE/SMCONST 已入库（SMCONST 仅 prefix 作用域——reg_i8 为 prefix/flow 共用，flow 是对照组不可动）**；bash 坑：`local a=$1 b=x_$a` 单行多赋值 $a 取外层空值——逐行写。
 
 ## ②b 下轮 goal 注解（是什么/为什么/怎么做——给人读的，不用搬运）
 
-**1. 池模式全谱系复验** —— 生产面稳定性观察：133-136 是深夜补烤、从未被生产路径撞过；LRU cap8 在同 run 撞 >8 个 L 时会驱逐重载（观察是否无感）。跑法：spot_eval 三谱系各 1 task 换新 jsonl，晨检式连跑两三天。
+**1. Range padding + mask 化** —— 「精确分桶是对观测 L 全集的过拟合」的正解（用户定性 2026-10-16）。
+- **为什么**：现在 prefix/flow 手工 attention 是无 mask 裸三件套（bmm→softmax→bmm），「喂得刚刚好 = L」代替了 mask（引擎注释自证：真 pad 行全可见 ≠ masked，不等价）——这是精确桶必须存在的根因，也是表外 L panic 的根源。业界正解 = bucketed padding（vLLM/torchair 同思路）。原版 CUDA APXinf 对照：它 per-L 在线捕获 CUDA Graph（捕获 ≈ 跑一遍推理，秒级）+ MRU 单槽缓存（vla_runtime.rs:496），换 L 重捕获；我们 GE 烤图分钟级不能在线做，池就是同一思想的预烤翻译。
+- **怎么做**：见 goal 文本五步。要点：mask bias 用大负数不是 −inf；stride-8 后单任务 eval 平均多算 4/666 行；验证判据 = 桶版 vs 精确版 golden 互差 ≈0（数学上精确等价）。基线-改造-复验三段用同一套 spot_eval 脚本闭环。
+
 **2. 清理收尾** —— 磁盘 432GB 无压力，纯整洁问题；实验桶是判决证据物化，summary 已入库可清。
 
 ## ④ 性能优化方向清单（2026-10-15 更新）
@@ -45,4 +48,4 @@
 
 ## ③ Export 标题建议
 
-D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-15_container-kill-singlechip-t4-verdict
+D:\compass\APXinf\syx_docs\dev_logs\chat_exports\2026-10-16_ablation-verdict-range-padding-plan
