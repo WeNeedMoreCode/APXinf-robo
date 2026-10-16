@@ -13,18 +13,18 @@
 **状态**（2026-10-15 深夜，见 summary/2026-10-15_t4r-dyn-static-convergence.md）：**生产 = 单芯池模式**（chip4 serve ×1，GEB_PREFIX_POOL per-L 静态 prefix + flow 池不变；**t4 已修 5/5**；回退桶真退役）；**性能红利已实测 −14.1ms/replan**（prefix p50 87.9 vs dyn 102）；133-136 档已补烤未验；其余基线同前（inference 273.6、共享主机只准 4/5）。
 
 **下轮 goal 建议（抄一项即可）**：
-1. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 → 连跑 2-3 天固化
-2. **性能收官盘点**（低优先）：pool 模式下 op census 复测（设备侧账本刷新）+ TransData 14ms 观察项重估
+1. **动态图结构消融——「怪 GE 还是怪我们的组装」终裁**（用户指定 2026-10-16）：compose 侧加消融开关（bias 注册/rope·qswap Data 化/WCONST 各自独立门控）→ 按矩阵烤 V0-V3 四只 OM（V0=静态+WCONST 隔离权重 Const 化；V1=静态+gear 式重复行 bias；V2=静态+rope/qswap Data；V3=全静态结构+仅 dim0 两档 -1）→ 逐只跑 t4 真帧 golden 对拍（ab_t4_mutual 工具链）→ **判读：l0 从 0.9% 跳 1.6%+ 的变体 = 元凶**；V0-V2 命中 = 组装可修（dyn 复活路线）；仅 V3 命中 = GE 动态通路固有（池化终审盖章）；都不跳 = 组合效应再钻。预计 1.5-2h（每变体一烤 ~4min + A/B ~10min）。注意 GE 单档 dynamicDims 烤不出（V3 用两档 [154,200]）
+2. **池模式全谱系复验 + 例行化**：spot_eval 三谱系（object/goal/spatial 各 1 task）晨检 → 验证 133-136 补烤档 + 池 LRU 行为 → 连跑 2-3 天固化（可与 #1 并行跑）
 
 **纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤不出 rc=-7）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`docker exec -d apxinf_npu bash <脚本>`）；results-jsonl 有记录即跳过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 ssh 必带 kex 配方；上行断流走 push119.sh（push 后 chmod +x）**；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\000"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一次加载跑完所有测量）；常驻面任何扩张先问用户**。
 
 ## ②b 下轮 goal 注解（是什么/为什么/怎么做——给人读的，不用搬运）
 
-**1. t4 根因战役（dyn-vs-static 收敛）** —— 回退桶的正向替代。
-- **为什么**：t4 = 刀锋任务，static/dyn 互差 ~1%（actions 级）足以翻转成功率（gear 3/5 vs 静态 5/5 实测）；两路径对 torch golden 的逐层漂移剖面相同（彼此等距近似）→ 差异来自**动态 OM 构建的 tiling/fusion 决策不同**（旁证：dyn prefix 同 L 慢 13-16ms）。收敛它 = 行为对齐 + 性能红利一石二鸟。
-- **怎么做**：① 录 t4 真帧 golden（golden_gen 工具链 + t4 prompt，L=151 主档）；② `ab_golden_dyn_static_1015.sh` 思路改跑 t4 帧 + 增加 dyn-vs-static 互差逐层打印（kvk_l{i} 双方输出都落盘互比）；③ 互差集中层/算子 → 引擎侧钉 tiling/fusion（ge_builder 层面）；④ t4 ×5 gear 复验 ≥4/5 → 真退役；顺带回收 ~14ms。
+**1. 动态图结构消融** —— T4R 的尾声实验：裁定 13.1% 互差到底怪 GE 动态通路还是怪我们的 dyn 组装选择。
+- **为什么**：池化已消除生产分歧，但根因链停在「结构固有」这一层（E1 证伪档表范围，未逐元素消融）。四维度各自独立可测：权重 Const 化（dyn WCONST=1 vs 静态桶权重 Data）、bias 注册（重复行 Add vs TileD 广播）、rope/qswap（运行时 Data vs 烤死 Const）、动态通路本身（-1 维）。官方文档已承认动态图「精度表现可能与静态图存在差异」——但若元凶其实在我们的组装选择，dyn OM 有复活可能（一图多档的内存优势 vs 池的 8×1.88GB 驻留）。
+- **怎么做**：compose 加 3 个 env 门控（如 GEB_ABL_BIAS/ROPE/WCONST 语义覆写）一次引擎 commit；四只实验 OM 逐只「烤→跑 t4 golden 对拍→读 l0/l2/actions」；判读矩阵见 goal 文本。工具零新增（golden/ab 全在 probe_dyn）。
 
-**2. 长跑例行化** —— 单芯新拓扑的稳定性观察（同前：fleet_watch + spot_eval 跑 2-3 天固化；t4 未修复前 spatial 偶发红是预期内）。
+**2. 池模式全谱系复验 + 例行化** —— 生产面稳定性观察（fleet_watch 每日快照 + spot_eval 三谱系晨检；133-136 补烤档验证；可与 #1 并行）。
 
 ## ④ 性能优化方向清单（2026-10-15 更新）
 
