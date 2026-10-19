@@ -14,6 +14,16 @@
 > 的 subprocess 视角：tiling 注册表无 21 号 = 声明了、没随二进制出货）。
 > 结论不变且更精确：**per-token 在 310P 是「源码有声明、二进制不存在」**；
 > 对照组（同算子、拔掉 per-token 线）build+run 全通。
+>
+> **2026-10-19 上游源码终审（gitcode.com/cann/ops-transformer master，用户
+> 指定信源）**：① 该仓 vendor 了同款经典算子（mc2/3rd/quant_batch_matmul_v3），
+> **master 的 SEL 里 core 200 那条假门（f32+BASIC+PERTOKEN）已被上游删除**——
+> 官方确认该路径从未在 310P 存在；IS_PERTOKEN 全家族仍只在 core 220 分支。
+> ② 仓内确有带 per-token/块尺度（MXFP）机制的新一代内核（op_kernel/arch35/
+> qbmm_*），但 **arch35 = 新架构家族（A2/A3=core 220 系），不是 310P**——
+> 仓的 SoC 映射表仅 ascend910b/ascend910_93/ascend950，**310P 不在编译目标内**。
+> （本注同时纠正对话中一度把 arch35 误当 310P 的口误——「arch35 模板墙」的
+> 正确读法是"那些模板属于 arch35 新架构，310P 在墙外"。）
 
 ### ① 模板墙：core 200 的实例化清单只有 2 条
 
