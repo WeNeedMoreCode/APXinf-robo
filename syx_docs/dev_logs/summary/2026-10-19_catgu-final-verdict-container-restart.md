@@ -73,8 +73,21 @@ TransData 14ms 编译器税 ROI 低）。
   host cron 每 5min `docker exec apxinf_rust pgrep -f serve_range_supervisor
   || bash /data/apxinf/start_gear_supervisor.sh`——一行 crontab，容器重启
   ~5min 内自动复活；不做自动 pkill（TBE 风暴场景仍走人工清场流程）
-- TBE 风暴（现象①）的 slog 深挖未做（崩代 plog 在档可查）；运维价值已由
-  提案覆盖大半
+- **TBE 风暴（现象①）slog 取证完成——归因翻案**：崩代 plog 全部 err=0
+  （CANN/驱动层无过错）；结尾析构行 × supervisor.log spawn 时刻交叉比对
+  拆解出三类身份：① 550503/566330（07:37/07:44）**不匹配任何 supervisor
+  spawn 时刻 = 当日 fg 手动实验进程**，有序退出 = 实验正常收尾（一直被误计
+  进「死亡代」）；② 598250（supervisor 代，08:13）init 窗口内**有序退出**
+  （C++ 析构跑了 = 进程自退，非被杀——但 serve 唯一静默退出路径 shutdown
+  必打印，故为 init 段 early-return 错误分支，stdout 已被后代覆盖不可复验）；
+  ③ 610958（08:53）**急死**（ModelBindStream 中途无析构）+ dmesg 10-12
+  OOM 杀 ge_model_probe（16.6GB rss）前科 ⇒ **统一嫌疑 = 切换日主机内存
+  压力**（fg 实验 + 烤桶 + 多代 serve 并存；「pkill 清场即愈」的真机制
+  ≈ 减驻留进程缓解内存压力；「启动慢至 8min」= 同因换页）。TBE spam 在
+  全部案例中均为死后哀鸣。下次风暴的可检验预言：风暴时 free -m 应见
+  pressure，且回收内存即可愈——已入观察清单
+- 现象①运维价值已由 host cron 提案覆盖大半；根因级修复（如 serve rss
+  瘦身）暂不立项（16.6GB 主因 = 2.1GB 嵌入表 + OM 结构，瘦身空间未探）
 
 ## 三、pool cap 8→9（goal #4 ✅ 完成）
 
@@ -89,11 +102,18 @@ TransData 14ms 编译器税 ROI 低）。
   catgu 实验版但全 env 门控缺省关 = 生产等价 + cap 9）；supervisor/serve
   当日全程健康（中途 ready mtime 刷新 = ensure-touch，非 respawn——
   supervisor.log 无 respawn 行即此判据）
-- **spot 第一轮（spot1019r）：object:0 = 136 步 ✓ / goal:9 = 141 步 ✓ /
-  spatial:4 首跑 520 打满 ✗ → 同代同 seed 重跑 = 123 步 ✓**——520 判定为
-  **单局边缘性**（同代复跑即过；真数值破坏会连败），观察日志记 1 次 flaky。
-  注意当日 spot 与 catgu A/B 曾共享主机（object 局与末次 ab 并行），host
-  级争用为潜在混杂因子之一
+- **spot 两轮同日完成（R1 spot1019r + R2 spot1019r2）：6/6 有效全绿**
+  R1 = object 136 ✓ / goal 141 ✓ / spatial 首跑 520 ✗ → 同代同 seed 重跑
+  123 ✓（单局边缘性——真数值破坏会连败）；R2 = object 366 ✓ / spatial
+  123 ✓（位级重放 R1 重跑，一致性佐证）/ goal 131 ✓。同配置跨跑步数方差
+  大（object 136→366）= 行为边缘带的又一佐证，success 判定不受影响
+- **清理已 staged 未执行（隔日门）**：goal 原文「隔日 ×2 + 稳定后清」是
+  时间门——同日两轮不满足字面条件，且回滚保险（精确 26 桶 78GB）不该
+  提前销毁（权限系统同判）。执行件 = `/data/apxinf/cleanup_obs_1019.sh`
+  （96GB 清单 dry-run 已校验、grid8/t712fix 保留确认）：**隔日 spot 全绿
+  后 `bash /data/apxinf/cleanup_obs_1019.sh DOIT` 一条命令收尾**
+- 注意当日 spot 与 catgu A/B 曾共享主机（R1 object 局与末次 ab 并行），
+  host 级争用为 R1 spatial 520 的潜在混杂因子之一
 - 复活窗口顺产：warmup flow 10 步 108.9ms @ tl200 桶（P=200 更宽属正常）；
   serve 稳态 per-call total ~226-240ms 与历史带一致
 - **待办**：隔日 spot 第二轮 + fleet_watch 快照 → 全绿即收尾清理（精确

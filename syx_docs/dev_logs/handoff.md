@@ -14,7 +14,7 @@
 
 **剩余事项（非 goal 级）**：
 1. **host cron 自愈提案**（等用户批）：`*/5 * * * * docker exec apxinf_rust pgrep -f serve_range_supervisor >/dev/null || bash /data/apxinf/start_gear_supervisor.sh`——容器重启 ~5min 自愈；不做自动 pkill
-2. **range 观察期收尾**：隔日 spot_eval_range 三谱系 + fleet_watch 快照 → 稳定即清（精确 26 桶、tl154_v* 9.3GB、tl_dyn_g154 2GB、om_cache/ab_catgu ~1.2GB、golden dump 目录）
+2. **range 观察期收尾（隔日门）**：10-19 已同日两轮 6/6 有效全绿（spatial 一次 520 flaky 同代重跑即过；R2 spatial 123 = R1 重跑位级重放）；**清理已 staged**：隔日 spot 全绿后 `bash /data/apxinf/cleanup_obs_1019.sh DOIT`（96GB：精确 26 桶 + tl154_v* + tl_dyn_g154 + ab_catgu + dump 目录；grid8/t712fix 保留已校验；旧 f16 时代目录 ~100GB 未在 goal 点名内，留用户决定）
 3. TBE respawn 风暴 slog 深挖（可选：崩代 plog 在档；运维价值大半已被 cron 提案覆盖）
 4. 0.53× 重新谈判（用户决策项：性能终点定在 1.09× 或另立项攻非量化侧）
 
