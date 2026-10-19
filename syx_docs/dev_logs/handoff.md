@@ -2,7 +2,7 @@
 
 ## 状态一句话
 
-**10-19 四件套清账**（summary/2026-10-19_catgu-final-verdict-container-restart.md）：① **qmd x_scale 终审判死收线**——第五路「gate/up 同输入权重拼接」A/B：SliceD 版 7.8× 劣化（视图物化税 ~1.78ms/次）、SplitD 版中性（±噪声带 2ms）⇒ **量化流水在 m=50 不是瓶颈，flow ~70ms = 310P 结构性地板；0.53× 量化侧五路证据链闭合，重新谈判**（smooth 融合重量化 ≈ 免费是真结论，数值面 rel 3.7% 同带）。② **舰队 2.7 天趴窝根因 = apxinf_rust 容器 10-17 09:32（京）被人为 stop/start**（StartedAt 铁证；docker exec -d 进程不随容器自愈、无人拉起 supervisor；TBE spam = 死后哀鸣、plog 干净 = SIGKILL 特征）——**host cron 自愈提案待用户批**（常驻面纪律）；10-16 respawn 风暴（TBE 孤儿）是另一现象，未深挖。③ **pool cap 8→9 ✅**（GEB_POOL_CAP env 化 + supervisor 部署确认「cap 9」）。④ **range 观察期进行中**：舰队 10-19 11:52 复活（新二进制全门控缺省关 = 生产等价），spot 三谱系 spot1019r 当日跑，隔日再一轮 + fleet_watch 后收尾清理。引擎 1 commit（catgu 实验 + dyn_outputs API + cap；fork/ascend-port）。
+**10-19 四件套清账**（summary/2026-10-19_catgu-final-verdict-container-restart.md）：① **qmd x_scale 终审判死收线**——第五路「gate/up 同输入权重拼接」A/B：SliceD 版 7.8× 劣化（视图物化税 ~1.78ms/次）、SplitD 版中性（±噪声带 2ms）⇒ **量化流水在 m=50 不是瓶颈，flow ~70ms = 310P 结构性地板；0.53× 量化侧五路证据链闭合，重新谈判**（smooth 融合重量化 ≈ 免费是真结论，数值面 rel 3.7% 同带）。② **舰队 2.7 天趴窝根因 = apxinf_rust 容器 10-17 09:32（京）被人为 stop/start**（StartedAt 铁证；docker exec -d 进程不随容器自愈、无人拉起 supervisor；TBE spam = 死后哀鸣、plog 干净 = SIGKILL 特征）——**host cron 自愈提案待用户批**（常驻面纪律）；10-16 respawn 风暴（TBE 孤儿）是另一现象，未深挖。③ **pool cap 8→9 ✅**（GEB_POOL_CAP env 化 + supervisor 部署确认「cap 9」）。④ **range 观察期第一轮完成**：舰队 10-19 11:52 复活（新二进制全门控缺省关 = 生产等价），spot 第一轮 = **有效 3/3**（object 136 ✓ / goal 141 ✓ / spatial 首跑 520 flaky → 同代重跑 123 ✓，单局边缘性判据 = 同代复跑即过）；隔日第二轮 + fleet_watch 后收尾清理。引擎 1 commit（catgu 实验 + dyn_outputs API + cap；fork/ascend-port 1bb0697）。
 
 ## ① Compact 参数（贴到 /compact 后）
 

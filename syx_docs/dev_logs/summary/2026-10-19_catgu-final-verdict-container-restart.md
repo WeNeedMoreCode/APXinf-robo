@@ -83,14 +83,21 @@ TransData 14ms 编译器税 ROI 低）。
 - 部署随本次复活窗口落地：serve stdout `[prefix-pool] ... (lazy, cap 9)` 确认
 - 满谱系 9 桶全驻留、LRU 驱逐重装（2.7s/次）根除
 
-## 四、range 观察期（goal #3 进行中）
+## 四、range 观察期（goal #3 第一轮完成）
 
 - 舰队 10-19 11:52 复活（pkill 清场 + start_gear_supervisor，新二进制 =
-  catgu 实验版但全 env 门控缺省关 = 生产等价 + cap 9）
-- 复活后 spot 三谱系（object:0/spatial:4/goal:9）当日跑（spot1019r）；
-  隔日再一轮 + fleet_watch 快照后收尾清理（精确 26 桶 + tl154_v* + ab_catgu
-  实验桶 ~1.2GB + dump 目录）
-- 复活窗口顺产：warmup flow 10 步 108.9ms @ tl200 桶（P=200 更宽属正常）
+  catgu 实验版但全 env 门控缺省关 = 生产等价 + cap 9）；supervisor/serve
+  当日全程健康（中途 ready mtime 刷新 = ensure-touch，非 respawn——
+  supervisor.log 无 respawn 行即此判据）
+- **spot 第一轮（spot1019r）：object:0 = 136 步 ✓ / goal:9 = 141 步 ✓ /
+  spatial:4 首跑 520 打满 ✗ → 同代同 seed 重跑 = 123 步 ✓**——520 判定为
+  **单局边缘性**（同代复跑即过；真数值破坏会连败），观察日志记 1 次 flaky。
+  注意当日 spot 与 catgu A/B 曾共享主机（object 局与末次 ab 并行），host
+  级争用为潜在混杂因子之一
+- 复活窗口顺产：warmup flow 10 步 108.9ms @ tl200 桶（P=200 更宽属正常）；
+  serve 稳态 per-call total ~226-240ms 与历史带一致
+- **待办**：隔日 spot 第二轮 + fleet_watch 快照 → 全绿即收尾清理（精确
+  26 桶、tl154_v*、tl_dyn_g154、om_cache/ab_catgu ~1.2GB、golden dump）
 
 ## 五、工程副产物（全入库）
 
