@@ -14,7 +14,7 @@
 
 **剩余事项（非 goal 级）**：
 1. ~~crontab 可疑条目~~ **已清除（2026-10-19 晚，用户批准）**：root 表恶意行删除 + adm1n 账户/ctontab 移除；06:42 起触发点零 CMD 验证哑火；无其他持久化面（rc.local/at/profile/cron.d/systemd 全扫过）。残留风险：authorized_keys 5 把多同事共用无法逐一辨认（用户明示），入侵通道不明（日志已轮转）——建议后续找有权限的同事对一遍钥匙
-2. **【代码清理已执行（2026-10-19，用户拍板「清理=代码非磁盘」）】**：catgu 实验代码全删（引擎 91af3e8 已推 fork；服务器树已同步 apply + 容器内 cargo check 过；**服务器二进制未重编译**——catgu env 门控缺省关行为等价，下次部署窗口自然对齐）+ 注释去内部代号/日期/部署细节（dyn_outputs / set_output_desc_idx / pool_cap / gear census 四处，CANN 行为记录保留）+ 外层删一次性脚本 bake_catgu_ab / ab_catgu / cleanup_obs（_1019 系列）；**catgu 原实现快照 → 当日战报 §七**（恢复用，git 历史 1bb0697 有完整实现）。旧 f16 时代 om_cache 目录 ~100GB 清理移为独立待办（用户另行决定；probe_dyn 里还有一批更早的一次性脚本可顺带盘点）
+2. **【代码清理（2026-10-19，用户拍板「清理=代码非磁盘」；目标形态 = diff.patch 合 modelzoo 类仓，介于 PR 上游与 fork 公开之间）】**分三波：①波一 catgu 全删 + 注释洗四处（引擎 91af3e8，原实现快照 → 当日战报 §七）；②波二探针清仓（引擎 9b7c8ea）：27 example 探针 + ge_poc 目录 + geb_main 全删（**逐个留档 → dev_logs/probe_archive.md**；例外留 ge_model_probe = 烤桶/golden/A-B 生产工具）+ 判死 env 门控 12 个清除（ABL_*/G_DYN/SM_DYN/OUT_PAD/BIAS_REG/STYLES_DBG/PK_GOLD/STYLE_GOLD/N32C*）+ 服务器树同步 + cargo check 过；**③波三未做：78 处注释日期/取证叙事全量清洗 + env 盘点表复审**（上库 patch 定稿前完成）。方法论已沉淀 skill：`.claude/skills/post-port-cleanup`（含 syx_docs 脱 git 化注记）。**服务器 ascend_ge.rs 曾比本地多一份重复 STYLES_DBG 块（活真相漂移，两轮 mini patch 清掉后主 patch 才 apply 过）——服务器树与仓的对齐以本轮为基准**。服务器二进制未重编译（行为等价，下个部署窗口对齐）。旧 f16 om_cache ~100GB 清理仍为独立待办
 3. TBE respawn 风暴 slog 深挖（可选：归因已翻案至内存压力假说，崩代 plog 在档）
 4. 0.53× 已正式收线 @ 1.09×（roadmap 打结，用户确认）
 
