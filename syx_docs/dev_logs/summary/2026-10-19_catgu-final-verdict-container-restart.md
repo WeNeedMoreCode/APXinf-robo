@@ -155,3 +155,44 @@ TransData 14ms 编译器税 ROI 低）。
 4. 服务器引擎树无 .git：git apply 免仓可用、checkout 不行——回退用
    `git apply -R`
 5. bash `a && b` 末位假值不触发 set -e（AND-OR 列表豁免）——case/if 显式写
+
+## 七、catgu 原实现快照（代码已删，恢复用）
+
+引擎 91af3e8（2026-10-20 清理轮，用户拍板「全删+文档记录原实现」）移除
+GEB_FI8_CATGU 全部代码；完整实现留档 git 历史 **1bb0697**（fork/
+ascend-port）。本节为恢复要点。
+
+**门控**：`envi("GEB_FI8_CATGU", 0) >= 1 && fi8sel("gate") && fi8sel("up")`；
+要求 GEB_INT8_NATIVE=1（panic 否则）且仅支持 WCONST 路径（assert：Data 模式
+合并会少两个 bind 槽、层内 18 槽布局漂——serve style 硬编码偏移依赖布局）。
+
+**注册（seg_flow 预注册段，每层 i）**：
+- 公共 smooth 因子 `sf[j] = max(gate.s_eff[j], up.s_eff[j])`（逐 k 列取两
+  矩阵较大者；重量化代价实测 ±0.003pp ≈ 免费，见 §一）
+- `(wq, sc) = quant_w8(各自权重, AW, &sf)` ×2——quant_w8 输入是 loader
+  原生 [k,n] 布局、内部转置；relerr 诊断的参考值按 `w[c*n + r]` 取
+  （[k,n] 错位读出 141% 垃圾数，§六坑 2）
+- 拼接 Const：`F{i:02}_guwq` int8 `[2*AINTER, AW]`（行序 [gate;up]）+
+  `F{i:02}_guws` f32 `[2*AINTER]`（scale 沿行拼接），均 `s.datas.insert` 登记
+- smooth 输入 = `1/sf`（f16 [AW]，乘法约定）：gear 非空走 `const_f16`、
+  否则 `data`（同 reg_i8 native 分支二态）
+- `fi8[i][4] = Some((guwq, guws, sm))`；`fi8[i][5] = fi8[i][4].clone()`
+  （同名占位保 18 槽布局：is_some → 16B dummy bind）
+- FPROJS 循环里 gate/up 被 skip（catgu 下走本块，不走 reg_i8）
+
+**发图（mlp 分支，act 直出）**：
+- qmd：`{tag}gu` × mnorm [HOR,AW] → [HOR, 2*AINTER]（权重 guwq、scale
+  guws、smooth mn）
+- **mode 2**（GEB_FI8_CATGU=2，SplitD 路径）：
+  - `add_op("SplitD")` → **先 `dyn_outputs(sp, "y", 2)` 分配**——
+    CreateOperator 不预建 y×N 端口，不分配则 UpdateDynamicOutputDesc 拒绝
+  - `set_input_desc(x, [HOR, 2*AINTER])` → `set_output_desc_idx("y", 0/1,
+    [HOR, AINTER])` ×2 → attrs `split_dim=1` / `num_split=2` → `wire(x)`
+  - 消费者：gelu 用 GeluV2（approximate=tanh）`link_idx(ga, 0, sp, 0)`；
+    Mul `link_idx(ac, 1, sp, 1)`（x1 按名接 gelu）——**动态输出按名不可达，
+    只能 link_idx flat**；两个消费者 op 的 outports 登记 "y"
+- **mode 1**（=1，SliceD 路径，判死）：`slice2` 两半 ×2 → gelu → mul2
+
+**重启判据**：SplitD 版已证中性（量化流水非瓶颈、flow ~70ms 为结构性地板，
+见 §一）——重启此路线只在叙事变化时（如 op 调度税被重新高估、或硬件换代
+改变地板）。
