@@ -6,6 +6,15 @@
 
 ## 证据链（三重）
 
+> **2026-10-19 复核修正**：原文「core 200 仅 2 条 NOT_PERTOKEN」不精确——
+> 当日重读完整 tiling_key.h：core 200 在 **u64-scale 分支有 3 条全 NOT_PERTOKEN**，
+> **f32-scale 分支其实声明了 1 条 B_TRANS+BASIC+IS_PERTOKEN**。但该声明是
+> 「假门」的内核层版本：同日重跑 GEB_QMD_Z3=1 复现器，per-token 接线 →
+> QuantBatchMatmulV3 内核编译死 → build rc=-7（本文 KeyError '21' 即该崩溃
+> 的 subprocess 视角：tiling 注册表无 21 号 = 声明了、没随二进制出货）。
+> 结论不变且更精确：**per-token 在 310P 是「源码有声明、二进制不存在」**；
+> 对照组（同算子、拔掉 per-token 线）build+run 全通。
+
 ### ① 模板墙：core 200 的实例化清单只有 2 条
 
 - `quant_batch_matmul_v3_tiling_key.h`（opp impl 源码自带）模板清单按 `__CCE_AICORE__` 分支：
