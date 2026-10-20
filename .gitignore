@@ -11,6 +11,9 @@ venv/
 .mypy_cache/
 .DS_Store
 
-# local Claude state (skills themselves are tracked; local settings and trash are not)
-.claude/settings.local.json
-.claude/skills/_trash/
+# local Claude state and workspace assets — internal only, never upstreamed
+.claude/
+CLAUDE.md
+
+# internal porting work docs (standalone local git lives inside)
+syx_docs/
