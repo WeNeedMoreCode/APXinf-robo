@@ -17,3 +17,6 @@ CLAUDE.md
 
 # internal porting work docs (standalone local git lives inside)
 syx_docs/
+
+# generated diff patches (deliverables, not sources)
+*.diff.patch
