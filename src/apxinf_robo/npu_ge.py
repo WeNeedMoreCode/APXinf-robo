@@ -16,9 +16,9 @@ Token-length bucketing is load-bearing: real prompts vary in length with the
 number of digits in the discretized state (144/145/146 on libero_object
 tasks 0-3), a static OM accepts exactly one length, so each length gets its
 own {prefix, flow} OM pair and its own serve process. A supervisor inside
-the rust container (``/data/apxinf/serve/supervisor.sh``) lazily bakes
-missing buckets (~4 min) and spawns the processes; this side just writes
-``ctrl/ensure_<L>`` and waits for ``tl<L>/ready``.
+the rust container lazily bakes missing buckets (~4 min) and spawns the
+processes; this side just writes ``ctrl/ensure_<L>`` and waits for
+``tl<L>/ready``.
 
 The preprocessing chain (_to_frame / preprocess / _preprocess_images /
 postprocess) is *the same code* the 9/10 torch baseline and the offline
@@ -46,7 +46,7 @@ HOR = 50     # chunk size (checkpoint config)
 ADIM = 32    # padded action dim; deployable slice is 7
 GD = 7       # LIBERO deployable action width
 
-_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "/data/apxinf/serve_gear"))
+_SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "./serve_gear"))
 _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT", "1800"))
 _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "180"))
 # 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust）或
@@ -321,11 +321,11 @@ class _GearInprocClient:
 
     def __init__(self):
         from apxinf_py import GeServeModel  # 9.0.1 链接（env 由宿主进程供给）
-        ckpt = os.environ.get("APXINF_GE_CKPT", "/data/apxinf/weights/pi05_libero_finetuned")
-        om_dir = os.environ.get("APXINF_GE_OM_DIR", "/data/apxinf/om_cache/tl_dyn")
+        ckpt = os.environ.get("APXINF_GE_CKPT", "./weights/pi05_libero_finetuned")
+        om_dir = os.environ.get("APXINF_GE_OM_DIR", "./om_cache/tl_dyn")
         self.m = GeServeModel.open(om_dir, 200, ckpt, True)
         self.fallback_root = os.environ.get(
-            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "./serve"
         )
         fb_file = _SERVE_ROOT / "static_fallback_llist"
         try:
@@ -368,7 +368,7 @@ class _GearClient:
         self.clients = [_ChipClient(d) for d in dirs]
         self.rr = 0
         self.fallback_root = os.environ.get(
-            "APXINF_GE_STATIC_FALLBACK_ROOT", "/data/apxinf/serve"
+            "APXINF_GE_STATIC_FALLBACK_ROOT", "./serve"
         )
         fb_file = _SERVE_ROOT / "static_fallback_llist"
         try:

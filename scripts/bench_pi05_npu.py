@@ -8,8 +8,8 @@ path: wire-format observation -> ``infer`` -> deployable actions, reporting
 
 Examples:
 
-    python scripts/bench_pi05_npu.py --model-dir /data/apxinf/weights/pi05_libero_finetuned \
-        --tokenizer-dir /data/apxinf/weights/paligemma-3b-pt-224 \
+    python scripts/bench_pi05_npu.py --model-dir <weights>/pi05_libero_finetuned \
+        --tokenizer-dir <weights>/paligemma-3b-pt-224 \
         --warmup 10 --samples 30 --out devlocal/benchmark/npu.json
 
 Set the target chip with ASCEND_RT_VISIBLE_DEVICES (default 0).
