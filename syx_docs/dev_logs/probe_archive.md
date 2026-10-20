@@ -72,7 +72,29 @@ main + ge_poc poc 目录 + 库内 12 个判死实验 env 门控从引擎删除�
 | `ascendc/ge_poc/`（ge_matmul_poc.cpp + ge_poc_main.cpp + CMakeLists） | C1 POC：MatMulV2 对链 GE 编译执行——证明静态 OM 路线可行；后由 ge_builder 泛化复刻，使命完成 |
 | `ascendc/ge_builder/ge_builder_main.cpp`（geb_main） | ge_builder standalone driver：C1-② 转置 B 变体验证（transpose_x2 + [n,k] weight descs——NzCache 布局） |
 
-## 库内判死实验 env 门控（波二删除，均在 ascend_ge.rs）
+## optest 库内探针面（波四删除，ascend_ge.rs `pub fn optest`，5171-8604 共 3434 行）
+
+`GEB_OPTEST=<name>` env 触发的 50 个子命令臂——算子 bring-up 与数值定位期的
+「一疑点一探针」，全部住在库文件里（example 删了实现还在）。**已验证无任何
+生产脚本依赖**（supervisor/bake/ab 只设 GEB_SEG）。删除 = 波二探针清理的库内
+补完。恢复：`git checkout <删除commit>^ -- 后从 ascend_ge.rs 摘 optest 函数`。
+
+| 组 | 臂 | 用途 |
+|---|---|---|
+| 单算子编译冒烟 | `btd rsh sld gat cat aln gln gat2 tld catx` | BroadcastToD/Reshape/SliceD/GatherV2D/ConcatD/AddLayerNorm/GeluV2/TileD 等——新算子逐个「最小图编译+执行+对拍」定罪 |
+| 布局/形状矩阵 | `p2b usq p5c p6c p5d p6d p7a p7b p7c p7d p7e p7f p7g` | 视图/布局/形状变换变体矩阵（Unsqueeze/pad/五/六维布局/p7 七变体）——eager 参考与 GE 图的形状桥取证 |
+| 图版本演进 | `v1 v2 v3 v4 v5 r1 q1` | GE 图构造版本迭代（v 系）+ rope（r1）/qkv（q1）链孤立验证 |
+| norm bring-up | `lnv4 lnv4b lnv4c glnn rshn v3n tldn` | LayerNormV4 三代迭代（[768,1152] kernel 放大问题 → mean/rstd 死端问题）+ norm 链变体（n 后缀） |
+| 数值定位裁决 | `bc4 wgt arm arm32 n32v oproj attn wmm wmm2 wmm3 wmm4 wmm5 qmd` | 逐层漂移定位的主力：bc4（数值基线）、wgt（NZ 权重税裁决）、arm/arm32（AddRmsNorm 真数据单算/fp32 试探）、n32v（NORM32 生产链数值验证——Sqrt 漏倒数 bug 的裁判）、oproj（o_proj+残差+addrms 跨度裁决）、attn（manual attention 链孤立对拍）、wmm 系五代（宽 N mm 隔离矩阵：M/权重形态/N 拆半/值域 vs 来源/addrms 链）、qmd（QuantMatmulDequant 单算三连判决：编译/数值/性能） |
+
+**注意**：n32v 原判「保留」（NORM32 活语义的数值验证器）——波四统一删除
+（git 历史可恢复；NORM32 若未来改动需回归验证，恢复该臂即可）。
+
+**波四同批 env 处置**：删 `GEB_ATTN_PREFIX`（manual-OM + pfa-prefix 隔离实验
+覆盖层，dyn 复活关闭后无用）与 `GEB_E2E_X0_KEY`（x0 取 golden 中间量键的
+bisect 工具，定位完成）；**留** `GEB_DYN_LLIST_FLOW`（gear 化 flow 隔离实验
+开关——与 seg_flow 的 pk/pv [-1] 注册结构纠缠深，删除是大手术且缺省无感，
+记档存留）。## 库内判死实验 env 门控（波二删除，均在 ascend_ge.rs）
 
 ### 结构消融三件套（2026-10-16 dyn-vs-static 消融终裁的实验开关）
 
