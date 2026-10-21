@@ -1,6 +1,6 @@
 """NPU (torch_npu) engine implementation of the ``Policy`` contract.
 
-Phase-1 of the Ascend NPU port (see ``syx_docs/designs/npu-torch-engine.md``):
+Phase-1 of the Ascend NPU port:
 ``build_robot_policy(robot, model_dir, engine="npu-torch")`` reaches this module
 through ``apxinf_robo.engine.load_policy`` -- the single routing point. The
 upstream Rust/CUDA engine path is untouched.
@@ -103,7 +103,7 @@ class NpuTorchPi05Policy:
                 f"npu-torch engine implements the pi05 family; got model_type {model_type!r}"
             )
         if self._cpu_host:
-            pass  # inproc 预处理宿主：cpu torch（与 apxinf_py 的 9.0.1 互斥规避）
+            pass  # inproc preprocessing host: cpu torch (mutually exclusive with apxinf_py's 9.0.1)
         elif "npu" not in str(device):
             # The CLIs default --device cuda:0; this engine has exactly one home.
             print(f"npu-torch: mapping device {device!r} -> 'npu'")

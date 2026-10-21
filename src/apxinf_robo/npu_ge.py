@@ -49,12 +49,14 @@ GD = 7       # LIBERO deployable action width
 _SERVE_ROOT = Path(os.environ.get("APXINF_GE_SERVE_ROOT", "./serve_gear"))
 _READY_TIMEOUT = float(os.environ.get("APXINF_GE_READY_TIMEOUT", "1800"))
 _REQ_TIMEOUT = float(os.environ.get("APXINF_GE_REQ_TIMEOUT", "180"))
-# 传输模式：spool（默认，跨容器文件轮询——引擎进程在 apxinf_rust）或
-# inproc（进程内直调 PyO3 GeServeModel，免 spool 轮询 ~15ms）。
-# ⚠ inproc 前提：宿主进程链接 9.0.1 CANN（LD_LIBRARY_PATH 带 ge_builder +
-# toolkit lib64）且**不同时加载 torch_npu**（8.5.1 与 9.0.1 同进程互斥）；
-# 另 GE 库在 python 宿主内的 TBE 子进程管理存在已知兼容障碍（见
-# syx_docs summary 2026-09-23）——import/open 失败自动回落 spool。
+# Transport: spool (default, cross-container file polling — the engine
+# process lives in apxinf_rust) or inproc (in-process PyO3 GeServeModel,
+# saves the ~15ms spool polling). Inproc requires the host process to
+# link CANN 9.0.1 (LD_LIBRARY_PATH with ge_builder + toolkit lib64) and
+# NOT load torch_npu alongside (8.5.1 and 9.0.1 are mutually exclusive
+# in one process); GE's TBE subprocess management also has known
+# compatibility issues inside python hosts — import/open failures fall
+# back to spool automatically.
 _TRANSPORT = os.environ.get("APXINF_GE_TRANSPORT", "spool")
 _OM_ROOT = Path(os.environ.get("APXINF_GE_OM_ROOT", str(_SERVE_ROOT.parent / "om_cache")))
 
@@ -102,8 +104,9 @@ class _BucketClient:
 
     def _ensure_ready(self) -> None:
         ready = self.dir / "ready"
-        # 两轮：并发启动风暴下 engine 偶发加载崩，supervisor 守护 respawn
-        # 需要一个再触发（ensure 重写）+ 启动窗口
+        # Two rounds: under concurrent startup storms an engine load can
+        # crash; the supervisor's respawn needs a retrigger (ensure
+        # rewrite) plus a fresh startup window.
         for attempt in range(2):
             mark = time.time()
             (_SERVE_ROOT / "ctrl" / f"ensure_{self.L}").write_text("")
@@ -118,9 +121,9 @@ class _BucketClient:
                     break
                 time.sleep(0.5)
         raise RuntimeError(
-            f"serve bucket tl{self.L} 未就绪（等 {self.ready_timeout:.0f}s ×2）——"
-            "检查 apxinf_rust 内 supervisor 是否在跑、"
-            f"{self.dir}/stdout.log 与 {_SERVE_ROOT}/supervisor.log"
+            f"serve bucket tl{self.L} not ready after {self.ready_timeout:.0f}s x2 — "
+            "check the supervisor inside apxinf_rust, "
+            f"{self.dir}/stdout.log and {_SERVE_ROOT}/supervisor.log"
         )
 
     def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
@@ -153,7 +156,7 @@ class _BucketClient:
                 magic, status = struct.unpack_from("<II", raw, 0)
                 if magic != RESP_MAGIC or status != 0:
                     raise RuntimeError(
-                        f"serve tl{self.L} 响应异常 magic={magic:#x} status={status}"
+                        f"serve tl{self.L} bad response magic={magic:#x} status={status}"
                     )
                 tv, tp, tf = struct.unpack_from("<fff", raw, 8)
                 acts = (
@@ -163,16 +166,18 @@ class _BucketClient:
                 )
                 return acts, (tv, tp, tf)
         raise RuntimeError(
-            f"serve tl{self.L} 请求超时 ×2（进程死或卡死——看 {self.dir}/stdout.log）"
+            f"serve tl{self.L} request timed out x2 (process dead or hung — see {self.dir}/stdout.log)"
         )
 
 
 class _ChipClient:
-    """Gear 模式的单芯 serve 客户端（spool 目录 chip<N>）。
+    """Single-chip serve client for gear mode (spool dir chip<N>).
 
-    与 _BucketClient 同协议；差异：L 不在构造期钉死——每请求从 ids 长度
-    取（serve 侧按 payload 头选档，档表外 L 引擎 panic 拒绝）。ready 握手
-    走 ctrl/ensure_chip<N>（supervisor alive 则 touch ready）。
+    Same protocol as _BucketClient; the difference: L is not pinned at
+    construction — each request takes it from len(ids) (the serve side
+    picks the gear from the payload header; an off-table L panics in the
+    engine). The ready handshake goes through ctrl/ensure_chip<N> (a
+    live supervisor touches ready).
     """
 
     def __init__(self, chip_dir: Path, *, ready_timeout: float = _READY_TIMEOUT):
@@ -200,8 +205,8 @@ class _ChipClient:
                     break
                 time.sleep(0.5)
         raise RuntimeError(
-            f"gear serve {self.chip} 未就绪（等 {self.ready_timeout:.0f}s ×2）——"
-            f"检查 {self.dir}/stdout.log 与 gear supervisor 日志"
+            f"gear serve {self.chip} not ready after {self.ready_timeout:.0f}s x2 — "
+            f"check {self.dir}/stdout.log and the gear supervisor log"
         )
 
     def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
@@ -229,7 +234,7 @@ class _ChipClient:
                 magic, status = struct.unpack_from("<II", raw, 0)
                 if magic != RESP_MAGIC or status != 0:
                     raise RuntimeError(
-                        f"gear serve {self.chip} 响应异常 magic={magic:#x} status={status}"
+                        f"gear serve {self.chip} bad response magic={magic:#x} status={status}"
                     )
                 tv, tp, tf = struct.unpack_from("<fff", raw, 8)
                 acts = (
@@ -239,15 +244,17 @@ class _ChipClient:
                 )
                 return acts, (tv, tp, tf)
         raise RuntimeError(
-            f"gear serve {self.chip} 请求超时 ×2（看 {self.dir}/stdout.log）"
+            f"gear serve {self.chip} request timed out x2 (see {self.dir}/stdout.log)"
         )
 
 
 class _FallbackBucketClient:
-    """静态桶回退：指定 L 走生产根 per-L 桶（tl{L}，v3 supervisor 保活）。
-    gear 分支 kernel 与静态 OM 非逐位同（~1% 漂移）——个别边际任务在
-    gear 路径行为翻转时，按 L 回退静态桶恢复生产数值（2026-10-12 spatial
-    t4 二连败先例）。显式 root 参数（_BucketClient 读全局 _SERVE_ROOT）。"""
+    """Static-bucket fallback: a given L goes to the production root's
+    per-L bucket (tl{L}, kept alive by the v3 supervisor). The gear
+    branch's kernels are not bit-identical to the static OMs (~1%
+    drift) — when a marginal task flips behavior on the gear path, this
+    restores production numerics per L. Takes an explicit root
+    (_BucketClient reads the global _SERVE_ROOT)."""
 
     def __init__(self, length: int, root: str, *, ready_timeout: float = _READY_TIMEOUT):
         self.L = length
@@ -274,7 +281,7 @@ class _FallbackBucketClient:
                     break
                 time.sleep(0.5)
         raise RuntimeError(
-            f"静态回退桶 tl{self.L}（{self.root}）未就绪——检查 v3 supervisor"
+            f"static fallback bucket tl{self.L} ({self.root}) not ready — check the v3 supervisor"
         )
 
     def request(self, patches: np.ndarray, ids: np.ndarray, noise: np.ndarray):
@@ -301,7 +308,7 @@ class _FallbackBucketClient:
                 magic, status = struct.unpack_from("<II", raw, 0)
                 if magic != RESP_MAGIC or status != 0:
                     raise RuntimeError(
-                        f"静态回退桶 tl{self.L} 响应异常 magic={magic:#x} status={status}"
+                        f"static fallback bucket tl{self.L} bad response magic={magic:#x} status={status}"
                     )
                 tv, tp, tf = struct.unpack_from("<fff", raw, 8)
                 acts = (
@@ -310,17 +317,19 @@ class _FallbackBucketClient:
                     .copy()
                 )
                 return acts, (tv, tp, tf)
-        raise RuntimeError(f"静态回退桶 tl{self.L} 请求超时 ×2（看 {self.dir}/stdout.log）")
+        raise RuntimeError(f"static fallback bucket tl{self.L} request timed out x2 (see {self.dir}/stdout.log)")
 
 
 class _GearInprocClient:
-    """Gear inproc：进程内 PyO3 GeServeModel（26 档单 OM + flow 池），L 由
-    payload 驱动选档。前置：9.0.1 CANN env（cann901_full wrapper 五件 env +
-    LD_PRELOAD）+ APXINF_LEROBOT_DEVICE=cpu（torch_npu 与 9.0.1 互斥）。
-    static_fallback_llist 的 L 仍走 spool 静态桶（t4 行为保底）。"""
+    """Gear inproc: in-process PyO3 GeServeModel (one multi-gear OM + the
+    flow pool); L selects the gear from the payload. Requires the CANN
+    9.0.1 env (the cann901_full wrapper env set + LD_PRELOAD) and
+    APXINF_LEROBOT_DEVICE=cpu (torch_npu and 9.0.1 are mutually
+    exclusive). Ls listed in static_fallback_llist still go through the
+    spool static buckets (behavior floor)."""
 
     def __init__(self):
-        from apxinf_py import GeServeModel  # 9.0.1 链接（env 由宿主进程供给）
+        from apxinf_py import GeServeModel  # links CANN 9.0.1 (env comes from the host process)
         ckpt = os.environ.get("APXINF_GE_CKPT", "./weights/pi05_libero_finetuned")
         om_dir = os.environ.get("APXINF_GE_OM_DIR", "./om_cache/tl_dyn")
         self.m = GeServeModel.open(om_dir, 200, ckpt, True)
@@ -357,14 +366,16 @@ class _GearInprocClient:
 
 
 class _GearClient:
-    """Gear 模式路由：全部 L 共享 N 只芯级 serve（单只多档 OM），逐请求
-    轮询分芯。serve 侧按 L 选档（SetInputDynamicDims），客户端零分桶。
-    static_fallback_llist（serve 根下，逗号 L 表）列出的 L 回退生产根静态桶。"""
+    """Gear-mode routing: all Ls share N chip-level serves (one multi-gear
+    OM each), round-robined per request. The serve side picks the gear by
+    L (SetInputDynamicDims); the client does no bucketing. Ls listed in
+    static_fallback_llist (comma-separated L table under the serve root)
+    fall back to the production root's static buckets."""
 
     def __init__(self):
         dirs = sorted(d for d in _SERVE_ROOT.glob("chip*") if d.is_dir())
         if not dirs:
-            raise RuntimeError(f"gear 模式：{_SERVE_ROOT} 下无 chip* serve 目录")
+            raise RuntimeError(f"gear mode: no chip* serve dirs under {_SERVE_ROOT}")
         self.clients = [_ChipClient(d) for d in dirs]
         self.rr = 0
         self.fallback_root = os.environ.get(
@@ -436,8 +447,9 @@ class GeServePi05Policy:
         self._torch = self._torch_pol._torch
         self._model_dir = str(model_dir)
         self._buckets: Dict[int, Any] = {}
-        # gear 模式（serve 根带 gear_mode 标记）：全部 L 共享芯级 serve，
-        # 单一懒建客户端轮询（inproc 暂不支持 gear——回落 spool）
+        # Gear mode (gear_mode marker in the serve root): all Ls share the
+        # chip-level serves via one lazily built round-robin client
+        # (inproc does not support gear yet — spool fallback).
         self._gear: Optional[Any] = None
         self._gear_mode = (_SERVE_ROOT / "gear_mode").exists()
 
@@ -454,8 +466,9 @@ class GeServePi05Policy:
         running in the torch_npu container, where the 9.0.1-linked extension
         cannot coexist with the 8.5.1 torch_npu runtime.
 
-        gear 模式（serve 根带 gear_mode 标记）：忽略 length——单只多档
-        serve 全 L 覆盖，_GearClient 轮询分芯。
+        Gear mode (gear_mode marker in the serve root): length is ignored
+        — one multi-gear serve covers every L; _GearClient round-robins
+        across chips.
         """
         if self._gear_mode:
             if self._gear is None:
@@ -476,7 +489,7 @@ class GeServePi05Policy:
                 return _InprocClient(length, self._model_dir)
             except Exception as exc:  # ImportError or engine-side failure
                 print(
-                    f"[npu-ge] inproc 客户端不可用（{exc!r}），回落 spool 桶 tl{length}"
+                    f"[npu-ge] inproc client unavailable ({exc!r}), falling back to spool bucket tl{length}"
                 )
         return _BucketClient(length)
 
@@ -505,14 +518,16 @@ class GeServePi05Policy:
         frame = pol._to_frame(dict(observation))
         batch = pol.preprocess(frame)
         ids_t = batch[OBS_LANGUAGE_TOKENS]
-        # processor 输出恒 pad 到 max_length=200（pad_token_id=0 + mask=0）。
-        # 静态 OM 全可见 ≠ 被 mask：数学等价于只喂 L 个可见 token——截非零
-        # 前缀按真长挑桶（replay_filter.py 同式；pad 只在尾部，真文本不含
-        # id 0）。喂 pad 全可见会让 embedding[0] 投影进 attention（语义
-        # 污染，离线对拍分不出来但行为不可信）。
+        # The processor always pads to max_length=200 (pad_token_id=0 with
+        # mask=0). Visible-everywhere in a static OM is NOT the same as
+        # masked: feeding the full pad would project embedding[0] into
+        # attention (semantic pollution — invisible in offline parity
+        # checks, but behaviorally untrustworthy). Pads sit only at the
+        # tail and real text never contains id 0, so trimming the
+        # nonzero prefix yields the true L for bucket routing.
         ids_full = ids_t[0].detach().to(torch.long).cpu().numpy()
         ell = int((ids_full != 0).sum())
-        assert 0 < ell <= ids_full.shape[0], f"token 非零计数异常 {ell}"
+        assert 0 < ell <= ids_full.shape[0], f"abnormal nonzero token count {ell}"
         ids = ids_full[:ell].astype(np.uint32)
         # SigLIP inputs, self-reproduced (deterministic pure function; the
         # empty view is -1 padded by _preprocess_images' missing path, the
@@ -549,7 +564,7 @@ class GeServePi05Policy:
             acts = acts[0]
         total_ms = (time.perf_counter() - started) * 1000.0
         if os.environ.get("APXINF_GE_PERCALL"):
-            # 逐调用计时（诊断 server_processor 归因用；见 2026-10-15 I9 取证）
+            # Per-call timing (server_processor attribution diagnostics).
             print(
                 f"[ge-percall] L={length} total={total_ms:.1f} "
                 f"model={model_ms:.1f} gap={total_ms - model_ms:.1f}",
@@ -575,9 +590,9 @@ class GeServePi05Policy:
         torch_npu op compilation for the preprocessing chain's to(npu) /
         resize / mul ops plus the gear client's ready handshake), which a
         per-call episode average folds into every call: observed 433ms mean
-        vs ~280ms steady state (root cause 2026-10-15; the earlier "186ms
-        tokenize" attribution was this outlier amortized -- the tokenizer
-        itself costs 0.43ms/call). Mirrors ``NpuTorchPi05Policy.warmup``
+        vs ~280ms steady state (the earlier "186ms tokenize" attribution
+        was this outlier amortized -- the tokenizer itself costs
+        0.43ms/call). Mirrors ``NpuTorchPi05Policy.warmup``
         semantics but sends no engine request: only ``_frame_inputs`` (all
         host eager ops), the postprocess unnormalize, and -- gear mode only
         -- bucket-client construction, so static-bucket mode never triggers
